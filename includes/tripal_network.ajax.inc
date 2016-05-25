@@ -18,6 +18,29 @@ function tripal_network_ajax_filter() {
   // Sample List Filter
   $samples = array_key_exists('samples', $_POST) ? $_POST['samples'] : '';
 
-  dpm($args);
-  return '';
+
+  //   {
+  //     “nodes”: [
+  //     {“name”: “Gene1” , “group” : [“group1”]},
+  //     {“name”: “Gene2” , “group” : [“group1”]},
+  //     {“name”: “Gene3” , “group” : [“group1”]},
+  //     ],
+  //     “links”: [
+  //     {“source”: 0 , “target”: 1, “group” : [“group1”]},
+  //     ]
+  //   }
+
+  $results = array(
+    'nodes' => array(
+      array('name' => 'gene1', 'group' => 'group1'),
+      array('name' => 'gene2', 'group' => 'group1'),
+      array('name' => 'gene3', 'group' => 'group2'),
+      array('name' => 'gene4', 'group' => 'group2'),
+      array('name' => 'gene5', 'group' => 'group2'),
+    ),
+    'links' => array(
+      array('source' => 0, 'target' => 1)
+    ),
+  );
+  return drupal_json_output($results);
 }

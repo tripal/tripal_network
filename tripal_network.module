@@ -24,7 +24,7 @@ function tripal_network_menu() {
   $items['networks/ajax/filter'] = array(
     'page callback' => 'tripal_network_ajax_filter',
     'page arguments' => array(),
-    'access arguments' => array('administer tripal_network'),
+    'access arguments' => array('access network'),
     'file' => '/includes/tripal_network.ajax.inc',
     'type' => MENU_CALLBACK,
   );
