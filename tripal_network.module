@@ -1,0 +1,85 @@
+<?php
+
+/**
+ * Implements hook_menu()
+ *
+ * Specifies menu items and URLs used by this module.
+ *
+ * @ingroup tripal_network
+ */
+function tripal_network_menu() {
+  $items = array();
+
+  // All extension modules should have an administrative menu item
+  // with the path set to 'admin/tripal/extension/[module name]'.
+  $items['admin/tripal/extensions/network'] = array(
+    'title' => 'Biological Networks',
+    'description' => 'Manage biological networks made available by this site.',
+    'page callback' => 'tripal_network_admin_home',
+    'access arguments' => array('administer tripal_network'),
+    'file' => '/includes/tripal_network.admin.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['networks/ajax/filter'] = array(
+    'page callback' => 'tripal_network_ajax_filter',
+    'page arguments' => array(),
+    'access arguments' => array('administer tripal_network'),
+    'file' => '/includes/tripal_network.ajax.inc',
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+
+
+
+/**
+ * Implements hook_views_api()
+ *
+ * This hook tells drupal that there is views support for
+ * for this module which then automatically includes the tripal_db.views.inc
+ * where all the views integration code is found.
+ *
+ * @ingroup tripal_network
+ */
+function tripal_network_views_api() {
+  return array(
+    'api' => 3.0,
+  );
+}
+
+
+/**
+ *  Implements hook_theme()
+ *
+ * @ingroup tripal_network
+ */
+function tripal_network_theme($existing, $type, $theme, $path) {
+
+   $items = array(
+
+  );
+  return $items;
+}
+
+
+/**
+ * Implements hook_help()
+ *
+ * Adds a help $formpage to the module list
+ */
+function tripal_network_help ($path, $arg) {
+
+  // EXPLANATION: in the tripal_network_menu() function above we created
+  // a menu item for the help documentation.  The menu item specified
+  // a function that should be called when the menu item is clicked.  This
+  // is that function.  But, rather than place HTML code in this function
+  // we want to have our help documentation in a template galaxy.  We
+  // specified in the tripal_network.theme() function that we have a template
+  // galaxy so now we want to use get the contents of that template galaxy and
+  // return it.
+  if ($path == 'admin/help#tripal_network') {
+    return theme('tripal_network_help', array());
+  }
+}

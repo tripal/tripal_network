@@ -1,0 +1,12 @@
+name = Tripal Network
+description = Provides visualizations for biological networks with genomic and genetic data housed in Chado and network graphs housed in Neo4J
+core = 7.x
+project = tripal_network
+package = Tripal Extensions 
+version = 7.x-1.x
+
+stylesheets[all][] = theme/css/tripal_network.css
+scripts[]          = theme/js/tripal_mnetwork.js
+
+dependencies[] = tripal
+dependencies[] = tripal_chado
