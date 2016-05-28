@@ -12,13 +12,41 @@ function tripal_network_menu() {
 
   // All extension modules should have an administrative menu item
   // with the path set to 'admin/tripal/extension/[module name]'.
-  $items['admin/tripal/extensions/network'] = array(
+  $items['admin/tripal/extension/network'] = array(
     'title' => 'Biological Networks',
     'description' => 'Manage biological networks made available by this site.',
     'page callback' => 'tripal_network_admin_home',
     'access arguments' => array('administer tripal_network'),
     'file' => '/includes/tripal_network.admin.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/tripal/extension/network/overview'] = array(
+    'title' => 'Overview',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0,
+  );
+
+  $items['admin/tripal/extension/network/gml_loader'] = array(
+    'title' => 'Import a Network',
+    'description' => 'Import a biological network from a file in GraphML format..',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('tripal_network_graphML_load_form'),
+    'access arguments' => array('administer tripal_network'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => '/includes/tripal_network.graphML_loader.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'weight' => 1,
+  );
+  $items['admin/tripal/extension/network/help'] = array(
+    'title' => 'Help',
+    'description' => 'Documentation for the Tripal Network module..',
+    'page callback' => 'tripal_network_admin_help',
+    'access arguments' => array('administer tripal_network'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => '/includes/tripal_network.graphML_loader.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'weight' => 2,
   );
 
   $items['networks/ajax/filter'] = array(
@@ -26,6 +54,7 @@ function tripal_network_menu() {
     'page arguments' => array(),
     'access arguments' => array('access network'),
     'file' => '/includes/tripal_network.ajax.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
   );
   return $items;
