@@ -6,7 +6,7 @@ package = Tripal Extensions
 version = 7.x-1.x
 
 stylesheets[all][] = theme/css/tripal_network.css
-scripts[]          = theme/js/tripal_mnetwork.js
+scripts[]          = theme/js/tripal_network.js
 
 dependencies[] = tripal
 dependencies[] = tripal_chado

@@ -10,24 +10,41 @@ $module=(string)$_POST["module"];
  );
 
 
-$data=json_encode($data);  
+$data=json_encode($data);
 $curl = curl_init();
 curl_setopt($curl, CURLOPT_URL, 'http://localhost:7474/db/data/cypher/');
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 curl_setopt($curl,CURLOPT_HTTPHEADER,array('Accept: application/json; charset=UTF-8','Content-Type: application/json'));
-curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");                                                                     
+curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
 curl_setopt($curl, CURLOPT_POSTFIELDS,$data);
 $result1 = curl_exec($curl);
+curl_close($curl);
 
 $result=json_encode($result1);
-echo $result1."<br /><br />";
-echo $result;
+$result1 = json_decode($result1, TRUE);
 
-echo "<br />";
+$nodes = array();
+$edges = array();
+foreach ($result1['data'] as $row) {
+  $nodes[$row[1]] = count($nodes);
+  $nodes[$row[2]] = count($nodes);
 
-$jsonarray= json_encode($result1);
-//echo $jsonarray;
-curl_close($curl);
+  $n1_index = $nodes[$row[1]];
+  $n2_index = $nodes[$row[2]];
+  $edges[$n1_index][$n2_index] = 1;
+}
+print_r($edges);
+
+$return = array(
+  'nodes' => $nodes,
+  'links' => $edges
+);
+
+$jsonarray= json_encode($return);
+
+header('Content-Type: application/json');
+echo $jsonarray;
+
 
 
 
