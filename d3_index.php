@@ -127,7 +127,7 @@ $jsonarray = json_encode($return);
 
 //Writing the JSON object into a .json file for d3.js to access it
 
-$fh= fopen("miss.json",'w') or die("Error opening file");
+$fh= fopen("mis.json",'w') or die("Error opening file");
 
 fwrite($fh,$jsonarray);
 
@@ -356,7 +356,7 @@ var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height).attr("id","svg-id").append("g").call(d3.behavior.zoom().scaleExtent([1,8]).on("zoom",zoom)).append("g");
 
-d3.json("miss.json", function(error, graph) {
+d3.json("mis.json", function(error, graph) {
   if (error) throw error;
 
   force
