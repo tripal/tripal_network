@@ -6,9 +6,9 @@
 
    if(isset($_POST["submit"]))
    {
-     
 
-//PHP script for querying Neo4j with the appropriate matching format and also 
+
+//PHP script for querying Neo4j with the appropriate matching format and also
 //Conversion of the returned format to the format required by D3.js for rendering purpose
 
 
@@ -26,12 +26,12 @@ $module=$_POST["module"];
 // Neo4j REST API calls
 
 
-$data=json_encode($data);  
+$data=json_encode($data);
 $curl = curl_init();
 curl_setopt($curl, CURLOPT_URL, 'http://localhost:7474/db/data/cypher/');
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 curl_setopt($curl,CURLOPT_HTTPHEADER,array('Accept: application/json; charset=UTF-8','Content-Type: application/json'));
-curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");                                                                     
+curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
 curl_setopt($curl, CURLOPT_POSTFIELDS,$data);
 $result1 = curl_exec($curl);
 
@@ -95,7 +95,7 @@ foreach($result1['data'] as $row)
 
 
 
- 
+
 
 $num = count($nodes);
 $n=0;
@@ -127,14 +127,14 @@ $jsonarray = json_encode($return);
 
 //Writing the JSON object into a .json file for d3.js to access it
 
-$fh= fopen("mis.json",'w') or die("Error opening file");
+$fh= fopen("mis.json",'w') or die("Error opening file " .  print_r(error_get_last(), TRUE));
 
 fwrite($fh,$jsonarray);
 
 curl_close($curl);
 
 
- 
+
 
 
    }
@@ -253,12 +253,12 @@ color:#000;
 
 #genomic-view
 {
-   
+
    position:absolute;
    top:64%;
    left:1%;
-   
-   
+
+
 }
 
 #dataset
@@ -286,7 +286,7 @@ color:#000;
 
 
 <body>
-  
+
 
 
 
@@ -324,9 +324,9 @@ color:#000;
             </div>
             <!-- /.navbar-collapse -->
         </div>
-       
+
     </nav>
-  
+
 <script src="//d3js.org/d3.v3.min.js"></script>
 
 <!-- This is the script that will render the given data into the visualization format -->
@@ -392,12 +392,12 @@ node.append("circle").attr("r",7);
 {
 return "translate(" + d.x + "," + d.y + ")";
 });
-  
+
 
 
   });
 
- 
+
 
 });
 
@@ -410,10 +410,10 @@ function zoom() {
 </script>
 
 <div class="panel-group" id="accordion">
-    
-       
-        
-       
+
+
+
+
 
 
      <div class="panel panel-default" id="panel5">
@@ -437,13 +437,13 @@ function zoom() {
                     <option>Module4</option>
                     <option>Module5</option>
                     <option>Module6</option>
-                
+
                  </select>
-                
+
                  <input type="submit" name="submit" />
 
               </form>
-              
+
              <br /><br /><br /><br /><br />
              <br /><br /><br /><br /><br />
              <br /><br /><br /><br /><br />
@@ -454,14 +454,14 @@ function zoom() {
         </div>
     </div>
 
-    
+
 </div>
 
 </div>
 
  <!-- making the tables -->
 
- 
+
 
 <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal" id="genomic-view" >Genomic View</button>
 
@@ -509,7 +509,7 @@ function zoom() {
                    <th>hello</th>
                    <th>hello</th>
                    <th>hello</th>
-                   
+
                 </tr>
 
                 <tr>
@@ -644,13 +644,13 @@ function zoom() {
   </div>
   <div id="menu2" class="tab-pane fade">
     <div class="table1">
- 
+
     </div>
   </div>
 
   <div id="menu3" class="tab-pane fade">
     <div class="table1">
- 
+
         </div>
   </div>
 </div>
