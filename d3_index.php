@@ -6,15 +6,18 @@
 
    if(isset($_POST["submit"]))
    {
+     
 
-
-//PHP script for querying Neo4j with the appropriate matching format and also
+//PHP script for querying Neo4j with the appropriate matching format and also 
 //Conversion of the returned format to the format required by D3.js for rendering purpose
-
+    $status=0;
 
 //echo $_POST["module"];
 
 // Matching criteria for querying into Neo4j
+
+
+
 $module=$_POST["module"];
  $data=array(
  "query" => "MATCH(n1:rice)-[rel:ricemodule]->(n2:rice) WHERE rel.modulename = {value} RETURN rel.modulename,n1.id,n2.id",
@@ -26,12 +29,12 @@ $module=$_POST["module"];
 // Neo4j REST API calls
 
 
-$data=json_encode($data);
+$data=json_encode($data);  
 $curl = curl_init();
 curl_setopt($curl, CURLOPT_URL, 'http://localhost:7474/db/data/cypher/');
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 curl_setopt($curl,CURLOPT_HTTPHEADER,array('Accept: application/json; charset=UTF-8','Content-Type: application/json'));
-curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
+curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");                                                                     
 curl_setopt($curl, CURLOPT_POSTFIELDS,$data);
 $result1 = curl_exec($curl);
 
@@ -95,7 +98,7 @@ foreach($result1['data'] as $row)
 
 
 
-
+ 
 
 $num = count($nodes);
 $n=0;
@@ -127,15 +130,24 @@ $jsonarray = json_encode($return);
 
 //Writing the JSON object into a .json file for d3.js to access it
 
-$fh= fopen("mis.json",'w') or die("Error opening file " .  print_r(error_get_last(), TRUE));
+$fh= fopen("miss.json",'w') or die("Error opening file");
 
 fwrite($fh,$jsonarray);
 
 curl_close($curl);
 
 
+ 
 
 
+   }
+
+
+   else
+   {
+       $fh  = fopen("miss.json","w") or die("Error opening file");
+       fwrite($fh," ");
+       $status=1;
 
    }
 
@@ -160,6 +172,7 @@ curl_close($curl);
     <meta name="description" content="">
     <meta name="author" content="">
 
+<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
 
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
@@ -174,11 +187,12 @@ curl_close($curl);
 <!--  <link rel="stylesheet" href="css/style.css" /> -->
 
 <link rel="stylesheet" href="tablecss.CSS" />
-
+<link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
 <style>
 
 body {
     padding-top: 70px; /* Required padding for .navbar-fixed-top. Change if height of navigation changes. */
+    font-family:Lato;
 
 }
 
@@ -253,12 +267,12 @@ color:#000;
 
 #genomic-view
 {
-
+   
    position:absolute;
    top:64%;
    left:1%;
-
-
+   
+   
 }
 
 #dataset
@@ -286,7 +300,7 @@ color:#000;
 
 
 <body>
-
+  
 
 
 
@@ -311,109 +325,60 @@ color:#000;
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav">
-                    <li>
-                        <a href="#">About</a>
+                    <li class="active">
+                        <a href="#" style="font-weight:700;font-size:30px;">Tripal</a>
                     </li>
-                    <li>
-                        <a href="#">Services</a>
-                    </li>
-                    <li>
-                        <a href="#">Contact</a>
-                    </li>
+                   
                 </ul>
             </div>
             <!-- /.navbar-collapse -->
         </div>
-
+       
     </nav>
-
+  
 <script src="//d3js.org/d3.v3.min.js"></script>
 
 <!-- This is the script that will render the given data into the visualization format -->
-<script>
 
-var width = 1200,
-    height = 600;
 
- var color = d3.scale.category20();
+<div id="view">
+<?php
 
-var force = d3.layout.force()
-    .charge(-200)
-    .linkDistance(45)
-    .size([width, height]);
+   if($status==1)
+   {
+      echo "<p style='font-weight:100;font-size:40px;font-family:Lato;color:#E0E0E0;'>Please select Filters for visualization</p>";
+   }
 
-  var randomX = d3.random.normal(width / 2, 80),
-    randomY = d3.random.normal(height / 2, 80);
 
-var data = d3.range(2000).map(function() {
-  return [
-    randomX(),
-    randomY()
-  ];
-});
+?>
 
-var svg = d3.select("body").append("svg")
-    .attr("width", width)
-    .attr("height", height).attr("id","svg-id").append("g").call(d3.behavior.zoom().scaleExtent([1,8]).on("zoom",zoom)).append("g");
+<script type="text/javascript" src="checker.js">
 
-d3.json("mis.json", function(error, graph) {
-  if (error) throw error;
-
-  force
-      .nodes(graph.nodes)
-      .links(graph.links)
-      .start();
-
-  var link = svg.selectAll(".link")
-      .data(graph.links)
-    .enter().append("line")
-      .attr("class", "link")
-      .style("stroke-width", function(d) { return Math.sqrt(d.value); });
-
-  var node = svg.selectAll(".node")
-      .data(graph.nodes)
-    .enter().append("g")
-      .attr("class", "node")
-      .style("fill", function(d) { return color(d.group); })
-      .call(force.drag);
-node.append("circle").attr("r",7);
-  node.append("text")
-      .attr("dx", 12)
-      .attr("dy", ".35em")
-      .text(function(d) { return d.name });
-
-  force.on("tick", function() {
-    link.attr("x1", function(d) { return d.source.x; })
-        .attr("y1", function(d) { return d.source.y; })
-        .attr("x2", function(d) { return d.target.x; })
-        .attr("y2", function(d) { return d.target.y; });
-
-   node.attr("transform", function(d)
-{
-return "translate(" + d.x + "," + d.y + ")";
-});
+ 
 
 
 
-  });
 
 
 
-});
 
-function zoom() {
-  svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
-}
+</script>  
 
 
 
-</script>
+
+</div>
+
+
+
+
+</div>
 
 <div class="panel-group" id="accordion">
-
-
-
-
+    
+       
+        
+       
 
 
      <div class="panel panel-default" id="panel5">
@@ -430,20 +395,20 @@ function zoom() {
             <div class="panel-body">
 
                <form method="post" action="d3_index.php" id="species">
-                 <select id="module" name="module">
+                 <select id="module" name="module" onchange="loadDoc(this.value)">
                     <option>Module1</option>
                     <option>Module2</option>
                     <option>Module3</option>
                     <option>Module4</option>
                     <option>Module5</option>
                     <option>Module6</option>
-
+                
                  </select>
-
+                
                  <input type="submit" name="submit" />
 
               </form>
-
+              
              <br /><br /><br /><br /><br />
              <br /><br /><br /><br /><br />
              <br /><br /><br /><br /><br />
@@ -454,16 +419,16 @@ function zoom() {
         </div>
     </div>
 
-
+    
 </div>
 
 </div>
 
  <!-- making the tables -->
 
+ 
 
-
-<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal" id="genomic-view" >Genomic View</button>
+<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal" id="genomic-view" style="font-weight:100;">Genome View</button>
 
 <!-- Modal -->
 <div id="myModal" class="modal fade" role="dialog">
@@ -509,7 +474,7 @@ function zoom() {
                    <th>hello</th>
                    <th>hello</th>
                    <th>hello</th>
-
+                   
                 </tr>
 
                 <tr>
@@ -644,18 +609,66 @@ function zoom() {
   </div>
   <div id="menu2" class="tab-pane fade">
     <div class="table1">
-
+ 
     </div>
   </div>
 
   <div id="menu3" class="tab-pane fade">
     <div class="table1">
-
+ 
         </div>
   </div>
 </div>
 
 </div>
+
+
+<!--
+<script>
+
+function loadDoc(str)
+ {
+  var xhttp;
+  if(window.XMLHttpRequest)
+  {
+    xhttp = new XMLHttpRequest();
+  }
+  else
+  {
+    xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+  }
+
+  xhttp.open("POST","test.php?q="+str,true);
+  xhttp.send();
+
+
+  xhttp.onreadystatechange=function()
+  {
+    if(xhttp.readyState==4 && xhttp.status==200)
+    {
+       document.getElementById('view').innerHTML='hello';
+
+
+
+
+
+    }
+  };
+  
+  
+
+  
+
+
+
+
+ }
+
+
+ 
+
+</script>
+-->
 
 </body>
 
