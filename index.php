@@ -81,10 +81,11 @@ $node=array();
 for($x=0;$x<$num;$x++)
 {
   $temp = array();
-  $temp["x"]=(mt_rand()/mt_getrandmax() )*1200;
-  $temp["y"]=(mt_rand()/mt_getrandmax())*600;
-  $temp["r"]=8;
-  $temp["weight"]=1;
+  $temp["x"]=(mt_rand()/mt_getrandmax())*400 +150;
+  $temp["y"]=(mt_rand()/mt_getrandmax())*300+100;
+  $temp["r"]=10;
+  $temp["weight"]=20;
+  $temp["color"]='#43a2ca';
 
   //$temp["name"] = $nodes[$x];
   //$temp["group"] = 2;
@@ -187,7 +188,7 @@ curl_close($curl);
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
 
 <!--  <link rel="stylesheet" href="css/style.css" /> -->
-
+<script type="text/javascript" src="center.js"></script>
 <script src="grapher.js"></script>
 <script src="grapher.min.js"></script>
 <script src="zoom.js"></script>
@@ -412,19 +413,21 @@ color:#000;
         grapher.update(); // update the grapher
       };
 
+       
+
       // Setup D3's force layout
       var force = d3.layout.force()
           .nodes(network.nodes)
           .links(network.links)
           .size([width, height])
           .on('tick', onTick)
-          .charge(-500)
+          .charge(-60)
           .gravity(0.002)
           .linkStrength(0.2)
-          .linkDistance(2)
+          .linkDistance(0.002)
           .friction(0.3)
           .start();
-
+      
 
          
       // On mousedown, grab the node that was clicked.
@@ -498,7 +501,7 @@ color:#000;
       document.body.appendChild(grapher.canvas);
 
       //Coloring the graph
-      //grapher.color();
+      grapher.color();
       
       
 
@@ -506,6 +509,7 @@ color:#000;
       grapher.play();
 
       //document.write(JSON.stringify(network));
+      
       
 
       //Function for zooming in and out with mouse wheel
@@ -520,6 +524,9 @@ color:#000;
          grapher.play();
  
       });
+
+
+      
 
 
 
