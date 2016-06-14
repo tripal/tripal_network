@@ -1,6 +1,6 @@
 <?php
 
-//PHP script for querying Neo4j with the appropriate matching format and also 
+//PHP script for querying Neo4j with the appropriate matching format and also
 //Conversion of the returned format to the format required by D3.js for rendering purpose
 
 
@@ -23,12 +23,12 @@ $module=$_POST["module"];
 // Neo4j REST API calls
 
 
-$data=json_encode($data);  
+$data=json_encode($data);
 $curl = curl_init();
 curl_setopt($curl, CURLOPT_URL, 'http://localhost:7474/db/data/cypher/');
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 curl_setopt($curl,CURLOPT_HTTPHEADER,array('Accept: application/json; charset=UTF-8','Content-Type: application/json'));
-curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");                                                                     
+curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
 curl_setopt($curl, CURLOPT_POSTFIELDS,$data);
 $result1 = curl_exec($curl);
 
@@ -110,9 +110,10 @@ foreach($result1['data'] as $row)
     $target=$key;
     $temp["source"]=$node[$source];
     $temp["target"]=$node[$target];
+    $temp["color"]='#777777';
 
-    
-    
+
+
     $edges[$e]=$temp;
     $e++;
 
@@ -120,7 +121,7 @@ foreach($result1['data'] as $row)
 
 
 
- 
+
 
 
 
@@ -274,12 +275,12 @@ color:#000;
 
 #genomic-view
 {
-   
+
    position:absolute;
    top:64%;
    left:1%;
-   
-   
+
+
 }
 
 #dataset
@@ -307,7 +308,7 @@ color:#000;
 
 
 <body>
-  
+
 
 
 
@@ -335,14 +336,14 @@ color:#000;
                     <li class="active">
                         <a href="#" style="font-weight:700;font-size:30px;">Tripal</a>
                     </li>
-                   
+
                 </ul>
             </div>
             <!-- /.navbar-collapse -->
         </div>
-       
+
     </nav>
-  
+
 <script src="//d3js.org/d3.v3.min.js"></script>
 
 <!-- This is the script that will render the given data into the visualization format -->
@@ -413,7 +414,7 @@ color:#000;
         grapher.update(); // update the grapher
       };
 
-       
+
 
       // Setup D3's force layout
       var force = d3.layout.force()
@@ -427,9 +428,9 @@ color:#000;
           .linkDistance(0.002)
           .friction(0.3)
           .start();
-      
 
-         
+
+
       // On mousedown, grab the node that was clicked.
       grapher.on('mousedown', function (e) {
         var eOffset = getOffset(e);
@@ -439,7 +440,7 @@ color:#000;
           dragging = {node: network.nodes[nodeId], id: nodeId};
           offset = point;
           document.getElementById("data").innerHTML=nodeId;
-          //Use the ID from here to parse get the required data that has to be displayed 
+          //Use the ID from here to parse get the required data that has to be displayed
 
         }
         else dragging = offset = null;
@@ -457,7 +458,7 @@ color:#000;
 
       // Finally when the user lets go of the mouse, we stop dragging
       grapher.on('mouseup', function (e) { dragging = offset = null; });
-     
+
       //The following will do the pan function for the canvas
       //
       /*
@@ -502,15 +503,15 @@ color:#000;
 
       //Coloring the graph
       grapher.color();
-      
-      
+
+
 
       // Render the graph using play. This will call render in a requestAnimationFrame loop.
       grapher.play();
 
       //document.write(JSON.stringify(network));
-      
-      
+
+
 
       //Function for zooming in and out with mouse wheel
       grapher.on('wheel',function(e)
@@ -522,11 +523,10 @@ color:#000;
 
          grapher.zoom(1+delta,center);
          grapher.play();
- 
+
       });
 
 
-      
 
 
 
@@ -535,7 +535,8 @@ color:#000;
 
 
 
-</script>  
+
+</script>
 
 
 
@@ -548,10 +549,10 @@ color:#000;
 
 <div id="data" style="background-color:#E0E0E0;width:100px"></div>
 <div class="panel-group" id="accordion">
-    
-       
-        
-       
+
+
+
+
 
 
      <div class="panel panel-default" id="panel5">
@@ -575,13 +576,13 @@ color:#000;
                     <option>Module4</option>
                     <option>Module5</option>
                     <option>Module6</option>
-                
+
                  </select>
-                
+
                  <input type="submit" name="submit" />
 
               </form>
-              
+
              <br /><br /><br /><br /><br />
              <br /><br /><br /><br /><br />
              <br /><br /><br /><br /><br />
@@ -592,14 +593,14 @@ color:#000;
         </div>
     </div>
 
-    
+
 </div>
 
 </div>
 
  <!-- making the tables -->
 
- 
+
 
 <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal" id="genomic-view" style="font-weight:100;">Genome View</button>
 
@@ -647,7 +648,7 @@ color:#000;
                    <th>hello</th>
                    <th>hello</th>
                    <th>hello</th>
-                   
+
                 </tr>
 
                 <tr>
@@ -782,13 +783,13 @@ color:#000;
   </div>
   <div id="menu2" class="tab-pane fade">
     <div class="table1">
- 
+
     </div>
   </div>
 
   <div id="menu3" class="tab-pane fade">
     <div class="table1">
- 
+
         </div>
   </div>
 </div>
@@ -827,10 +828,10 @@ function loadDoc(str)
 
     }
   };
-  
-  
 
-  
+
+
+
 
 
 
@@ -838,7 +839,7 @@ function loadDoc(str)
  }
 
 
- 
+
 
 </script>
 -->

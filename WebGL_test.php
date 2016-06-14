@@ -7,30 +7,30 @@
 <script src="grapher.js"></script>
 <script src="grapher.min.js"></script>
 <body>
- 
+
   <script>
 
 
       // Generate some data
 
-      
-      
+
+
       var network = {nodes: [], links: []},
-          width = 1200,
-          height = 600,
-          numNodes = 30,
-          numLinks = 20,
+          width = 2400,
+          height = 1200,
+          numNodes = 1000,
+          numLinks = 2000,
           i;
 
       for (i = 0; i < numNodes; i++) {
         network.nodes.push({
           x: Math.random() * width,
           y: Math.random() * height,
-          r: Math.random() * 10 + 5,
+          r: Math.random() * 8,
           weight: 1
         });
       }
-      
+
       for (i = 0; i < numLinks; i++) {
         var from = Math.floor(Math.random() * numNodes),
             to = Math.floor(Math.random() * numNodes);
@@ -41,7 +41,7 @@
           target: network.nodes[to]
         });
       }
-      
+
 
       //var network = {"nodes":[{"x":340,"y":340,"weight":3},{"x":390,"y":390,"weight":4}],"links":[{"from" :340,"to":390}]};
       // We create a function that determines whether a click event falls on a node.
@@ -142,7 +142,7 @@
       grapher.play();
 
       document.write(JSON.stringify(network));
-    
+
   </script>
 
   <!-- <canvas height="400px" width="400px"></canvas> -->
