@@ -1,6 +1,6 @@
 <?php
 
-//PHP script for querying Neo4j with the appropriate matching format and also
+//PHP script for querying Neo4j with the appropriate matching format and also 
 //Conversion of the returned format to the format required by D3.js for rendering purpose
 
 
@@ -11,10 +11,18 @@ if(isset($_POST["submit"]))
 {
 
 
+
+
+
   $status=0;
+  $species= $_POST["species"];
 $module=$_POST["module"];
+
+$rel=$species."module";
+
+$que="MATCH(n1:".$species.")-[rel:".$rel."]->(n2:".$species.") WHERE rel.modulename = {value} RETURN rel.modulename,n1.id,n2.id";
  $data=array(
- "query" => "MATCH(n1:rice)-[rel:ricemodule]->(n2:rice) WHERE rel.modulename = {value} RETURN rel.modulename,n1.id,n2.id",
+ "query" => $que,
   "params" => array(
       "value"=>$module
   )
@@ -23,12 +31,12 @@ $module=$_POST["module"];
 // Neo4j REST API calls
 
 
-$data=json_encode($data);
+$data=json_encode($data);  
 $curl = curl_init();
 curl_setopt($curl, CURLOPT_URL, 'http://localhost:7474/db/data/cypher/');
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 curl_setopt($curl,CURLOPT_HTTPHEADER,array('Accept: application/json; charset=UTF-8','Content-Type: application/json'));
-curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
+curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");                                                                     
 curl_setopt($curl, CURLOPT_POSTFIELDS,$data);
 $result1 = curl_exec($curl);
 
@@ -49,6 +57,8 @@ $e=0;
 
 // Storing the nodes in an array
 // Purpose of this is to use the index for mapping of ID's
+
+$edge_count =0;
 foreach($result1['data'] as $row)
 {
   //Following is for the storage of names which are id's only with proper indexing
@@ -56,6 +66,8 @@ foreach($result1['data'] as $row)
     $i++;
     $nodes[$i] =$row[2];
     $i++;
+
+    $edge_count=$edge_count+1;
 
 
 }
@@ -76,8 +88,10 @@ foreach($result1['data'] as $row)
 $num = count($nodes);
 $n=0;
 $node=array();
+$palette=array('#0066CC', '#bae4bc', '#7bccc4', '#43a2ca', '#0868ac','#009999','#606060','#3399FF');
 
 // Storage of the nodes in the proper format with the correct indexing
+
 for($x=0;$x<$num;$x++)
 {
   $temp = array();
@@ -85,7 +99,8 @@ for($x=0;$x<$num;$x++)
   $temp["y"]=(mt_rand()/mt_getrandmax())*300+100;
   $temp["r"]=10;
   $temp["weight"]=20;
-  $temp["color"]='#43a2ca';
+  $index = mt_rand(0,7);
+  $temp["color"]=$palette[$index];
 
   //$temp["name"] = $nodes[$x];
   //$temp["group"] = 2;
@@ -110,10 +125,9 @@ foreach($result1['data'] as $row)
     $target=$key;
     $temp["source"]=$node[$source];
     $temp["target"]=$node[$target];
-    $temp["color"]='#777777';
 
-
-
+    
+    
     $edges[$e]=$temp;
     $e++;
 
@@ -121,7 +135,7 @@ foreach($result1['data'] as $row)
 
 
 
-
+ 
 
 
 
@@ -189,7 +203,7 @@ curl_close($curl);
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
 
 <!--  <link rel="stylesheet" href="css/style.css" /> -->
-<script type="text/javascript" src="center.js"></script>
+<script src="center.js"></script>
 <script src="grapher.js"></script>
 <script src="grapher.min.js"></script>
 <script src="zoom.js"></script>
@@ -199,9 +213,9 @@ curl_close($curl);
 <style>
 
 body {
-    padding-top: 70px; /* Required padding for .navbar-fixed-top. Change if height of navigation changes. */
-    font-family:Lato;
-
+    /* Required padding for .navbar-fixed-top. Change if height of navigation changes. */
+    
+    background-color:#202020;
 }
 
 .scrollit
@@ -210,18 +224,10 @@ body {
   height:200px;
 }
 
-.navbar-fixed-top .nav {
-    padding: 15px 0;
-}
 
-.navbar-fixed-top .navbar-brand {
-    padding: 0 15px;
-}
 
 @media(min-width:768px) {
-    body {
-        padding-top: 100px; /* Required padding for .navbar-fixed-top. Change if height of navigation changes. */
-    }
+   
 
     .navbar-fixed-top .navbar-brand {
         padding: 15px 0;
@@ -230,10 +236,10 @@ body {
 
 #accordion
 {
-  width:25%;
+  width:15%;
   position:absolute;
-  top:13%;
-  left:75%;
+  top:5%;
+  left:83%;
 
 }
 
@@ -251,45 +257,29 @@ body {
 
 
 
-.node {
-  stroke: gray;
-  stroke-width: 0.5px;
-}
 
-.link {
-  stroke: #999;
-  stroke-opacity: 0.5;
-}
 
-.node text
-{
-
-font: 10px sans-serif;
-color:#000;
-}
-
-#svg-id
-{
-  z-index:0;
-}
 
 #genomic-view
 {
-
+   
    position:absolute;
-   top:64%;
+   top:90%;
    left:1%;
-
-
+   
+   
 }
+
+
 
 #dataset
 {
   border : 1px solid #E0E0E0;
   position:absolute;
-  width:100%;
-  top:74%;
-  height : 200px;
+  width:65%;
+  top:72%;
+  left:15%;
+  
   z-index : 100;
   background-color: white;
 }
@@ -301,6 +291,43 @@ color:#000;
 }
 
 
+
+#filter
+{
+  position:absolute;
+  top:10%;
+  left:92%;
+}
+
+
+select {
+    padding:3px;
+    margin: 0;
+    -webkit-border-radius:4px;
+    -moz-border-radius:4px;
+    border-radius:4px;
+    -webkit-box-shadow: 0 3px 0 #ccc, 0 -1px #fff inset;
+    -moz-box-shadow: 0 3px 0 #ccc, 0 -1px #fff inset;
+    box-shadow: 0 0.5px 0 #ccc, 0 -1px #fff inset;
+    background: #f8f8f8;
+    color:#888;
+    border:none;
+    outline:none;
+    display: inline-block;
+    -webkit-appearance:none;
+    -moz-appearance:none;
+    appearance:none;
+    cursor:pointer;
+}
+
+#get_table
+{
+  position:absolute;
+  top:80%;
+  left:1%;
+}
+
+
 </style>
 <!-- Latest compiled and minified CSS -->
 
@@ -308,61 +335,36 @@ color:#000;
 
 
 <body>
+  
 
 
 
 
 
-<div id="page-content-wrapper">
 
-
-   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-        <div class="container">
-            <!-- Brand and toggle get grouped for better mobile display -->
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <a class="navbar-brand" href="#">
-                    <!-- <img src="tripal.png"  alt=""> -->
-                </a>
-            </div>
-            <!-- Collect the nav links, forms, and other content for toggling -->
-            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                <ul class="nav navbar-nav">
-                    <li class="active">
-                        <a href="#" style="font-weight:700;font-size:30px;">Tripal</a>
-                    </li>
-
-                </ul>
-            </div>
-            <!-- /.navbar-collapse -->
-        </div>
-
-    </nav>
-
+ 
+  
 <script src="//d3js.org/d3.v3.min.js"></script>
 
 <!-- This is the script that will render the given data into the visualization format -->
 
 
-<div id="view">
+
+  <!--
 <?php
 
-   if($status==1)
+   //if($status==1)
    {
-      echo "<p style='font-weight:100;font-size:40px;font-family:Lato;color:#E0E0E0;'>Please select Filters for visualization</p>";
+      //echo "<p style='font-weight:100;font-size:40px;font-family:Lato;color:#E0E0E0;'>Please select Filters for visualization</p>";
    }
 
 
-?>
-
+?> -->
+<canvas id="graph"></canvas>
 <script>
+//Script for rendering graphics using the GPU computational power of Web GL and the force directed layout feature of d3.js
 
- var width=1200,height=600,i;
+ var width=window.innerWidth,height=750,i;
 
       var network = <?php echo $jsonarray; ?>
 
@@ -392,6 +394,7 @@ color:#000;
 
       // Create a grapher instance (width, height, options)
       var grapher = new Grapher({
+        canvas: document.getElementById('graph'),
         width: width,
         height: height
       });
@@ -414,7 +417,7 @@ color:#000;
         grapher.update(); // update the grapher
       };
 
-
+       
 
       // Setup D3's force layout
       var force = d3.layout.force()
@@ -422,16 +425,19 @@ color:#000;
           .links(network.links)
           .size([width, height])
           .on('tick', onTick)
-          .charge(-60)
+          .charge(-100)
           .gravity(0.002)
-          .linkStrength(0.2)
+          .linkStrength(0.00000000002)
           .linkDistance(0.002)
-          .friction(0.3)
+          .friction(0.4)
           .start();
+      
 
-
-
+         
       // On mousedown, grab the node that was clicked.
+
+      //Write all functions corresponding to when a certain node is clicked over here.
+
       grapher.on('mousedown', function (e) {
         var eOffset = getOffset(e);
         var point = grapher.getDataPosition(eOffset);
@@ -439,8 +445,9 @@ color:#000;
         if (nodeId > -1) {
           dragging = {node: network.nodes[nodeId], id: nodeId};
           offset = point;
-          document.getElementById("data").innerHTML=nodeId;
-          //Use the ID from here to parse get the required data that has to be displayed
+          document.getElementById("info").innerHTML="ID : "+nodeId+"<br /> Nodes: "+<?php echo $num; ?>+"<br />Edges: "+<?php echo $edge_count; ?>;
+          //Use the ID from here to parse get the required data that has to be displayed 
+
 
         }
         else dragging = offset = null;
@@ -458,12 +465,12 @@ color:#000;
 
       // Finally when the user lets go of the mouse, we stop dragging
       grapher.on('mouseup', function (e) { dragging = offset = null; });
-
+     
       //The following will do the pan function for the canvas
-      //
-      /*
+      //One can move the canvas just using the mouse
+      
       var startPoint;
-
+      
       function onMouseDown (e) {
         // Set the starting point
         startPoint = getOffset(e);
@@ -496,22 +503,22 @@ color:#000;
 
       grapher.on('mousedown', onMouseDown);
 
-      */
+      
 
       // Append the grapher's view onto the page
-      document.body.appendChild(grapher.canvas);
+      //document.body.appendChild(grapher.canvas);
 
       //Coloring the graph
       grapher.color();
-
-
+      
+      
 
       // Render the graph using play. This will call render in a requestAnimationFrame loop.
       grapher.play();
 
       //document.write(JSON.stringify(network));
-
-
+      
+      
 
       //Function for zooming in and out with mouse wheel
       grapher.on('wheel',function(e)
@@ -523,10 +530,11 @@ color:#000;
 
          grapher.zoom(1+delta,center);
          grapher.play();
-
+ 
       });
 
 
+      
 
 
 
@@ -536,7 +544,7 @@ color:#000;
 
 
 
-</script>
+</script>  
 
 
 
@@ -545,14 +553,60 @@ color:#000;
 
 
 
-</div>
+
 
 <div id="data" style="background-color:#E0E0E0;width:100px"></div>
+
+
+  <!--   Button when clicked will open up the filters table. -->
+   <button id="filter" class="pure-button pure-button-primary">Filter</button>
+  
+
+
+  <form role="form" id="dataform" method="post" action="index.php" style="width:200px;background-color:#202020;padding:1.6%;border:0.1px solid #C0C0C0;border-radius:3px;font-weight:300;color:white;position:absolute;top:20%;left:85%;">
+
+   <div class="form-group">
+    <label for="pwd" style="font-weight:300;">Species</label>
+
+     
+
+    <select id="module" name="species" style="background-color:#202020;color:white;border:1px solid #C0C0C0;width:100%;">
+                    <option>rice</option>
+                    <option>arabidopsis</option>
+                    
+                
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="pwd" style="font-weight:300;">Module</label>
+
+     
+
+    <select id="module" name="module" style="background-color:#202020;color:white;border:1px solid #C0C0C0;width:100%;">
+                    <option>Module1</option>
+                    <option>Module2</option>
+                    <option>Module3</option>
+                    <option>Module4</option>
+                    <option>Module5</option>
+                    <option>Module6</option>
+                
+    </select>
+  </div>
+ 
+  <input type="submit" name="submit" value="Get graph" class="pure-button pure-button-primary"/>
+</form>
+
+
+
+
+   <button id="get_table" class="pure-button pure-button-primary">Get Data</button>
+
+<!--
 <div class="panel-group" id="accordion">
-
-
-
-
+    
+       
+        
+        
 
 
      <div class="panel panel-default" id="panel5">
@@ -576,13 +630,13 @@ color:#000;
                     <option>Module4</option>
                     <option>Module5</option>
                     <option>Module6</option>
-
+                
                  </select>
-
+                
                  <input type="submit" name="submit" />
 
               </form>
-
+              
              <br /><br /><br /><br /><br />
              <br /><br /><br /><br /><br />
              <br /><br /><br /><br /><br />
@@ -593,16 +647,15 @@ color:#000;
         </div>
     </div>
 
-
+    
 </div>
 
-</div>
-
+-->
  <!-- making the tables -->
 
+ 
 
-
-<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal" id="genomic-view" style="font-weight:100;">Genome View</button>
+<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal" id="genomic-view" style="font-weight:300;">Genome View</button>
 
 <!-- Modal -->
 <div id="myModal" class="modal fade" role="dialog">
@@ -626,101 +679,88 @@ color:#000;
   </div>
 </div>
 
-<div id="dataset">
-<ul class="nav nav-tabs">
-  <li class="active"><a data-toggle="tab" href="#home">Edge List</a></li>
-  <li><a data-toggle="tab" href="#menu1">Node List</a></li>
-  <li><a data-toggle="tab" href="#menu2">Markers</a></li>
-    <li><a data-toggle="tab" href="#menu3">Functions</a></li>
+
+
+
+<div id="dataset" style="">
+<ul class="nav nav-tabs" style="background-color:#202020;color:#C0C0C0;">
+  <li class="active"><a data-toggle="tab" href="#home" style="text-decoration:none;color:#A0A0A0;font-weight:300;">Edge List</a></li>
+  <li><a data-toggle="tab" href="#menu1" style="color:#A0A0A0;font-weight:300;">Node List</a></li>
+  <li><a data-toggle="tab" href="#menu2" style="color:#A0A0A0;font-weight:300;">Markers</a></li>
+    <li><a data-toggle="tab" href="#menu3" style="color:#A0A0A0;font-weight:300;">Functions</a></li>
 
 </ul>
 
-<div class="tab-content">
+<div class="tab-content" >
   <div id="home" class="tab-pane fade in active">
         <div class="table1">
 
-          <!-- The following is a proxy table - will be eliminated as we get data from chado and neo4j -->
-            <table style="width:100%">
+            <table style="width:100%;">
                   <tr>
                    <th>Number</th>
                    <th>Edges</th>
                    <th>Functional Characteristics</th>
-                   <th>hello</th>
-                   <th>hello</th>
-                   <th>hello</th>
-
+                  
+                   
+                   
                 </tr>
 
                 <tr>
                    <td>1</td>
                    <td>Connection1</td>
                    <td>Gene</td>
-                   <td>hello</td>
-                   <td>hello</td>
-                   <td>hello</td>
+                  
+                   
                 </tr>
 
                  <tr>
                    <td>1</td>
                    <td>Connection1</td>
                    <td>Gene</td>
-                   <td>hello</td>
-                   <td>hello</td>
-                   <td>hello</td>
+                  
+                   
                 </tr>
 
                  <tr>
                    <td>1</td>
                    <td>Connection1</td>
                    <td>Gene</td>
-                   <td>hello</td>
-                   <td>hello</td>
-                   <td>hello</td>
+                   
+                  
                 </tr>
 
                  <tr>
                    <td>1</td>
                    <td>Connection1</td>
                    <td>Gene</td>
-                   <td>hello</td>
-                   <td>hello</td>
-                   <td>hello</td>
+                   
+                   
                 </tr>
 
                  <tr>
                    <td>1</td>
                    <td>Connection1</td>
                    <td>Gene</td>
-                   <td>hello</td>
-                   <td>hello</td>
-                   <td>hello</td>
+                   
+                   
                 </tr>
 
                  <tr>
                    <td>1</td>
                    <td>Connection1</td>
                    <td>Gene</td>
-                   <td>hello</td>
-                   <td>hello</td>
-                   <td>hello</td>
+                   
+                  
                 </tr>
+
+               
 
                  <tr>
                    <td>1</td>
                    <td>Connection1</td>
                    <td>Gene</td>
-                   <td>hello</td>
-                   <td>hello</td>
-                   <td>hello</td>
-                </tr>
-
-                 <tr>
-                   <td>1</td>
-                   <td>Connection1</td>
-                   <td>Gene</td>
-                   <td>hello</td>
-                   <td>hello</td>
-                   <td>hello</td>
+                   
+                  
                 </tr>
             </table>
         </div>
@@ -781,15 +821,15 @@ color:#000;
             </table>
     </div>
   </div>
-  <div id="menu2" class="tab-pane fade">
+  <div id="menu2" class="tab-pane fade" style="background-color:#202020;">
     <div class="table1">
-
+ 
     </div>
   </div>
 
-  <div id="menu3" class="tab-pane fade">
+  <div id="menu3" class="tab-pane fade" style="background-color:#202020;">
     <div class="table1">
-
+ 
         </div>
   </div>
 </div>
@@ -828,10 +868,10 @@ function loadDoc(str)
 
     }
   };
+  
+  
 
-
-
-
+  
 
 
 
@@ -839,13 +879,35 @@ function loadDoc(str)
  }
 
 
-
+ 
 
 </script>
 -->
+
+
+<div style="font-weight:300;color:#E0E0E0;font-size:40px;position:absolute;top:5px;left:5px;">
+ Tripal
+</div>
+
+<div id="info" style="position:absolute;top:85%;left:85%;color:white;font-size:20px;font-weight:700;font-family:Lato;font-weight:300;"></div>
 
 </body>
 
 
 </html>
 
+<script>
+$(document).ready(function(){
+    $("#filter").click(function(){
+        $("#dataform").toggle();
+    });
+});
+
+
+$(document).ready(function(){
+    $("#get_table").click(function(){
+        $("#dataset").toggle();
+    });
+});
+
+</script>
