@@ -14,7 +14,7 @@ $species="rice";
 
 //This will open the graphml file and put the cursor at the front
 
- $myfile=simplexml_load_file('test.gml');
+ $myfile=simplexml_load_file('rice.txt.gml');
 
 //When file is not found. This has to be filled with a proper error alert instead of an echo
 
@@ -112,7 +112,7 @@ curl_close($curl);
 foreach($myfile->edge as $edgeinfo)
 {
 	//storing the module name
-    $module=(string)$edgeinfo->data;
+    $module=(string)$edgeinfo->data[0];
 
     //storing the network name
     $networkname=(string)$edgeinfo->data[1];
@@ -124,12 +124,12 @@ foreach($myfile->edge as $edgeinfo)
 
     //Naming the relationship 
     $module_rel = $species."module";
-
+    $que = "MATCH(n1:".$species."{id:{id1}})-[rel:".$species."module]->(n2:".$species."{id:{id2}}) WHERE rel.modulename = {value} RETURN rel.modulename,n1.id,n2.id";
 
 //This query is checking if a relationship corresponding to the source and the destination with the specific label of the relationship already exists
 
  $data=array(
- "query" => "MATCH(n1:rice{id:{id1}})-[rel:ricemodule]->(n2:rice{id:{id2}}) WHERE rel.modulename = {value} RETURN rel.modulename,n1.id,n2.id",
+ "query" => $que,
   "params" => array(
   	"id1"=>$source,
   	"id2"=>$target,
