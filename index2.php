@@ -204,10 +204,11 @@ curl_close($curl);
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
 
 <!--  <link rel="stylesheet" href="css/style.css" /> -->
+<!--
 <script src="center.js"></script>
 <script src="grapher.js"></script>
 <script src="grapher.min.js"></script>
-<script src="zoom.js"></script>
+<script src="zoom.js"></script>  -->
 
 <!--  Import of Javascript File dependencies for sigma js   -->
 
@@ -263,8 +264,8 @@ curl_close($curl);
 
 <script src="plugins/sigma.plugins.dragNodes/sigma.plugins.dragNodes.js"></script>
 
-
-<link rel="stylesheet" href="tablecss.CSS" />
+<!-- 
+<link rel="stylesheet" href="tablecss.CSS" /> -->
 <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
 <style>
 
@@ -333,11 +334,11 @@ body {
   border : 1px solid #E0E0E0;
   position:absolute;
   width:65%;
-  top:72%;
+  top:75%;
   left:15%;
   
   z-index : 100;
-  background-color: white;
+  background-color: #202020;
 }
 
 .table1
@@ -401,6 +402,32 @@ select {
   border: 1px solid gray;
 }
 
+table {
+            border-collapse: collapse;
+        }
+        th{
+            border: 1px solid gray;
+            background-color: #202020;
+            color:#A0A0A0;
+            font-size:18px;
+            font-weight:500;
+            font-family:Lato;
+        }
+
+        td
+        {
+          color:#E0E0E0;
+          font-size:15px;
+          font-family:Lato;
+          border-top:1px solid #A0A0A0;
+        }
+  tr:hover td {
+  background:#A0A0A0;
+  color:white;
+  border-top: 1px solid #22262e;
+  border-bottom: 1px solid #22262e;
+}
+
 
 
 </style>
@@ -450,6 +477,12 @@ select {
   </style>
   <div id="graph-container"></div>
 </div>
+
+
+<div id="name" style="position:absolute;left:90%;color:white;">
+   <span style="font-size:30px;font-weight:200;font-family:Lato;"><?php if(isset($_POST["species"])){echo strtoupper($species); }?> </span><br />
+   <span style="font-size:15px;font-weight:200;font-family:Lato;"><?php if(isset($_POST["module"])){echo $module; }?></span>
+</div>
 <script>
 //Script for rendering graphics using the GPU computational power of Web GL and the force directed layout feature of d3.js
 
@@ -491,14 +524,18 @@ s.bind('overNode outNode clickNode doubleClickNode rightClickNode', function(e) 
 //All data that has to be shown when a node is clicked has to be passed through it
 
 s.bind('clickNode',function(e){
-
+   document.getElementById("data").style="font-size:20px;";
    document.getElementById("data").innerHTML="ID: "+ e.data.node.label+"<br /> Nodes: "+ <?php echo $num; ?> + "<br />Edges: "+ <?php echo $edge_count;?>;
 });
 
 
-
+//When clicking on an edge, the function is going to provide information regarding the source and the destination for that specific edge 
 s.bind('clickEdge',function(e){
-   document.getElementById("data").innerHTML = "Source : "+e.data.edge.source + "<br />Target: "+ e.data.edge.target;
+    document.getElementById("data").style="font-size:15px;";
+    document.getElementById("data").innerHTML = "Source:" + g.nodes[e.data.edge.source].label + "<br />Target: "+ g.nodes[e.data.edge.target].label;
+    
+
+  
 });
 
 // All data that has to be shown when an edge is clicked has to be passed through it 
@@ -605,6 +642,19 @@ dragListener.bind('dragend', function(event) {
                     <option>Module19</option>
                     <option>Module20</option>
                     <option>Module21</option>
+                    <option>Module22</option>
+                    <option>Module23</option>
+                    <option>Module24</option>
+                    <option>Module25</option>
+                    <option>Module26</option>
+                    <option>Module27</option>
+                    <option>Module28</option>
+                    <option>Module29</option>
+                    <option>Module30</option>
+                    <option>Module31</option>
+                    <option>Module32</option>
+                    <option>Module33</option>
+
 
                 
     </select>
@@ -699,7 +749,7 @@ dragListener.bind('dragend', function(event) {
 
 
 
-<div id="dataset" style="visibility:hidden;">
+<div id="dataset" style="">
 <ul class="nav nav-tabs" style="background-color:#202020;color:#C0C0C0;">
   <li class="active"><a data-toggle="tab" href="#home" style="text-decoration:none;color:#A0A0A0;font-weight:300;">Edge List</a></li>
   <li><a data-toggle="tab" href="#menu1" style="color:#A0A0A0;font-weight:300;">Node List</a></li>
@@ -711,75 +761,34 @@ dragListener.bind('dragend', function(event) {
 <div class="tab-content" >
   <div id="home" class="tab-pane fade in active">
         <div class="table1">
-
-            <table style="width:100%;">
-                  <tr>
-                   <th>Number</th>
-                   <th>Edges</th>
-                   <th>Functional Characteristics</th>
-                  
-                   
-                   
-                </tr>
-
+            <table style="width:100%">
                 <tr>
-                   <td>1</td>
-                   <td>Connection1</td>
-                   <td>Gene</td>
-                  
-                   
+                   <th>Number</th>
+                   <th>Source </th>
+                   <th>Target</th>
+                   <th>Weight</th>
+                   <th>Direction</th>
+                   <th>Selected Traits</th>
                 </tr>
 
-                 <tr>
-                   <td>1</td>
-                   <td>Connection1</td>
-                   <td>Gene</td>
-                  
-                   
-                </tr>
-
-                 <tr>
-                   <td>1</td>
-                   <td>Connection1</td>
-                   <td>Gene</td>
-                   
-                  
-                </tr>
-
-                 <tr>
-                   <td>1</td>
-                   <td>Connection1</td>
-                   <td>Gene</td>
-                   
-                   
-                </tr>
-
-                 <tr>
-                   <td>1</td>
-                   <td>Connection1</td>
-                   <td>Gene</td>
-                   
-                   
-                </tr>
-
-                 <tr>
-                   <td>1</td>
-                   <td>Connection1</td>
-                   <td>Gene</td>
-                   
-                  
-                </tr>
-
-               
-
-                 <tr>
-                   <td>1</td>
-                   <td>Connection1</td>
-                   <td>Gene</td>
-                   
-                  
-                </tr>
+                <?php 
+                   if(isset($_POST["submit"]))
+                   {
+                     for($i=0;$i<$edge_count;$i++)
+                     {
+                        $j=$i+1;
+                        $src = $edges[$i]["source"];
+                        $source = $nodes[(int)$src];
+                        $trg = $edges[$i]["target"];
+                        $target = $nodes[(int)$trg];
+                        echo "<tr><td>".$j."</td><td>".$source."</td><td>".$target."</td><td>1.5</td><td>undirected</td><td></td></tr>";
+                     }
+                   }
+ 
+ 
+                ?>
             </table>
+            
         </div>
 
   </div>
@@ -791,48 +800,18 @@ dragListener.bind('dragend', function(event) {
                   <th>Node List</th>
                   <th>Functions </th>
                </tr>
+         
+              <?php
+                if(isset($_POST["submit"])){
+                for($i=0;$i< $num;$i++)
+                {
+                  $j = $i+1;
+                  echo "<tr><td>".$j."</td><td>".$nodes[$i]."</td><td>Unknown</td></tr>";
+                }
 
-               <tr>
-                 <td>1</td>
-                 <td>Gene1</td>
-                 <td>Stress Conditions</td>
-               </tr>
-
-               <tr>
-                 <td>1</td>
-                 <td>Gene1</td>
-                 <td>Stress Conditions</td>
-               </tr>
-
-               <tr>
-                 <td>1</td>
-                 <td>Gene1</td>
-                 <td>Stress Conditions</td>
-               </tr>
-
-               <tr>
-                 <td>1</td>
-                 <td>Gene1</td>
-                 <td>Stress Conditions</td>
-               </tr>
-
-               <tr>
-                 <td>1</td>
-                 <td>Gene1</td>
-                 <td>Stress Conditions</td>
-               </tr>
-
-               <tr>
-                 <td>1</td>
-                 <td>Gene1</td>
-                 <td>Stress Conditions</td>
-               </tr>
-
-               <tr>
-                 <td>1</td>
-                 <td>Gene1</td>
-                 <td>Stress Conditions</td>
-               </tr>
+              }
+  
+              ?>
 
 
             </table>
