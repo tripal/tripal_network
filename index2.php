@@ -259,7 +259,8 @@ curl_close($curl);
 <script src="src/misc/sigma.misc.bindDOMEvents.js"></script>
 <script src="src/misc/sigma.misc.drawHovers.js"></script>
 
-
+<script src="plugins/sigma.layout.forceAtlas2/worker.js"></script>
+<script src="plugins/sigma.layout.forceAtlas2/supervisor.js"></script>
 
 
 <script src="plugins/sigma.plugins.dragNodes/sigma.plugins.dragNodes.js"></script>
@@ -426,6 +427,7 @@ table {
   color:white;
   border-top: 1px solid #22262e;
   border-bottom: 1px solid #22262e;
+  
 }
 
 
@@ -579,7 +581,7 @@ dragListener.bind('dragend', function(event) {
 });
 
 
-
+s.startForceAtlas2({worker: true, barnesHutOptimize: false});
 
 </script>  
 
