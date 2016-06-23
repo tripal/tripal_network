@@ -90,7 +90,7 @@ $n=0;
 $node=array();
 
 // Storage of the nodes in the proper format with the correct indexing
-
+$colors = array("#009999","#666","#003366","#660066","#00FF00");
 for($x=0;$x<$num;$x++)
 {
   $temp = array();
@@ -98,8 +98,9 @@ for($x=0;$x<$num;$x++)
   $temp["label"]= (string)$nodes[$x];
   $temp["x"]=mt_rand();
   $temp["y"]=mt_rand();
-  $temp["size"]=mt_rand();
-  $temp["color"]="#666";
+  $temp["size"]=mt_rand(3,10);
+  $val = mt_rand(0,4);
+  $temp["color"]=$colors[$val];
 
   //$temp["name"] = $nodes[$x];
   //$temp["group"] = 2;
@@ -123,7 +124,7 @@ foreach($result1['data'] as $row)
     $temp["target"]=(string)$key;
     $target=$key;
     $temp["size"]=mt_rand();
-    $temp["type"]="curve";
+    $temp["type"]="straight";
     $temp["color"]="#ccc";
     $temp["hover_color"]="rgba(240,230,140,0.5)";
 
@@ -261,7 +262,8 @@ curl_close($curl);
 
 <script src="plugins/sigma.layout.forceAtlas2/worker.js"></script>
 <script src="plugins/sigma.layout.forceAtlas2/supervisor.js"></script>
-
+<script src="plugins/sigma.plugins.animate/sigma.plugins.animate.js"></script>
+<script src="plugins/sigma.layout.noverlap/sigma.layout.noverlap.js"></script>
 
 <script src="plugins/sigma.plugins.dragNodes/sigma.plugins.dragNodes.js"></script>
 
@@ -492,9 +494,18 @@ table {
 
 // Initializing variable g with the json object 
 var g = <?php echo $jsonarray;?>;
-
+ //sigma.settings.nodesPowRatio = 1;
+ //sigma.settings.autoRescale = false;
 
 // Initializing the sigma instance
+
+
+function getParameterByName(name) {
+  var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+  return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+};
+
+
 s = new sigma({
   graph: g,
   renderer: {
@@ -509,10 +520,13 @@ s = new sigma({
     edgeHoverColor: 'edge',
     defaultLabelColor : 'white',
     defaultEdgeHoverColor: '#000',
-    edgeHoverSizeRatio: 4,
+    edgeHoverSizeRatio: 2,
+     minArrowSize: 25,
     edgeHoverExtremities: true,
   }
 });
+
+
 
 
 
@@ -581,8 +595,51 @@ dragListener.bind('dragend', function(event) {
 });
 
 
-s.startForceAtlas2({worker: true, barnesHutOptimize: false});
+//s.startForceAtlas2({worker: true, barnesHutOptimize: false});
+// Configure the noverlap layout:
+var noverlapListener = s.configNoverlap({
+  nodeMargin: 0.1,
+  scaleNodes: 1.05,
+  gridSize: 75,
+  easing: 'quadraticInOut', // animation transition function
+  duration: 10000   // animation duration. Long here for the purposes of this example only
+});
+// Bind the events:
+noverlapListener.bind('start stop interpolate', function(e) {
+  console.log(e.type);
+  if(e.type === 'start') {
+    console.time('noverlap');
+  }
+  if(e.type === 'interpolate') {
+    console.timeEnd('noverlap');
+  }
+});
 
+
+var nodeId = parseInt(getParameterByName('node_id'));
+    var selectedNode;
+    s.graph.nodes().forEach(function(node, i, a) {
+      if (node.id == nodeId) {
+        selectedNode = node;
+        return;
+      }
+    });
+    //Initialize nodes as a circle
+    s.graph.nodes().forEach(function(node, i, a) {
+      node.x = Math.cos(Math.PI * 2 * i / a.length);
+      node.y = Math.sin(Math.PI * 2 * i / a.length);
+    });
+    //Call refresh to render the new graph
+    s.refresh();
+    s.startForceAtlas2({worker:true,barnesHutOptimize: true});
+    if (selectedNode != undefined){
+      s.cameras[0].goTo({x:selectedNode['read_cam0:x'],y:selectedNode['read_cam0:y'],ratio:0.1});
+    }
+// Start the layout:
+//s.startNoverlap();
+
+//s.startForceAtlas2({worker: true, barnesHutOptimize: true});
+//s.startForceAtlas2();
 </script>  
 
 
@@ -593,8 +650,11 @@ s.startForceAtlas2({worker: true, barnesHutOptimize: false});
 
 
 
-
+<div id="layout_stop" style="position:absolute;top:70%;left:90%;">        
+  <button onclick="stop();" class="pure-button pure-button-primary">Stop Layout</button>
+</div>
 <div id="data"></div>
+
 
 
   <!--   Button when clicked will open up the filters table. -->
@@ -821,7 +881,6 @@ s.startForceAtlas2({worker: true, barnesHutOptimize: false});
   </div>
   <div id="menu2" class="tab-pane fade" style="background-color:#202020;">
     <div class="table1">
- 
     </div>
   </div>
 
@@ -908,4 +967,11 @@ $(document).ready(function(){
     });
 });
 
+</script>
+
+<script>
+ function stop()
+ {
+  s.stopForceAtlas2();
+ }
 </script>
