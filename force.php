@@ -1,12 +1,13 @@
 <?php
 
-//PHP script for querying Neo4j with the appropriate matching format and also 
-//Conversion of the returned format to the format required by D3.js for rendering purpose
+//PHP script to load the whole network from Neo4j into the browser
+//This software is built on the top of Sigma.js with certain modifications
+//It relies on the forceLink layout algorithm for the layout of the structure
+//The edges are all rendered together but with a loader which ensures that the script runs throughout without failing
+//Some plugins from linkurious are also imported for further data analytics from the developed graph
 
 
-//echo $_POST["module"];
-
-
+//Setting of maximum execution time so that the script runs for atleast 5 minutes 
 ini_set('max_execution_time', 300);
 
 // Matching criteria for querying into Neo4j
@@ -16,13 +17,16 @@ if(isset($_POST["submit"]))
 
 
 
+  
+ $status=0;
+ // Name of the species selected by the user 
+ $species= $_POST["species"];
+ // Name of the module as selected by the user 
+ $module=$_POST["module"];
+ 
+ $rel=$species."module";
 
-  $status=0;
-  $species= $_POST["species"];
-$module=$_POST["module"];
-
-$rel=$species."module";
-
+//Matching query for neo4j
 $que="MATCH(n1:".$species.")-[rel:".$rel."]->(n2:".$species.") WHERE rel.modulename = {value} RETURN rel.modulename,n1.id,n2.id";
  $data=array(
  "query" => $que,
@@ -200,6 +204,99 @@ curl_close($curl);
   z-index:100;
 }
 
+#locator
+{
+ position:absolute;
+ top:70%;
+ left:90%;
+}
+
+
+.sigma-tooltip {
+      max-width: 240px;
+      max-height: 280px;
+      background-color: rgb(249, 247, 237);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      border-radius: 6px;
+    }
+
+    .sigma-tooltip-header {
+      font-variant: small-caps;
+      font-size: 120%;
+      color: #437356;
+      border-bottom: 1px solid #aac789;
+      padding: 10px;
+    }
+
+    .sigma-tooltip-body {
+      padding: 10px;
+    }
+
+    .sigma-tooltip-body th {
+      color: #999;
+      text-align: left;
+    }
+
+    .sigma-tooltip-footer {
+      padding: 10px;
+      border-top: 1px solid #aac789;
+    }
+
+    .sigma-tooltip > .arrow {
+      border-width: 10px;
+      position: absolute;
+      display: block;
+      width: 0;
+      height: 0;
+      border-color: transparent;
+      border-style: solid;
+    }
+
+    .sigma-tooltip.top {
+      margin-top: -12px;
+    }
+    .sigma-tooltip.top > .arrow {
+      left: 50%;
+      bottom: -10px;
+      margin-left: -10px;
+      border-top-color: rgb(249, 247, 237);
+      border-bottom-width: 0;
+    }
+
+    .sigma-tooltip.bottom {
+      margin-top: 12px;
+    }
+    .sigma-tooltip.bottom > .arrow {
+      left: 50%;
+      top: -10px;
+      margin-left: -10px;
+      border-bottom-color: rgb(249, 247, 237);
+      border-top-width: 0;
+    }
+
+    .sigma-tooltip.left {
+      margin-left: -12px;
+    }
+    .sigma-tooltip.left > .arrow {
+      top: 50%;
+      right: -10px;
+      margin-top: -10px;
+      border-left-color: rgb(249, 247, 237);
+      border-right-width: 0;
+    }
+
+    .sigma-tooltip.right {
+      margin-left: 12px;
+    }
+    .sigma-tooltip.right > .arrow {
+      top: 50%;
+      left: -10px;
+      margin-top: -10px;
+      border-right-color: rgb(249, 247, 237);
+      border-left-width: 0;
+    }
+
+
 </style>
 
 
@@ -297,6 +394,13 @@ curl_close($curl);
 <script src="../plugins/sigma.renderers.linkurious/canvas/sigma.canvas.edges.curvedArrow.js"></script>
 <script src="../plugins/sigma.renderers.linkurious/canvas/sigma.canvas.edges.autoCurve.js"></script>
 <script src="../plugins/sigma.layouts.fruchtermanReingold/sigma.layout.fruchtermanReingold.js"></script>
+<script src="../plugins/sigma.plugins.locate/sigma.plugins.locate.js"></script>
+
+<!-- ToolTip Plugin -->
+<script src="../plugins/sigma.plugins.tooltips/sigma.plugins.tooltips.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.min.js"></script>
+
+
 
 <div id="container">
   <style>
@@ -401,7 +505,7 @@ th
     <label for="pwd" style="font-weight:300;color:black;font-family:Roboto;">Module</label>
 
      
-
+ 
     <select id="module" name="module" style="color:#202020;border:1px solid #C0C0C0;width:100%;">
                     <option>Module1</option>
                     <option>Module2</option>
@@ -535,6 +639,20 @@ th
   <button id="get_table" class="pure-button pure-button-primary">Get Data</button>
 
 
+<!--
+<div id="locator">
+   <select id="nodelist">
+        <option value="" selected>All nodes</option>
+   </select>
+   <br /><br />
+   <button id="reset-btn" class="pure-button pure-button-primary">Reset view</button>
+
+</div>
+
+-->
+
+
+
 </div>
 <script>
 
@@ -638,11 +756,102 @@ dragListener.bind('drop', function(event) {
 dragListener.bind('dragend', function(event) {
   console.log(event);
 });
+
+// Snippet for node location
+
+
+
+// Snippet for assigning Tooltips for information about the nodes to the end-user
+var config = {
+  node: [{
+    show: 'hovers',
+    hide: 'hovers',
+    cssClass: 'sigma-tooltip',
+    position: 'top',
+    //autoadjust: true,
+    template:
+    '<div class="arrow"></div>' +
+    ' <div class="sigma-tooltip-header">{{label}}</div>' +
+    '  <div class="sigma-tooltip-body">' +
+    '    <table>' +
+    '      <tr><th>Feature1</th> <td>{{label}}</td></tr>' +
+    '      <tr><th>Feature2</th> <td>{{data.gender}}</td></tr>' +
+    '      <tr><th>Feature3</th> <td>{{data.age}}</td></tr>' +
+    '      <tr><th>Feature4</th> <td>{{data.city}}</td></tr>' +
+    '    </table>' +
+    '  </div>' +
+    '  <div class="sigma-tooltip-footer">Number of connections: {{degree}}</div>',
+    renderer: function(node, template) {
+      // The function context is s.graph
+      node.degree = this.degree(node.id);
+
+      // Returns an HTML string:
+      return Mustache.render(template, node);
+
+      // Returns a DOM Element:
+      //var el = document.createElement('div');
+      //return el.innerHTML = Mustache.render(template, node);
+    }
+  }, {
+    show: 'rightClickNode',
+    cssClass: 'sigma-tooltip',
+    position: 'right',
+    template:
+    '<div class="arrow"></div>' +
+    ' <div class="sigma-tooltip-header">{{label}}</div>' +
+    '  <div class="sigma-tooltip-body">' +
+    '   <p> Context menu for {{label}} </p>' +
+    '  </div>' +
+    ' <div class="sigma-tooltip-footer">Number of connections: {{degree}}</div>',
+    renderer: function(node, template) {
+      node.degree = this.degree(node.id);
+      return Mustache.render(template, node);
+    }
+  }],
+  stage: {
+    template:
+    '<div class="arrow"></div>' +
+    '<div class="sigma-tooltip-header"> Menu </div>'
+  }
+};
+
+// Instanciate the tooltips plugin with a Mustache renderer for node tooltips:
+var tooltips = sigma.plugins.tooltips(s, s.renderers[0], config);
+
+
+// Manually open a tooltip on a node:
+var n = s.graph.nodes('n10');
+var prefix = s.renderers[0].camera.prefix;
+tooltips.open(n, config.node[0], n[prefix + 'x'], n[prefix + 'y']);
+
+
+tooltips.bind('shown', function(event) {
+  console.log('tooltip shown', event);
 });
+
+tooltips.bind('hidden', function(event) {
+  console.log('tooltip hidden', event);
+});
+
+
+
+
+
+
+
+
+
+
+});
+
+
 
 
 </script>
 </html>
+
+
+
 
 <script>
 $(document).ready(function(){
