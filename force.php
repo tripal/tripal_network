@@ -134,7 +134,7 @@ foreach($result1['data'] as $row)
     $temp["size"]=mt_rand();
     $temp["type"]="straight";
     $temp["color"]="#ccc";
-    $temp["hover_color"]="rgba(240,230,140,0.5)";
+    $temp["hover_color"]="#A0A0A0";
 
     
     
@@ -399,6 +399,7 @@ curl_close($curl);
 <!-- ToolTip Plugin -->
 <script src="../plugins/sigma.plugins.tooltips/sigma.plugins.tooltips.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.min.js"></script>
+<script src="../plugins/sigma.plugins.lasso/sigma.plugins.lasso.js"></script>
 
 
 
@@ -650,7 +651,10 @@ th
 </div>
 
 -->
-
+<div id="info_basic" style="position:absolute;top:90%;left:90%;font-family:Roboto;">
+  <span style="font-size:20px">Nodes: </span> <span style="font-size:25px;"><?php if(isset($_POST["submit"])){ echo "  ".$num; }?></span><br />
+  <span style="font-size:20px">Edges: </span> <span style="font-size:25px;"><?php if(isset($_POST["submit"])){echo "  ".$edge_count;} ?> </span>
+<div>
 
 
 </div>
@@ -671,7 +675,15 @@ sigma.parsers.json('miss.json', {
     scalingMode: 'outside',
     batchEdgesDrawing: true,
     hideEdgesOnMove: true,
-    sideMargin: 1
+    sideMargin: 1,
+    nodeHoverBorderSize: 2,
+    defaultNodeHoverBorderColor: '#fff',
+    nodeActiveBorderSize: 2,
+    nodeActiveOuterBorderSize: 3,
+    defaultNodeActiveBorderColor: '#fff',
+    defaultNodeActiveOuterBorderColor: 'rgb(236, 81, 72)',
+    enableEdgeHovering: true,
+
   }
 }, function(s) {
   s.graph.nodes().forEach(function (n) {
@@ -694,6 +706,14 @@ sigma.parsers.json('miss.json', {
    if(count>5000)
    {
       grav =40;
+   }
+   else if(count>3000 && count<=5000)
+   {
+      grav = 30;
+   }
+   else if(count>2000 && count<=3000)
+   {
+      grav = 20;
    }
    else
    {
@@ -726,19 +746,46 @@ sigma.parsers.json('miss.json', {
   // Start the ForceLink algorithm:
   sigma.layouts.startForceLink({linLogMode:true});
 
+
+ 
+
+
+var activeState = sigma.plugins.activeState(s);
+// Initialize the dragNodes plugin:
+var dragListener = sigma.plugins.dragNodes(s, s.renderers[0], activeState);
+// Initialize the Select plugin:
+var select = sigma.plugins.select(s, activeState);
+// Initialize the Keyboard plugin:
+var keyboard = sigma.plugins.keyboard(s, s.renderers[0]);
+// Bind the Keyboard plugin to the Select plugin:
+select.bindKeyboard(keyboard);
+
+
+
+
+/*
   var activeState = sigma.plugins.activeState(s);
 
 // Initialize the dragNodes plugin:
 var dragListener = sigma.plugins.dragNodes(s, s.renderers[0], activeState);
 
 // Initialize the Select plugin:
-var select = sigma.plugins.select(s, activeState);
+//var select = sigma.plugins.select(s, activeState);
 
 // Initialize the Keyboard plugin:
 var keyboard = sigma.plugins.keyboard(s, s.renderers[0]);
-
-// Bind the Keyboard plugin to the Select plugin:
+var select = sigma.plugins.select(s, activeState, s.renderers[0]);
 select.bindKeyboard(keyboard);
+
+if (sigma.plugins.keyboard) {
+  document.getElementsByClassName('container')[0].style.display = 'block';
+}
+
+
+
+
+
+*/
 
 // Curve parallel edges:
 sigma.canvas.edges.autoCurve(s);
@@ -841,8 +888,9 @@ tooltips.bind('hidden', function(event) {
 
 
 
-
 });
+
+
 
 
 
