@@ -1,24 +1,17 @@
 <?php
 
-//PHP script for querying Neo4j with the appropriate matching format and also 
-//Conversion of the returned format to the format required by D3.js for rendering purpose
+//match n-[r]-()
+//return distinct type(r)
 
 
-//echo $_POST["module"];
+$species = $_GET["q"];
 
-// Matching criteria for querying into Neo4j
-$module=(string)$_POST["module"];
+$que="MATCH p=()-[r:".$species."module]->() RETURN distinct(r.modulename)";
  $data=array(
- "query" => "MATCH(n1:rice)-[rel:ricemodule]->(n2:rice) WHERE rel.modulename = {value} RETURN rel.modulename,n1.id,n2.id",
-  "params" => array(
-      "value"=>$module
-  )
+ "query" => $que
  );
 
-// Neo4j REST API calls
-
-
-$data=json_encode($data);  
+$data = json_encode($data);
 $curl = curl_init();
 curl_setopt($curl, CURLOPT_URL, 'http://localhost:7474/db/data/cypher/');
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
@@ -27,99 +20,30 @@ curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
 curl_setopt($curl, CURLOPT_POSTFIELDS,$data);
 $result1 = curl_exec($curl);
 
-$result=json_encode($result1);
 
 
-
+//When TRUE returned objects will be converted into associative arrays
 $result1 = json_decode($result1,TRUE);
 
-//echo $result1;
-////echo "<br /><br />";
-
-$nodes = array();
-$edges = array();
-
-$i=0;
-$e=0;
-
-// Storing the nodes in an array
-// Purpose of this is to use the index for mapping of ID's
-foreach($result1['data'] as $row)
-{
-	//Following is for the storage of names which are id's only with proper indexing
-    $nodes[$i] = $row[1];
-    $i++;
-    $nodes[$i] =$row[2];
-    $i++;
-
-
-}
-
-
-
-//Creating an array with unique ID's as we don't want repetition of nodes in the given array
-
- $nodes = array_unique($nodes);
-
-  //print_r($nodes);
-  //echo "<br />";
-  sort($nodes);
-  //print_r($nodes);
-
-
-// Storage of the nodes in proper format
+$string = "<select>";
 
 foreach($result1['data'] as $row)
 {
-	//Following is for the storage of the relationships with source and targets mapped to proper indexes
-    $temp=array();
+  //Following is for the storage of names which are id's only with proper indexing
+	echo "<option>". $row[0]."</option>";
+    //echo $row[0];
+    //echo "<br />";
 
-    $key = array_search($row[1],$nodes);
-    $temp["source"]= $key;
-    $key = array_search($row[2],$nodes);
-    $temp["target"]=$key;
-    $temp["value"]=3;
-
-    $edges[$e]=$temp;
-    $e++;
 
 }
 
+$string = $string + "</select>";
 
-
- 
-
-$num = count($nodes);
-$n=0;
-$node=array();
-
-// Storage of the nodes in the proper format with the correct indexing
-for($x=0;$x<$num;$x++)
-{
-	$temp = array();
-	$temp["name"] = $nodes[$x];
-	$temp["group"] = 2;
-	$node[$n] = $temp;
-	$n++;
-
-}
+//echo $string;
 
 
 
-
-
-
-
-
-$return=array('nodes'=>$node,'links'=>$edges);
-
-header('Content-Type : application/json');
-$jsonarray = json_encode($return);
-echo $jsonarray;
 
 curl_close($curl);
-
-
-
-
 ?>
+
