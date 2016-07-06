@@ -107,7 +107,7 @@ for($x=0;$x<$num;$x++)
   $temp["y"]=mt_rand();
   $temp["size"]=mt_rand(1,3)/1000;
   $val = mt_rand(0,4);
-  $temp["color"]=$colors[$val];
+  $temp["color"]="gray";
   //$temp["color"]="gray";
 
   //$temp["name"] = $nodes[$x];
@@ -215,7 +215,7 @@ curl_close($curl);
 .sigma-tooltip {
       max-width: 240px;
       max-height: 280px;
-      background-color: rgb(249, 247, 237);
+      background-color: rgba(255, 255, 255,0.8);
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       border-radius: 6px;
     }
@@ -297,9 +297,11 @@ curl_close($curl);
     }
 
 
+
+
 </style>
 
-
+<link rel="icon" href="http://tripal.info/sites/default/files/TripalLogo_dark.png" />
 
 <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
 <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
@@ -416,7 +418,7 @@ curl_close($curl);
     #layout-notification {
       display: block;
       position: absolute;
-      top: 90%;
+      top: 75%;
       left: 1em;
       visibility: hidden;
       font-weight: 200;
@@ -460,6 +462,7 @@ curl_close($curl);
 {
   overflow-y:scroll;
   height:150px;
+  background-color:rgba(255,255,255,0.8);
 }
 
 th
@@ -475,12 +478,49 @@ th
   left:1%;
 }
 
+#layout-notification {
+  border: 16px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 16px solid #3498db;
+  width: 120px;
+  height: 120px;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+}
+
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
   </style>
 
-  <div id="graph-container"><span id="layout-notification">Layout in progress...</span></div>
-  <div id="tripal">Tripal</div>
+  <div id="graph-container"><span id="layout-notification"></span></div>
+  <div id="tripal">Tripal.</div>
 <div id="name" style="position:absolute;left:90%;color:#202020;top:1%;">
-   <span style="font-size:30px;font-weight:200;font-family:Roboto;"><?php if(isset($_POST["species"])){echo strtoupper($species); }?> </span><br />
+ <?php 
+   if(isset($_POST["submit"]))
+   {
+     if(strlen($_POST["species"])<8)
+     {
+       echo "<span style='font-size:30px;font-weight:200;font-family:Roboto'>".strtoupper($species)."</span>";
+     }
+     else
+     {
+       echo "<span style='font-size:20px;font-weight:200;font-family:Roboto'>".strtoupper($species)."</span>";
+     }
+     
+   }
+ 
+   
+  ?>
+
+   <br />
    <span style="font-size:15px;font-weight:200;font-family:Roboto;"><?php if(isset($_POST["module"])){echo $module; }?></span>
 </div>
 <div id="filter">
@@ -494,7 +534,8 @@ th
 
      
 
-    <select id="module" name="species" style="color:#202020;;border:1px solid #C0C0C0;width:100%;">
+    <select id="module" name="species" style="color:#202020;;border:1px solid #C0C0C0;width:100%;" onchange="loadDoc(this.value)">
+                    <option>Select Species</option>
                     <option>rice</option>
                     <option>arabidopsis</option>
                     <option>maize</option>
@@ -507,40 +548,8 @@ th
 
      
  
-    <select id="module" name="module" style="color:#202020;border:1px solid #C0C0C0;width:100%;">
-                    <option>Module1</option>
-                    <option>Module2</option>
-                    <option>Module3</option>
-                    <option>Module4</option>
-                    <option>Module5</option>
-                    <option>Module6</option>
-                    <option>Module7</option>
-                    <option>Module8</option>
-                    <option>Module9</option>
-                    <option>Module10</option>
-                    <option>Module11</option>
-                    <option>Module12</option>
-                    <option>Module13</option>
-                    <option>Module14</option>
-                    <option>Module15</option>
-                    <option>Module16</option>
-                    <option>Module17</option>
-                    <option>Module18</option>
-                    <option>Module19</option>
-                    <option>Module20</option>
-                    <option>Module21</option>
-                    <option>Module22</option>
-                    <option>Module23</option>
-                    <option>Module24</option>
-                    <option>Module25</option>
-                    <option>Module26</option>
-                    <option>Module27</option>
-                    <option>Module28</option>
-                    <option>Module29</option>
-                    <option>Module30</option>
-                    <option>Module31</option>
-                    <option>Module32</option>
-                    <option>Module33</option>
+    <select id="modules" name="module" style="color:#202020;border:1px solid #C0C0C0;width:100%;">
+                    
 
 
                 
@@ -554,7 +563,7 @@ th
 
 
 
-<div id="dataset" style="">
+<div id="dataset" style="" class="ui-widget-content">
 <ul class="nav nav-tabs" style="color:#C0C0C0;">
   <li class="active"><a data-toggle="tab" href="#home" style="text-decoration:none;color:#A0A0A0;font-weight:300;">Edge List</a></li>
   <li><a data-toggle="tab" href="#menu1" style="color:#A0A0A0;font-weight:300;">Node List</a></li>
@@ -563,9 +572,9 @@ th
 
 </ul>
 
-<div class="tab-content" >
+<div class="tab-content" style="">
   <div id="home" class="tab-pane fade in active">
-        <div class="table1">
+        <div class="table1" style="transition:all 0.6s ease;">
             <table style="width:100%">
                 <tr>
                    <th>Number</th>
@@ -676,11 +685,11 @@ sigma.parsers.json('miss.json', {
     batchEdgesDrawing: true,
     hideEdgesOnMove: true,
     sideMargin: 1,
-    nodeHoverBorderSize: 2,
-    defaultNodeHoverBorderColor: '#fff',
+    nodeHoverBorderSize: 3,
+    defaultNodeHoverBorderColor: '#A0A0A0',
     nodeActiveBorderSize: 2,
     nodeActiveOuterBorderSize: 3,
-    defaultNodeActiveBorderColor: '#fff',
+    defaultNodeActiveBorderColor: '#A0A0A0',
     defaultNodeActiveOuterBorderColor: 'rgb(236, 81, 72)',
     enableEdgeHovering: true,
 
@@ -787,6 +796,13 @@ if (sigma.plugins.keyboard) {
 
 */
 
+
+s.bind('clickNode', function(e) {
+  console.log(e.type, e.data.node.label, e.data.captor);
+  //document.getElementById("data").innerHTML=e.data.node.label;
+});
+
+
 // Curve parallel edges:
 sigma.canvas.edges.autoCurve(s);
 s.refresh();
@@ -815,7 +831,7 @@ var config = {
     hide: 'hovers',
     cssClass: 'sigma-tooltip',
     position: 'top',
-    //autoadjust: true,
+    autoadjust: true,
     template:
     '<div class="arrow"></div>' +
     ' <div class="sigma-tooltip-header">{{label}}</div>' +
@@ -900,21 +916,58 @@ tooltips.bind('hidden', function(event) {
 
 
 
-
+  <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 <script>
 $(document).ready(function(){
     $("#filter").click(function(){
-        $("#dataform").toggle();
+        $("#dataform").slideToggle("fast");
     });
 });
 
 $(document).ready(function(){
     $("#get_table").click(function(){
-        $("#dataset").toggle();
+        $("#dataset").slideToggle("fast");
     });
 });
 
 
-
+  $(function() {
+    $( "#dataform" ).draggable();
+    $("#dataset").draggable();
+    $(".table1").resizable();
+  });
 
 </script>
+
+<script type="text/javascript">
+
+ function loadDoc(str)
+ {
+  var xhttp;
+  
+  if(window.XMLHttpRequest)
+  {
+    xhttp = new XMLHttpRequest();
+  }
+  else
+  {
+    xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+  }
+
+  xhttp.onreadystatechange=function()
+  {
+    if(xhttp.readyState==4 && xhttp.status==200)
+    {
+      document.getElementById("modules").innerHTML=xhttp.responseText;
+      
+
+
+    }
+  };
+  xhttp.open("POST","retrieve.php?q="+str,true);
+  xhttp.send();
+ }
+ </script>
+
+
