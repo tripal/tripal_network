@@ -166,6 +166,7 @@ fwrite($fh,$jsonarray);
 curl_close($curl);
 
 
+
    }
 
 
@@ -174,6 +175,8 @@ curl_close($curl);
        $fh  = fopen("miss.json","w") or die("Error opening file");
        fwrite($fh," ");
        $status=1;
+
+      
 
    }
 
@@ -210,6 +213,7 @@ curl_close($curl);
  top:70%;
  left:90%;
 }
+
 
 
 .sigma-tooltip {
@@ -436,6 +440,7 @@ curl_close($curl);
 
 
 
+
 #filter
 {
   position:absolute;
@@ -534,7 +539,7 @@ th
 
      
 
-    <select id="module" name="species" style="color:#202020;;border:1px solid #C0C0C0;width:100%;" onchange="loadDoc(this.value)">
+    <select id="module" class="styled-select slate" name="species" style="color:#202020;;border:1px solid #C0C0C0;width:100%;" onchange="loadDoc(this.value)">
                     <option>Select Species</option>
                     <option>rice</option>
                     <option>arabidopsis</option>
@@ -563,26 +568,44 @@ th
 
 
 
+
 <div id="dataset" style="" class="ui-widget-content">
 <ul class="nav nav-tabs" style="color:#C0C0C0;">
   <li class="active"><a data-toggle="tab" href="#home" style="text-decoration:none;color:#A0A0A0;font-weight:300;">Edge List</a></li>
   <li><a data-toggle="tab" href="#menu1" style="color:#A0A0A0;font-weight:300;">Node List</a></li>
   <li><a data-toggle="tab" href="#menu2" style="color:#A0A0A0;font-weight:300;">Markers</a></li>
     <li><a data-toggle="tab" href="#menu3" style="color:#A0A0A0;font-weight:300;">Functions</a></li>
+    <li><a data-toggle="tab" href="#menu4" style="color:#A0A0A0;font-weight:300;">Current Selection</a></li>
+    
+
 
 </ul>
+
+
 
 <div class="tab-content" style="">
   <div id="home" class="tab-pane fade in active">
         <div class="table1" style="transition:all 0.6s ease;">
+
+
+
+          
             <table style="width:100%">
                 <tr>
-                   <th>Number</th>
+                  <?php 
+                  if(isset($_POST["submit"]))
+                  {
+
+                   echo"<th>Number</th>
                    <th>Source </th>
                    <th>Target</th>
                    <th>Weight</th>
                    <th>Direction</th>
-                   <th>Selected Traits</th>
+                   <th>Selected Traits</th>";
+                 }
+
+
+                   ?>
                 </tr>
 
                 <?php 
@@ -610,9 +633,14 @@ th
     <div class="table1">
             <table style="width:100%;">
                <tr>
-                  <th>Number</th>
-                  <th>Node List</th>
-                  <th>Functions </th>
+                <?php
+                 if(isset($_POST["submit"]))
+                 { 
+                 echo  "<th>Number</th>
+                        <th>Node List</th>
+                        <th>Functions </th>";
+                }
+                  ?>
                </tr>
          
               <?php
@@ -641,7 +669,22 @@ th
  
         </div>
   </div>
+
+   <div id="menu4" class="tab-pane fade" style="">
+    <div class="table1">
+          <table id="current_data">
+
+
+          </table>
+        </div>
+  </div>
+
+
+
+
 </div>
+
+
 
 </div>
 
@@ -661,13 +704,65 @@ th
 
 -->
 <div id="info_basic" style="position:absolute;top:90%;left:90%;font-family:Roboto;">
-  <span style="font-size:20px">Nodes: </span> <span style="font-size:25px;"><?php if(isset($_POST["submit"])){ echo "  ".$num; }?></span><br />
-  <span style="font-size:20px">Edges: </span> <span style="font-size:25px;"><?php if(isset($_POST["submit"])){echo "  ".$edge_count;} ?> </span>
+  <span style="font-size:20px"><?php if(isset($_POST["submit"])){echo "Nodes:"; }?></span> <span style="font-size:25px;"><?php if(isset($_POST["submit"])){ echo "  ".$num; }?></span><br />
+  <span style="font-size:20px"><?php if(isset($_POST["submit"])){echo "Edges:"; }?></span> <span style="font-size:25px;"><?php if(isset($_POST["submit"])){echo "  ".$edge_count; }  ?> </span>
 <div>
 
 
 </div>
 <script>
+
+
+
+'use strict';
+
+var initializeGraph = function (sigmaInstance) {
+        console.log("Into the function lasso");
+        var r= sigmaInstance.graph.read("miss.json");
+        sigmaInstance.refresh();
+  console.log(r);
+        var lasso = new sigma.plugins.lasso(sigmaInstance, sigmaInstance.renderers[0], {
+          'strokeStyle': 'black',
+          'lineWidth': 2,
+          'fillWhileDrawing': true,
+          'fillStyle': 'rgba(41, 41, 41, 0.2)',
+          'cursor': 'crosshair'
+        });
+
+        console.log("Just before sigma binding");
+
+        // Listen for selectedNodes event
+        lasso.bind('selectedNodes', function (event) {
+          // Do something with the selected nodes
+          var nodes = event.data;
+
+          console.log('nodes', nodes);
+
+          // For instance, reset all node size as their initial size
+          sigmaInstance.graph.nodes().forEach(function (node) {
+            node.color = 'gray';
+            //node.size = 20;
+          });
+
+          // Then increase the size of selected nodes...
+          var datas ="";
+          nodes.forEach(function (node) {
+
+            node.color = 'rgb(42, 187, 155)';
+            //node.size *= 3;
+            console.log(node.label);
+            datas=datas + "<br />"+ node.label;
+          });
+
+          document.getElementById("current_data").innerHTML = datas;
+
+          sigmaInstance.refresh();
+        });
+
+        console.log("End of lasso function");
+
+        return lasso;
+      };
 
 
 sigma.parsers.json('miss.json', {
@@ -705,7 +800,7 @@ sigma.parsers.json('miss.json', {
     }
   });
   s.refresh();
-
+  
 
 
   // Configure the ForceLink algorithm:
@@ -796,12 +891,16 @@ if (sigma.plugins.keyboard) {
 
 */
 
-
+var s = document.getElementById("current_data").innerHTML = 
 s.bind('clickNode', function(e) {
   console.log(e.type, e.data.node.label, e.data.captor);
   //document.getElementById("data").innerHTML=e.data.node.label;
+  //document.getElementById("current_data").innerHTML = e.data.node.label;
+  
 });
 
+
+var j = main(s);
 
 // Curve parallel edges:
 sigma.canvas.edges.autoCurve(s);
@@ -907,7 +1006,31 @@ tooltips.bind('hidden', function(event) {
 });
 
 
-
+var main = function(sig)
+{
+  //firstLasso = initializeGraph(sig);
+  console.log("Into function main");
+  var firstLasso = initializeGraph(sig);
+  
+document.addEventListener('keyup', function (event) {
+  console.log("Into addEventListener");
+  switch (event.keyCode) {
+    case 76:
+      if (event.altKey) {
+        if (firstLasso.isActive) {
+          firstLasso.deactivate();
+          console.log("Deactivated");
+        } else {
+          firstLasso.activate();
+          console.log("Activated");
+        }
+      }
+      break;
+ 
+  }
+});
+ return 1;
+}
 
 
 
