@@ -302,6 +302,61 @@ curl_close($curl);
 
 
 
+#control-pane {
+      top: 10px;
+      /*bottom: 10px;*/
+      right: 10px;
+      position: absolute;
+      width: 150px;
+      background-color: rgba(255,255,255,0.7);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      position:absolute;
+      top:15%;
+      left:1%;
+      font-family:Roboto;
+      font-weight:100;
+    }
+    #control-pane > div {
+      margin: 10px;
+      overflow-x: auto;
+    }
+    .line {
+      clear: both;
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 12px 0 0 0;
+      border-bottom: 1px solid #aac789;
+      background: transparent;
+    }
+    h2, h3, h4 {
+      padding: 0;
+      font-variant: small-caps;
+    }
+    .green {
+      color: #437356;
+    }
+    h2.underline {
+      color: #437356;
+      background: rgba(255,255,255,0.8);
+      margin: 0;
+      border-radius: 2px;
+      padding: 8px 12px;
+      font-weight: 100;
+    }
+    .hidden {
+      display: none;
+      visibility: hidden;
+    }
+
+    input[type=range] {
+      width: 160px;
+    }
+
+
+ 
+
+
 
 </style>
 
@@ -406,7 +461,7 @@ curl_close($curl);
 <script src="../plugins/sigma.plugins.tooltips/sigma.plugins.tooltips.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.min.js"></script>
 <script src="../plugins/sigma.plugins.lasso/sigma.plugins.lasso.js"></script>
-
+<script src="../plugins/sigma.plugins.filter/sigma.plugins.filter.js"></script>
 
 
 <div id="container">
@@ -564,7 +619,7 @@ th
   <input type="submit" name="submit" value="Get graph" class="pure-button pure-button-primary"/>
 </form>
 
-
+ 
 
 
 
@@ -672,10 +727,10 @@ th
 
    <div id="menu4" class="tab-pane fade" style="">
     <div class="table1">
-          <table id="current_data">
+          <div id="current_data">
+             
 
-
-          </table>
+          </div>
         </div>
   </div>
 
@@ -703,6 +758,25 @@ th
 </div>
 
 -->
+
+ <div id="control-pane">
+    <h2 class="underline">locate</h2>
+
+    <div>
+      <h4>Select Node</h4>
+      <select id="nodelist">
+        <option value="" selected>All nodes</option>
+      </select>
+    </div>
+   
+    <span class="line"></span>
+    <div>
+      <button id="reset-btn" class="pure-button pure-button-primary">Reset view</button>
+    </div>
+  </div>
+
+
+
 <div id="info_basic" style="position:absolute;top:90%;left:90%;font-family:Roboto;">
   <span style="font-size:20px"><?php if(isset($_POST["submit"])){echo "Nodes:"; }?></span> <span style="font-size:25px;"><?php if(isset($_POST["submit"])){ echo "  ".$num; }?></span><br />
   <span style="font-size:20px"><?php if(isset($_POST["submit"])){echo "Edges:"; }?></span> <span style="font-size:25px;"><?php if(isset($_POST["submit"])){echo "  ".$edge_count; }  ?> </span>
@@ -712,7 +786,9 @@ th
 </div>
 <script>
 
-
+var $ = function (id) {
+  return document.getElementById(id);
+};
 
 'use strict';
 
@@ -722,7 +798,7 @@ var initializeGraph = function (sigmaInstance) {
         sigmaInstance.refresh();
   console.log(r);
         var lasso = new sigma.plugins.lasso(sigmaInstance, sigmaInstance.renderers[0], {
-          'strokeStyle': 'black',
+          'strokeStyle': 'gray',
           'lineWidth': 2,
           'fillWhileDrawing': true,
           'fillStyle': 'rgba(41, 41, 41, 0.2)',
@@ -744,7 +820,7 @@ var initializeGraph = function (sigmaInstance) {
             //node.size = 20;
           });
 
-          // Then increase the size of selected nodes...
+          //List of nodes which are selected
           var datas ="";
           nodes.forEach(function (node) {
 
@@ -764,6 +840,23 @@ var initializeGraph = function (sigmaInstance) {
         return lasso;
       };
 
+
+
+
+
+//For filters 
+
+
+
+
+
+
+
+
+
+
+
+//End of filters
 
 sigma.parsers.json('miss.json', {
   // container: 'graph-container',
@@ -867,6 +960,86 @@ select.bindKeyboard(keyboard);
 
 
 
+
+//locate
+
+var conf = {
+    animation: {
+      node: {
+        duration: 800
+      },
+      edge: {
+        duration: 800
+      },
+      center: {
+        duration: 300
+      }
+    },
+    //focusOut: true,
+    zoomDef: 1
+  };
+  var locate = sigma.plugins.locate(s, conf);
+
+  locate.setPadding({
+    // top:250,
+    // bottom: 250,
+    right:250,
+    // left:250
+  });
+console.log("locate has been initialized");
+  if (!s.settings('autoRescale')) {
+    sigma.utils.zoomTo(s.camera, 0, 0, conf.zoomDef);
+  }
+
+  var categories = {};
+
+  // read nodes
+  var nodelistElt = $('nodelist');
+  s.graph.nodes().forEach(function(n) {
+    var optionElt = document.createElement("option");
+    optionElt.text =n.id;
+    nodelistElt.add(optionElt);
+
+    //categories[n.attributes.modularity_class] = true;
+  });
+
+  // node category
+  console.log("Categories have vbeen filled");
+
+  // reset button
+  $('reset-btn').addEventListener("click", function(e) {
+    $('nodelist').selectedIndex = 0;
+   
+    locate.center(conf.zoomDef);
+  });
+
+  function locateNode (e) {
+    var nid = e.target[e.target.selectedIndex].value;
+    if (nid == '') {
+      locate.center(1);
+    }
+    else {
+      locate.nodes(nid);
+    }
+  };
+
+ 
+
+  $('nodelist').addEventListener("change", locateNode);
+  
+
+  // just for easy introspection
+  window.s = s;
+  window.locate = locate;
+
+
+
+
+//end of locate
+
+
+
+
 /*
   var activeState = sigma.plugins.activeState(s);
 
@@ -891,7 +1064,7 @@ if (sigma.plugins.keyboard) {
 
 */
 
-var s = document.getElementById("current_data").innerHTML = 
+
 s.bind('clickNode', function(e) {
   console.log(e.type, e.data.node.label, e.data.captor);
   //document.getElementById("data").innerHTML=e.data.node.label;
