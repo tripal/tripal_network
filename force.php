@@ -307,7 +307,7 @@ curl_close($curl);
       /*bottom: 10px;*/
       right: 10px;
       position: absolute;
-      width: 150px;
+      width: 200px;
       background-color: rgba(255,255,255,0.7);
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       position:absolute;
@@ -350,7 +350,8 @@ curl_close($curl);
     }
 
     input[type=range] {
-      width: 160px;
+      width: 200px;
+      font-size:12px;
     }
 
 
@@ -997,7 +998,8 @@ console.log("locate has been initialized");
   var nodelistElt = $('nodelist');
   s.graph.nodes().forEach(function(n) {
     var optionElt = document.createElement("option");
-    optionElt.text =n.id;
+    optionElt.text =n.id + " " + n.label;
+    console.log(n.label);
     nodelistElt.add(optionElt);
 
     //categories[n.attributes.modularity_class] = true;
@@ -1016,7 +1018,9 @@ console.log("locate has been initialized");
   });
 
   function locateNode (e) {
-    var nid = e.target[e.target.selectedIndex].value;
+    var tmp = (e.target[e.target.selectedIndex].value).split(" ");
+    var nid = tmp[0];
+
     if (nid == '') {
       console.log("Locating nodes via center");
       locate.center(1);
@@ -1277,6 +1281,8 @@ $j(document).ready(function(){
     console.log("Draggable is enabled");
     $j("#dataset").draggable();
     $j(".table1").resizable();
+    $j("#control-pane").draggable();
+
   });
 
 
