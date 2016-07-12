@@ -777,7 +777,7 @@ th
 
 
 
-<div id="info_basic" style="position:absolute;top:90%;left:90%;font-family:Roboto;">
+<div id="info_basic" style="position:absolute;top:90%;left:90%;font-family:Roboto;background-color:rgba(255,255,255,0.7);">
   <span style="font-size:20px"><?php if(isset($_POST["submit"])){echo "Nodes:"; }?></span> <span style="font-size:25px;"><?php if(isset($_POST["submit"])){ echo "  ".$num; }?></span><br />
   <span style="font-size:20px"><?php if(isset($_POST["submit"])){echo "Edges:"; }?></span> <span style="font-size:25px;"><?php if(isset($_POST["submit"])){echo "  ".$edge_count; }  ?> </span>
 <div>
@@ -1009,17 +1009,24 @@ console.log("locate has been initialized");
   // reset button
   $('reset-btn').addEventListener("click", function(e) {
     $('nodelist').selectedIndex = 0;
-   
+    s.graph.nodes().forEach(function (n) {
+      n.color="gray";
+    });
     locate.center(conf.zoomDef);
   });
 
   function locateNode (e) {
     var nid = e.target[e.target.selectedIndex].value;
     if (nid == '') {
+      console.log("Locating nodes via center");
       locate.center(1);
     }
     else {
+      console.log("Locating nodes");
+      s.graph.nodes(nid).color = "rgba(42, 187, 155,0.9)";
       locate.nodes(nid);
+
+      console.log(s.graph.nodes(nid).color);
     }
   };
 
@@ -1029,8 +1036,8 @@ console.log("locate has been initialized");
   
 
   // just for easy introspection
-  window.s = s;
-  window.locate = locate;
+  //window.s = s;
+  //window.locate = locate;
 
 
 
@@ -1214,27 +1221,7 @@ document.addEventListener('keyup', function (event) {
 
   <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
-<script>
-$(document).ready(function(){
-    $("#filter").click(function(){
-        $("#dataform").slideToggle("fast");
-    });
-});
 
-$(document).ready(function(){
-    $("#get_table").click(function(){
-        $("#dataset").slideToggle("fast");
-    });
-});
-
-
-  $(function() {
-    $( "#dataform" ).draggable();
-    $("#dataset").draggable();
-    $(".table1").resizable();
-  });
-
-</script>
 
 <script type="text/javascript">
 
@@ -1267,3 +1254,30 @@ $(document).ready(function(){
  </script>
 
 
+<script>
+console.log("Into the laast script");
+var $j = jQuery.noConflict();
+$j(document).ready(function(){
+    $j("#filter").click(function(){
+      console.log("Filter is clicked");
+        $j("#dataform").slideToggle("fast");
+    });
+});
+
+
+$j(document).ready(function(){
+    $j("#get_table").click(function(){
+        $j("#dataset").slideToggle("fast");
+    });
+});
+
+ console.log("Slide Toggle is done");
+  $j(function() {
+    $j( "#dataform" ).draggable();
+    console.log("Draggable is enabled");
+    $j("#dataset").draggable();
+    $j(".table1").resizable();
+  });
+
+
+</script>
