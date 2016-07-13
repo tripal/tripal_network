@@ -1,0 +1,242 @@
+#dataform
+{
+  z-index:100;
+}
+
+#locator
+{
+ position:absolute;
+ top:70%;
+ left:90%;
+}
+
+
+
+.sigma-tooltip {
+      max-width: 240px;
+      max-height: 280px;
+      background-color: rgba(255, 255, 255,0.8);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      border-radius: 6px;
+    }
+
+    .sigma-tooltip-header {
+      font-variant: small-caps;
+      font-size: 120%;
+      color: #437356;
+      border-bottom: 1px solid #aac789;
+      padding: 10px;
+    }
+
+    .sigma-tooltip-body {
+      padding: 10px;
+    }
+
+    .sigma-tooltip-body th {
+      color: #999;
+      text-align: left;
+    }
+
+    .sigma-tooltip-footer {
+      padding: 10px;
+      border-top: 1px solid #aac789;
+    }
+
+    .sigma-tooltip > .arrow {
+      border-width: 10px;
+      position: absolute;
+      display: block;
+      width: 0;
+      height: 0;
+      border-color: transparent;
+      border-style: solid;
+    }
+
+    .sigma-tooltip.top {
+      margin-top: -12px;
+    }
+    .sigma-tooltip.top > .arrow {
+      left: 50%;
+      bottom: -10px;
+      margin-left: -10px;
+      border-top-color: rgb(249, 247, 237);
+      border-bottom-width: 0;
+    }
+
+    .sigma-tooltip.bottom {
+      margin-top: 12px;
+    }
+    .sigma-tooltip.bottom > .arrow {
+      left: 50%;
+      top: -10px;
+      margin-left: -10px;
+      border-bottom-color: rgb(249, 247, 237);
+      border-top-width: 0;
+    }
+
+    .sigma-tooltip.left {
+      margin-left: -12px;
+    }
+    .sigma-tooltip.left > .arrow {
+      top: 50%;
+      right: -10px;
+      margin-top: -10px;
+      border-left-color: rgb(249, 247, 237);
+      border-right-width: 0;
+    }
+
+    .sigma-tooltip.right {
+      margin-left: 12px;
+    }
+    .sigma-tooltip.right > .arrow {
+      top: 50%;
+      left: -10px;
+      margin-top: -10px;
+      border-right-color: rgb(249, 247, 237);
+      border-left-width: 0;
+    }
+
+
+
+#control-pane {
+      top: 10px;
+      /*bottom: 10px;*/
+      right: 10px;
+      position: absolute;
+      width: 220px;
+      background-color: rgba(255,255,255,0.7);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      position:absolute;
+      top:15%;
+      left:1%;
+      font-family:Roboto;
+      font-weight:100;
+    }
+    #control-pane > div {
+      margin: 10px;
+      overflow-x: auto;
+    }
+    .line {
+      clear: both;
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 12px 0 0 0;
+      border-bottom: 1px solid #aac789;
+      background: transparent;
+    }
+    h2, h3, h4 {
+      padding: 0;
+      font-variant: small-caps;
+    }
+    .green {
+      color: #437356;
+    }
+    h2.underline {
+      color: #437356;
+      background: rgba(255,255,255,0.8);
+      margin: 0;
+      border-radius: 2px;
+      padding: 8px 12px;
+      font-weight: 100;
+    }
+    .hidden {
+      display: none;
+      visibility: hidden;
+    }
+
+    input[type=range] {
+      width: 220px;
+      font-size:12px;
+    }
+   #graph-container {
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      position: absolute;
+    }
+
+    #layout-notification {
+      display: block;
+      position: absolute;
+      top: 75%;
+      left: 1em;
+      visibility: hidden;
+      font-weight: 200;
+      font-family:Roboto;
+      color:black;
+
+    }
+    #tripal
+    {
+      font-family:Roboto;
+      font-weight:500;
+      font-size:40px;
+      color: #A0A0A0;
+    }
+
+
+
+
+#filter
+{
+  position:absolute;
+  top:13%;
+  left:94%;
+}
+
+
+#dataset
+{
+  border : 1px solid #E0E0E0;
+  position:absolute;
+  width:65%;
+  top:75%;
+  left:15%;
+  
+  z-index : 100;
+  background-color:rgba(255,255,255,0.8);
+  font-family:Roboto;
+ 
+}
+
+.table1
+{
+  overflow-y:scroll;
+  height:150px;
+  background-color:rgba(255,255,255,0.8);
+}
+
+th
+{
+  font-family:Roboto;
+  font-weight:200;
+}
+
+#get_table
+{
+  position:absolute;
+  top:94%;
+  left:1%;
+}
+
+#layout-notification {
+  border: 16px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 16px solid #3498db;
+  width: 120px;
+  height: 120px;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+}
+
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
