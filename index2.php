@@ -1,6 +1,6 @@
 <?php
 
-//PHP script for querying Neo4j with the appropriate matching format and also 
+//PHP script for querying Neo4j with the appropriate matching format and also
 //Conversion of the returned format to the format required by D3.js for rendering purpose
 
 
@@ -31,12 +31,12 @@ $que="MATCH(n1:".$species.")-[rel:".$rel."]->(n2:".$species.") WHERE rel.modulen
 // Neo4j REST API calls
 
 
-$data=json_encode($data);  
+$data=json_encode($data);
 $curl = curl_init();
 curl_setopt($curl, CURLOPT_URL, 'http://localhost:7474/db/data/cypher/');
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 curl_setopt($curl,CURLOPT_HTTPHEADER,array('Accept: application/json; charset=UTF-8','Content-Type: application/json'));
-curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");                                                                     
+curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
 curl_setopt($curl, CURLOPT_POSTFIELDS,$data);
 $result1 = curl_exec($curl);
 
@@ -128,8 +128,8 @@ foreach($result1['data'] as $row)
     $temp["color"]="#ccc";
     $temp["hover_color"]="rgba(240,230,140,0.5)";
 
-    
-    
+
+
     $edges[$e]=$temp;
     $e++;
 
@@ -137,7 +137,7 @@ foreach($result1['data'] as $row)
 
 
 
- 
+
 
 
 
@@ -267,14 +267,14 @@ curl_close($curl);
 
 <script src="plugins/sigma.plugins.dragNodes/sigma.plugins.dragNodes.js"></script>
 
-<!-- 
+<!--
 <link rel="stylesheet" href="tablecss.CSS" /> -->
 <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
 <style>
 
 body {
     /* Required padding for .navbar-fixed-top. Change if height of navigation changes. */
-    
+
     background-color:#202020;
 }
 
@@ -287,7 +287,7 @@ body {
 
 
 @media(min-width:768px) {
-   
+
 
     .navbar-fixed-top .navbar-brand {
         padding: 15px 0;
@@ -322,12 +322,12 @@ body {
 
 #genomic-view
 {
-   
+
    position:absolute;
    top:90%;
    left:1%;
-   
-   
+
+
 }
 
 
@@ -339,7 +339,7 @@ body {
   width:65%;
   top:75%;
   left:15%;
-  
+
   z-index : 100;
   background-color: #202020;
 }
@@ -390,7 +390,7 @@ select {
 
 #data
 {
-  
+
   position:absolute;
   top:80%;
   left:82%;
@@ -429,7 +429,7 @@ table {
   color:white;
   border-top: 1px solid #22262e;
   border-bottom: 1px solid #22262e;
-  
+
 }
 
 
@@ -441,15 +441,15 @@ table {
 
 
 <body>
-  
 
 
 
 
 
 
- 
-  
+
+
+
 <script src="//d3js.org/d3.v3.min.js"></script>
 
 <!-- This is the script that will render the given data into the visualization format -->
@@ -476,7 +476,7 @@ table {
       position: absolute;
       height:700px;
       width:1400px;
-      
+
     }
   </style>
   <div id="graph-container"></div>
@@ -492,7 +492,7 @@ table {
 
  //var width=window.innerWidth,height=750,i;
 
-// Initializing variable g with the json object 
+// Initializing variable g with the json object
 var g = <?php echo $jsonarray;?>;
  //sigma.settings.nodesPowRatio = 1;
  //sigma.settings.autoRescale = false;
@@ -510,7 +510,7 @@ s = new sigma({
   graph: g,
   renderer: {
     container: document.getElementById('graph-container'),
-    type: 'canvas'
+    type: 'webgl'
   },
   settings: {
     doubleClickEnabled: false,
@@ -545,16 +545,16 @@ s.bind('clickNode',function(e){
 });
 
 
-//When clicking on an edge, the function is going to provide information regarding the source and the destination for that specific edge 
+//When clicking on an edge, the function is going to provide information regarding the source and the destination for that specific edge
 s.bind('clickEdge',function(e){
     document.getElementById("data").style="font-size:15px;";
     document.getElementById("data").innerHTML = "Source:" + g.nodes[e.data.edge.source].label + "<br />Target: "+ g.nodes[e.data.edge.target].label;
-    
 
-  
+
+
 });
 
-// All data that has to be shown when an edge is clicked has to be passed through it 
+// All data that has to be shown when an edge is clicked has to be passed through it
 s.bind('overEdge outEdge doubleClickEdge rightClickEdge', function(e) {
   console.log(e.type, e.data.edge, e.data.captor);
 });
@@ -640,7 +640,7 @@ var nodeId = parseInt(getParameterByName('node_id'));
 
 //s.startForceAtlas2({worker: true, barnesHutOptimize: true});
 //s.startForceAtlas2();
-</script>  
+</script>
 
 
 
@@ -650,7 +650,7 @@ var nodeId = parseInt(getParameterByName('node_id'));
 
 
 
-<div id="layout_stop" style="position:absolute;top:70%;left:90%;">        
+<div id="layout_stop" style="position:absolute;top:70%;left:90%;">
   <button onclick="stop();" class="pure-button pure-button-primary">Stop Layout</button>
 </div>
 <div id="data"></div>
@@ -659,7 +659,7 @@ var nodeId = parseInt(getParameterByName('node_id'));
 
   <!--   Button when clicked will open up the filters table. -->
    <button id="filter" class="pure-button pure-button-primary">Filter</button>
-  
+
 
 
   <form role="form" id="dataform" method="post" action="index2.php" style="width:200px;background-color:#202020;padding:1.6%;border:0.1px solid #C0C0C0;border-radius:3px;font-weight:300;color:white;position:absolute;top:20%;left:85%;">
@@ -667,20 +667,20 @@ var nodeId = parseInt(getParameterByName('node_id'));
    <div class="form-group">
     <label for="pwd" style="font-weight:300;">Species</label>
 
-     
+
 
     <select id="module" name="species" style="background-color:#202020;color:white;border:1px solid #C0C0C0;width:100%;">
                     <option>rice</option>
                     <option>arabidopsis</option>
                     <option>maize</option>
-                    
-                
+
+
     </select>
   </div>
   <div class="form-group">
     <label for="pwd" style="font-weight:300;">Module</label>
 
-     
+
 
     <select id="module" name="module" style="background-color:#202020;color:white;border:1px solid #C0C0C0;width:100%;">
                     <option>Module1</option>
@@ -718,10 +718,10 @@ var nodeId = parseInt(getParameterByName('node_id'));
                     <option>Module33</option>
 
 
-                
+
     </select>
   </div>
- 
+
   <input type="submit" name="submit" value="Get graph" class="pure-button pure-button-primary"/>
 </form>
 
@@ -732,10 +732,10 @@ var nodeId = parseInt(getParameterByName('node_id'));
 
 <!--
 <div class="panel-group" id="accordion">
-    
-       
-        
-        
+
+
+
+
 
 
      <div class="panel panel-default" id="panel5">
@@ -759,13 +759,13 @@ var nodeId = parseInt(getParameterByName('node_id'));
                     <option>Module4</option>
                     <option>Module5</option>
                     <option>Module6</option>
-                
+
                  </select>
-                
+
                  <input type="submit" name="submit" />
 
               </form>
-              
+
              <br /><br /><br /><br /><br />
              <br /><br /><br /><br /><br />
              <br /><br /><br /><br /><br />
@@ -776,13 +776,13 @@ var nodeId = parseInt(getParameterByName('node_id'));
         </div>
     </div>
 
-    
+
 </div>
 
 -->
  <!-- making the tables -->
 
- 
+
 
 <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal" id="genomic-view" style="font-weight:300;">Genome View</button>
 
@@ -833,7 +833,7 @@ var nodeId = parseInt(getParameterByName('node_id'));
                    <th>Selected Traits</th>
                 </tr>
 
-                <?php 
+                <?php
                    if(isset($_POST["submit"]))
                    {
                      for($i=0;$i<$edge_count;$i++)
@@ -846,11 +846,11 @@ var nodeId = parseInt(getParameterByName('node_id'));
                         echo "<tr><td>".$j."</td><td>".$source."</td><td>".$target."</td><td>1.5</td><td>undirected</td><td></td></tr>";
                      }
                    }
- 
- 
+
+
                 ?>
             </table>
-            
+
         </div>
 
   </div>
@@ -862,7 +862,7 @@ var nodeId = parseInt(getParameterByName('node_id'));
                   <th>Node List</th>
                   <th>Functions </th>
                </tr>
-         
+
               <?php
                 if(isset($_POST["submit"])){
                 for($i=0;$i< $num;$i++)
@@ -872,7 +872,7 @@ var nodeId = parseInt(getParameterByName('node_id'));
                 }
 
               }
-  
+
               ?>
 
 
@@ -886,7 +886,7 @@ var nodeId = parseInt(getParameterByName('node_id'));
 
   <div id="menu3" class="tab-pane fade" style="background-color:#202020;">
     <div class="table1">
- 
+
         </div>
   </div>
 </div>
@@ -925,10 +925,10 @@ function loadDoc(str)
 
     }
   };
-  
-  
 
-  
+
+
+
 
 
 
@@ -936,7 +936,7 @@ function loadDoc(str)
  }
 
 
- 
+
 
 </script>
 -->
