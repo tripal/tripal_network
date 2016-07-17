@@ -50,7 +50,7 @@
         // Settings for SigmaJS.
         settings: {
           edgeColor: 'default',
-          defaultEdgeColor: '#ccc',
+          defaultEdgeColor: '#888888',
           animationsTime: 5000,
           drawLabels: false,
           scalingMode: 'outside',
@@ -65,62 +65,62 @@
           nodeActiveOuterBorderSize: 3,
           defaultNodeActiveBorderColor: 'yellow',
           defaultNodeActiveOuterBorderColor: 'yellow',
-            enableEdgeHovering: true,
-          },
+          enableEdgeHovering: true,
           defaultNodeType: 'border'
-        }, 
-        // TODO: what is this
-        function(s) {
-          var max_degree = 0;
-          s.graph.nodes().forEach(function (n) {
-            degree = s.graph.degree(n.id);
-            if (degree > max_degree) {
-              max_degree = degree;
-            }
-          });
-
-          // Set the default x,y coordinate.  
-          s.graph.nodes().forEach(function (n) {
-            if (!s.graph.degree(n.id)) {
-              s.graph.dropNode(n.id);
-            }
-            else {
-              n.x = Math.random();
-              n.y = Math.random();
-            }
-            degree = s.graph.degree(n.id);
-            //n.color = "rgb(255,140,0)";
-            cscale = chroma.scale(['yellow', 'orange', 'red']).domain([1, max_degree]);
-            n.color = cscale(degree);
-            n.size = degree * 2;
-          });
-          s.refresh();
-
-          // Set the gravity according to the number of nodes.
-          var count = 0; //<?php echo (int)$edge_count; ?>;
-          var grav; 
-          if (count > 5000) {
-            grav = 40;
+        },
+      }, 
+      // TODO: what is this
+      function(s) {
+        var max_degree = 0;
+        s.graph.nodes().forEach(function (n) {
+          degree = s.graph.degree(n.id);
+          if (degree > max_degree) {
+            max_degree = degree;
           }
-          else if (count > 3000 && count <= 5000) {
-            grav = 30;
-          }
-          else if (count > 2000 && count <= 3000) {
-            grav = 20;
+        });
+
+        // Set the default x,y coordinate.  
+        s.graph.nodes().forEach(function (n) {
+          if (!s.graph.degree(n.id)) {
+            s.graph.dropNode(n.id);
           }
           else {
-            grav = 3;
+            n.x = Math.random();
+            n.y = Math.random();
           }
+          degree = s.graph.degree(n.id);
+          //n.color = "rgb(255,140,0)";
+          cscale = chroma.scale(['yellow', 'orange', 'red']).domain([1, max_degree]);
+          n.color = cscale(degree);
+          n.size = degree * 2;
+        });
+        s.refresh();
+
+        // Set the gravity according to the number of nodes.
+        var count = 0; //<?php echo (int)$edge_count; ?>;
+        var grav; 
+        if (count > 5000) {
+          grav = 40;
+        }
+        else if (count > 3000 && count <= 5000) {
+          grav = 30;
+        }
+        else if (count > 2000 && count <= 3000) {
+          grav = 20;
+        }
+        else {
+          grav = 3;
+        }
           
-          // Create an initial object for the forced link layout.
-          var fa = sigma.layouts.configForceLink(s, {
-            worker: true,
-            autoStop: true,
-            background: true,
-            scaleRatio: 30,
-            gravity: grav,
-            easing: 'cubicInOut'
-          });
+        // Create an initial object for the forced link layout.
+        var fa = sigma.layouts.configForceLink(s, {
+          worker: true,
+          autoStop: true,
+          background: true,
+          scaleRatio: 30,
+          gravity: grav,
+          easing: 'cubicInOut'
+        });
       
           // When the forced link layout event is 'start stop', then we want to
           // make a spinning wheel visible to the user. This function will
@@ -385,7 +385,7 @@
       'strokeStyle': 'gray',
       'lineWidth': 2,
       'fillWhileDrawing': true,
-      'fillStyle': 'rgba(41, 41, 41, 0.2)',
+      'fillStyle': 'rgba(100, 100, 100, 0.5)',
       'cursor': 'crosshair'
     });
     //console.log("Just before sigma binding");
@@ -395,9 +395,7 @@
   
     // Do something with the selected nodes.
     var nodes = event.data;
-  
     //console.log('nodes', nodes);
-  
   
     // List of nodes which are selected.
     var datas ="";

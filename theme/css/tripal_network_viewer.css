@@ -1,3 +1,7 @@
+body {
+  background-color: black;
+}
+
 #graph-container {
 	z-index: -10;
   top: 0;
