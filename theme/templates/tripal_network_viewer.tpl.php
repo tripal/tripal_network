@@ -60,12 +60,15 @@ $module_path = drupal_get_path('module', 'tripal_network');
   </div>
   <div class="toggle-content">
     <ul>
-      <li><a href="#data-panel-edge-list">Edge List</a></li>
-      <li><a href="#data-panel-node-list">Node List</a></li>
+      <li><a href="#data-panel-network-stats">Network</a></li>
+      <li><a href="#data-panel-edge-list">Edges</a></li>
+      <li><a href="#data-panel-node-list">Nodes</a></li>
       <li><a href="#data-panel-markers-list">Markers</a></li>
       <li><a href="#data-panel-functional-list">Functional</a></li>
-      <li><a href="#data-panel-selected-list">Current Selection</a></li>
     </ul>
+    <div id="data-panel-network-stats" class="data-panel-item">
+    Network stats go here.
+    </div>
     <div id="data-panel-edge-list" class="data-panel-item">
       <table id="data-panel-edge-list-table">
         <thead>
@@ -108,9 +111,8 @@ $module_path = drupal_get_path('module', 'tripal_network');
       <table>
         <thead>
           <tr>
-            <th>Number</th>
-            <th>Node List</th>
-            <th>Functions</th>
+            <th>Node Name</th>
+            <th>Function Annotations</th>
           </tr>
         </thead>
         <tbody> <?php
@@ -118,7 +120,6 @@ $module_path = drupal_get_path('module', 'tripal_network');
            for($i = 0; $i < $num; $i++) {
              $j = $i + 1; ?>
              <tr>
-               <td><?php print $j ?></td>
                <td><?php print $nodes[$i] ?></td>
                <td>Unknown</td>
              </tr> <?php
@@ -134,8 +135,6 @@ $module_path = drupal_get_path('module', 'tripal_network');
     <div id="data-panel-functional-list">
     </div>
 
-    <div id="data-panel-selected-list">
-    </div>
   </div>
 </div>
 

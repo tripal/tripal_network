@@ -18,7 +18,7 @@ $module_path = drupal_get_path('module', 'tripal_network'); ?>
     <!--  Javascript -->
     <?php print $scripts ?>
     <!-- <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.3/jquery.min.js"></script> -->
-    <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <!-- <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>  -->
     <script type="text/javascript" src="<?php print $module_path . '/src/sigma.core.js'?>"></script>
     <script type="text/javascript" src="<?php print $module_path . '/src/conrad.js'?>"></script>
     <script type="text/javascript" src="<?php print $module_path . '/src/utils/sigma.utils.js'?>"></script>
