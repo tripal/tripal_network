@@ -107,6 +107,7 @@ $module_path = drupal_get_path('module', 'tripal_network'); ?>
     <!--  JQuery UI -->
     <script type="text/javascript" src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 
+    <script type="text/javascript" src="<?php print $module_path . '/theme/js/chroma.min.js'?>"></script>
     <script type="text/javascript" src="<?php print $module_path . '/theme/js/ajax.js'?>"></script>
     <script type="text/javascript" src="<?php print $module_path . '/theme/js/dynamic.js'?>"></script>
 

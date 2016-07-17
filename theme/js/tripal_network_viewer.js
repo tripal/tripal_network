@@ -57,6 +57,8 @@
           batchEdgesDrawing: true,
           hideEdgesOnMove: true,
           sideMargin: 1,
+          nodeBorderSize: 1,
+          nodeBorderColor: '#000',
           nodeHoverBorderSize: 3,
           defaultNodeHoverBorderColor: '#A0A0A0',
           nodeActiveBorderSize: 2,
@@ -64,10 +66,18 @@
           defaultNodeActiveBorderColor: '#A0A0A0',
           defaultNodeActiveOuterBorderColor: 'rgb(236, 81, 72)',
             enableEdgeHovering: true,
-          }
+          },
+          defaultNodeType: 'border'
         }, 
         // TODO: what is this
         function(s) {
+          var max_degree = 0;
+          s.graph.nodes().forEach(function (n) {
+            degree = s.graph.degree(n.id);
+            if (degree > max_degree) {
+              max_degree = degree;
+            }
+          });
 
           // Set the default x,y coordinate.  
           s.graph.nodes().forEach(function (n) {
@@ -78,8 +88,11 @@
               n.x = Math.random();
               n.y = Math.random();
             }
-            n.color = '#0000FF';
-            n.size = s.graph.degree(n.id);
+            degree = s.graph.degree(n.id);
+            //n.color = "rgb(255,140,0)";
+            cscale = chroma.scale(['yellow', 'orange', 'red']).domain([1, max_degree]);
+            n.color = cscale(degree);
+            n.size = degree * 2;
           });
           s.refresh();
 

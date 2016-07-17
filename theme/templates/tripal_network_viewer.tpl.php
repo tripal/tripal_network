@@ -6,24 +6,6 @@ $module_path = drupal_get_path('module', 'tripal_network');
   <span id="layout-notification"></span>
 </div>
 
-<div id="name" style="position:absolute;left:90%;color:#202020;top:1%;"> <?php
-  if (isset($_POST["submit"])) {
-    if (strlen($_POST["species"]) < 8) { ?>
-       <span style='font-size:30px;font-weight:200;font-family:Roboto'><?php print strtoupper($species) ?></span> <?php
-    }
-    else { ?>
-       <span style='font-size:20px;font-weight:200;font-family:Roboto'><?php print strtoupper($species) ?></span> <?php
-    }
-  } ?>
-
-  <br />
-  <span style="font-size:15px;font-weight:200;font-family:Roboto;">' <?php
-    if (isset($_POST["module"])) {
-      print $module;
-    } ?>
-  </span>
-</div>
-
 <div id="tripal-network-viewer-filter-panel">
   <div class="toggle-header">
     <img class="toggle-icon" src="<?php print $module_path . '/theme/images/menu_icon.png'?>">
@@ -136,28 +118,4 @@ $module_path = drupal_get_path('module', 'tripal_network');
     </div>
 
   </div>
-</div>
-
-<div id="info_basic">
-  <span style="font-size:20px"><?php
-    if (isset($_POST["submit"])){ ?>
-      Nodes: <?php
-    } ?>
-  </span>
-  <span style="font-size:25px;"><?php
-    if (isset($_POST["submit"])) {
-      print "  " . $num;
-    }  ?>
-  </span>
-  <br />
-  <span style="font-size:20px"> <?php
-    if (isset($_POST["submit"])) { ?>
-      Edges: <?php
-    } ?>
-  </span>
-  <span style="font-size:25px;"> <?php
-    if (isset($_POST["submit"])) {
-      print $edge_count;
-    } ?>
-  </span>
 </div>

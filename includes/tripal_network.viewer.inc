@@ -17,7 +17,7 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
   $form = array();
 
   $species = 'rice';
-  $module = '';
+  $module = '0';
   if (array_key_exists('values', $form_state)) {
     $species = $form_state['values']['species'];
     $module = $form_state['values']['module'];
