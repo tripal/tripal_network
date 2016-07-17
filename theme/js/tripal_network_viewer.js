@@ -8,6 +8,9 @@
     // TODO: describe this variable.
     //var $ = document.getElementById(id);
 
+    $('.bg-color-picker').click(function(){
+      $('body').css('background-color', $(this).css('background-color'));
+    });
     // Add a click response to open and close the panels.
     $('.toggle-header').click(function(){
       $(this).parent().find('.toggle-content').slideToggle('fast');

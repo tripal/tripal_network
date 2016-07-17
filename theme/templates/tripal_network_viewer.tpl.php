@@ -6,6 +6,32 @@ $module_path = drupal_get_path('module', 'tripal_network');
   <span id="layout-notification"></span>
 </div>
 
+
+<div id="tripal-network-viewer-settings-panel">
+  <div class="toggle-header">
+    <img class="toggle-icon" src="<?php print $module_path . '/theme/images/menu_icon.png'?>">
+    <h2>Display</h2>
+  </div>
+  <div class="toggle-content">
+    <div id="bg-color-picker">
+      <h4>Background Color</h4>
+      <div class="bg-color-picker" style="background-color: #FFFFFF">&nbsp</div>
+      <div class="bg-color-picker" style="background-color: #000044">&nbsp</div>
+      <div class="bg-color-picker" style="background-color: #666666">&nbsp</div>
+      <div class="bg-color-picker" style="background-color: #444444">&nbsp</div>
+      <div class="bg-color-picker" style="background-color: #000000">&nbsp</div>
+    </div>
+    <div id="select-form">
+      <h4>Select Node</h4>
+      <select id="nodelist">
+        <option value="" selected>All nodes</option>
+      </select>
+      <button id="reset-btn" class="pure-button pure-button-primary">Reset view</button>
+    </div>
+  </div>
+</div>
+
+
 <div id="tripal-network-viewer-filter-panel">
   <div class="toggle-header">
     <img class="toggle-icon" src="<?php print $module_path . '/theme/images/menu_icon.png'?>">
@@ -18,21 +44,6 @@ $module_path = drupal_get_path('module', 'tripal_network');
     print(drupal_render($form)); ?>
   </div>
 </div>
-
-<div id="tripal-network-viewer-settings-panel">
-  <div class="toggle-header">
-    <img class="toggle-icon" src="<?php print $module_path . '/theme/images/menu_icon.png'?>">
-    <h2>Display</h2>
-  </div>
-  <div class="toggle-content">
-    <h4>Select Node</h4>
-    <select id="nodelist">
-      <option value="" selected>All nodes</option>
-    </select>
-    <button id="reset-btn" class="pure-button pure-button-primary">Reset view</button>
-  </div>
-</div>
-
 
 
 <div id="tripal-network-viewer-data-panel">

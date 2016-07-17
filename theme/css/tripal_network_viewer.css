@@ -109,6 +109,20 @@ body {
   border: none !important;
 }
 
+#bg-color-picker {
+ height: 60px;
+}
+.bg-color-picker {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #888888;
+  float: left;
+  margin: 3px;
+}
+
+#select-form {
+  clear: both;
+}
 #info_basic {
   position:absolute;
   top:90%;
