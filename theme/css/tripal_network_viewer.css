@@ -135,6 +135,13 @@ body {
  left:90%;
 }
 
+.form-item {
+  margin-top: 10px;
+}
+.form-item label {
+  margin-right: 10px;
+}
+
 /* CSS for the Sigma JS display */
 .sigma-tooltip {
   max-width: 240px;

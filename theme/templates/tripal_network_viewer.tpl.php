@@ -22,11 +22,15 @@ $module_path = drupal_get_path('module', 'tripal_network');
       <div class="bg-color-picker" style="background-color: #000000">&nbsp</div>
     </div>
     <div id="select-form">
-      <h4>Select Node</h4>
-      <select id="nodelist">
-        <option value="" selected>All nodes</option>
-      </select>
-      <button id="reset-btn" class="pure-button pure-button-primary">Reset view</button>
+      <div class="form-item">
+        <label>Select Node</label>
+        <select id="nodelist">
+          <option value="" selected>All nodes</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <button id="reset-btn" class="pure-button pure-button-primary">Reset view</button>
+      </div>
     </div>
   </div>
 </div>
