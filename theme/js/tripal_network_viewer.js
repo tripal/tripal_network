@@ -5,8 +5,11 @@
   Drupal.behaviors.tripal_network = {
     attach: function (context, settings) {
         
-    // TODO: describe this variable.
-    //var $ = document.getElementById(id);
+    
+    //This is a DOM utility function and it is used by locate plugin
+    //var $ = function (id) {
+     //return document.getElementById(id);
+    //};
 
     $('.bg-color-picker').click(function(){
       $('body').css('background-color', $(this).css('background-color'));
@@ -72,8 +75,14 @@
           defaultNodeType: 'border'
         },
       }, 
-      // TODO: what is this
+  /**
+   * This function is scaffolding all the sub-functions needed for visualizations
+   * It is passed with an argument 's' , which is needed by all the sub-functions to execute
+   * It is defined according to the syntax of sigma.parsers.json
+  */
       function(s) {
+
+
         var max_degree = 0;
         s.graph.nodes().forEach(function (n) {
           degree = s.graph.degree(n.id);
@@ -100,6 +109,7 @@
         s.refresh();
 
         // Set the gravity according to the number of nodes.
+        
         var count = 0; //<?php echo (int)$edge_count; ?>;
         var grav; 
         if (count > 5000) {
@@ -140,19 +150,45 @@
       
           // Start the ForceLink algorithm:
           sigma.layouts.startForceLink({linLogMode:true});
+
+
+
+
       
-          // TODO: add an explanation for each of these variables. 
+          // This plugin provides a new state called active to nodes and edges. 
+          //Graphical elements in user interfaces have usually multiple states like hidden, hover, focus, and active. 
+          //They are keys to enable great user interaction. 
+          //For instance, one might create a plugin that drag all active nodes, which are eventually considered as "selected" elements. 
           var activeState = sigma.plugins.activeState(s);
+
           // Initialize the dragNodes plugin:
+          //This needs the nodes to be in activeState
           var dragListener = sigma.plugins.dragNodes(s, s.renderers[0], activeState);
+
           // Initialize the Select plugin:
           var select = sigma.plugins.select(s, activeState);
+
           // Initialize the Keyboard plugin:
           var keyboard = sigma.plugins.keyboard(s, s.renderers[0]);
+
+
           // Bind the Keyboard plugin to the Select plugin:
           select.bindKeyboard(keyboard);
 
-          // Locate.
+
+
+
+
+
+
+  /** Locate function
+  * Responsible for populating a drop-down menu with the loaded nodes
+  * On selection from dropdown, the selected node will be zoomed into
+  * The color of selected node will also the changed to green
+
+  */
+
+          // Setting the configuration for zooming to the selected node
           var conf = {
             animation: {
               node: {
@@ -168,7 +204,8 @@
             //focusOut: true,
             zoomDef: 1
           };
-
+          
+          // Initializing the instance for locate
           var locate = sigma.plugins.locate(s, conf);
 
           locate.setPadding({
@@ -186,7 +223,8 @@
 
           var categories = {};
 
-          // read nodes
+          // This will read the nodes which have been loaded
+          // The label and id of the node will be populated in the dropdown
           var nodelistElt = $('nodelist');
           s.graph.nodes().forEach(function(n) {
             var optionElt = document.createElement("option");
@@ -196,10 +234,13 @@
             // categories[n.attributes.modularity_class] = true;
           });
 
-          // node category
-          //console.log("Categories have vbeen filled");
+         
 
-          // reset button
+          // Reset button
+          //On 'reset-view' being clicked, the following function is triggered
+          //This will reset the view along with coloring all the nodes gray
+          //This will zoom out using the configuration settings, so that all nodes are seen
+
 //          $('#reset-btn').addEventListener("click", function(e) {
 //            $('nodelist').selectedIndex = 0;
 //            s.graph.nodes().forEach(function (n) {
@@ -208,6 +249,8 @@
 //            locate.center(conf.zoomDef);
 //          });
 
+
+          //This function is responsible for zooming into the selected node
           function locateNode (e) {
             var tmp = (e.target[e.target.selectedIndex].value).split(" ");
             var nid = tmp[0];
@@ -227,31 +270,72 @@
 
 //          $('nodelist').addEventListener("change", locateNode);
 
+
+
+  /**
+   * End of locate function 
+  */
+
+
+  
+          //This function is not completed, but created for future
+          //On click of any node, this function will get activated
           s.bind('clickNode', function(e) {
-            //console.log(e.type, e.data.node.label, e.data.captor);        
+            //console.log(e.type, e.data.node.label, e.data.captor);  
+
+            //Action on clickNode has to be written here
+
           });
 
           // Add a lasso to the this object and add an event
           var firstLasso = createLasso(s);
+          //Activating the lassoActivateEvent
           var j = addLassoActivateEvent(s, firstLasso);
 
-          // Curve parallel edges:
+          // Curve parallel edges: 
+          // This is to distinguish between interconnections
           sigma.canvas.edges.autoCurve(s);
           s.refresh();
 
+  /**
+   *  The following event bindings are responsible for dragging the nodes
+   *  On a node being clicked and dragged, the following event bindings are activated
+  */
+
+
+
+          //On the node being clicked, startdrag is activated
           dragListener.bind('startdrag', function(event) {
             //console.log(event);
           });
-
+          //This is activated during the process of dragging
           dragListener.bind('drag', function(event) {
             //console.log(event);
           });
+          //This is activated when the user just stops dragging
           dragListener.bind('drop', function(event) {
             //console.log(event);
           });
+          //Activated just after drop event binding to end dragging
           dragListener.bind('dragend', function(event) {
             //console.log(event);
           });
+
+  /**
+    * End of dragging functionality
+  */
+
+
+
+
+  /**
+   * The following code is responsible for assigning tool-tips to the nodes
+   * In the first part, the configuration settings for the tooltips are set
+   * In the second part, a tooltip instance is getting created
+   * This tooltip instance is getting binded by events then
+   * For rendering of tooltips, Mustache is used
+  */
+
 
           // Snippet for assigning Tooltips for information about the nodes to the end-user
           var config = {
