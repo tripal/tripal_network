@@ -57,6 +57,23 @@ function tripal_network_menu() {
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
   );
+
+  $items['networks'] = array(
+    'page callback' => 'tripal_network_viewer_page',
+    'page arguments' => array(),
+    'access arguments' => array('access network'),
+    'file' => '/includes/tripal_network.viewer.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['networks/retrieve/%'] = array(
+    'page callback' => 'tripal_network_viewer_ajax_retrieve',
+    'page arguments' => array(2),
+    'access arguments' => array('access network'),
+    'file' => '/includes/tripal_network.viewer.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'type' => MENU_CALLBACK,
+  );
   return $items;
 }
 
@@ -86,8 +103,26 @@ function tripal_network_views_api() {
  */
 function tripal_network_theme($existing, $type, $theme, $path) {
 
-   $items = array(
+  $items = array(
+    // HTML AND PAGE THEMES
+     'html__networks' => array(
+       'template' => 'html--networks',
+       'render element' => 'html',
+       'base hook' => 'html',
+       'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
+     ),
+     'page__networks' => array(
+       'template' => 'page--networks',
+       'render element' => 'page',
+       'base hook' => 'page',
+       'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
+     ),
 
+     'tripal_network_viewer' => array(
+       'template' => 'tripal_network_viewer',
+       'variables' =>  array(),
+       'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
+     ),
   );
   return $items;
 }

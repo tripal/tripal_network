@@ -6,7 +6,6 @@
 //The edges are all rendered together but with a loader which ensures that the script runs throughout without failing
 //Some plugins from linkurious are also imported for further data analytics from the developed graph
 
-
 include "php/header.php";
 ?>
 
