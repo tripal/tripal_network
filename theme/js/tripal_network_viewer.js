@@ -345,7 +345,7 @@
         case 76:
           if (event.altKey) {
             if (lasso.isActive) {
-              firstLasso.deactivate();
+              lasso.deactivate();
               //console.log("Deactivated");
             } 
             else {
@@ -398,19 +398,12 @@
   
     //console.log('nodes', nodes);
   
-    // For instance, reset all node size as their initial size.
-    sigmaInstance.graph.nodes().forEach(function (node) {
-      node.color = 'gray';
-      // node.size = 20;
-    });
   
     // List of nodes which are selected.
     var datas ="";
     nodes.forEach(function (node) {
-      node.color = 'rgb(42, 187, 155)';
-      // node.size *= 3;
-      //console.log(node.label);
-      datas=datas + "<br />"+ node.label;
+      node.active = true;
+      //datas=datas + "<br />"+ node.label;
     });
   
     $("#current_data").innerHTML = datas;
