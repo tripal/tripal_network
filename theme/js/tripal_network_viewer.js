@@ -79,6 +79,7 @@
               n.y = Math.random();
             }
             n.color = '#0000FF';
+            n.size = s.graph.degree(n.id);
           });
           s.refresh();
 
