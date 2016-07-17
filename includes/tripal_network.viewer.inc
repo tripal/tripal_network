@@ -114,9 +114,16 @@ function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
 function tripal_network_viewer_get_network($species, $module) {
   $status = 0;
   $rel = $species . "module";
+  $file_path = drupal_get_path('module', 'tripal_network');
 
   if (!$species or !$module) {
-    return;
+    $return = array(
+      'nodes' => array(),
+      'edges' => array(),
+    );
+    $fh = fopen($file_path . "/miss.json",'w') or die("Error opening file");
+    fwrite($fh, json_encode($return));
+    fclose($fh);
   }
 
   //Matching query for neo4j
@@ -211,9 +218,9 @@ function tripal_network_viewer_get_network($species, $module) {
   $jsonarray = json_encode($return);
 
   // Write the JSON array to the 'miss.json' file
-  $file_path = drupal_get_path('module', 'tripal_network');
-  $fh= fopen($file_path . "/miss.json",'w') or die("Error opening file");
-  fwrite($fh,$jsonarray);
+  $fh = fopen($file_path . "/miss.json",'w') or die("Error opening file");
+  fwrite($fh, $jsonarray);
+  fclose($fh);
 
 }
 
