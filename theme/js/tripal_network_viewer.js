@@ -1,14 +1,13 @@
 (function($) {
 
-  // TODO: describe this variable.
-  //var $ = document.getElementById(id);
-
-
   // All code within this Drupal.behavior.tripal_network array is 
   // executed everytime a page load occurs or when an ajax call returns.
   Drupal.behaviors.tripal_network = {
     attach: function (context, settings) {
         
+    // TODO: describe this variable.
+    //var $ = document.getElementById(id);
+
     // Add a click response to open and close the panels.
     $('.toggle-header').click(function(){
       $(this).parent().find('.toggle-content').slideToggle('fast');
