@@ -100,7 +100,7 @@ $module_path = drupal_get_path('module', 'tripal_network'); ?>
 
     <!--  ToolTip Plugin -->
     <script type="text/javascript" src="<?php print $module_path . '/plugins/sigma.plugins.tooltips/sigma.plugins.tooltips.js'?>"></script>
-    <script type="text/javascript" src="<?php print $module_path . 'https://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.min.js'?>"></script>
+    <script type="text/javascript" src="<?php print 'https://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.min.js'?>"></script>
     <script type="text/javascript" src="<?php print $module_path . '/plugins/sigma.plugins.lasso/sigma.plugins.lasso.js'?>"></script>
     <script type="text/javascript" src="<?php print $module_path . '/plugins/sigma.plugins.filter/sigma.plugins.filter.js'?>"></script>
 

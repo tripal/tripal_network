@@ -44,7 +44,13 @@
 
     /**
      * Use SigmaJS to load the network onto the canvas.
+
+
      */
+
+    
+
+
     sigma.parsers.json(
       network_url + '/miss.json', 
       {
@@ -225,11 +231,11 @@
 
           // This will read the nodes which have been loaded
           // The label and id of the node will be populated in the dropdown
-          var nodelistElt = $('nodelist');
+          var nodelistElt = document.getElementById("nodelist");
           s.graph.nodes().forEach(function(n) {
             var optionElt = document.createElement("option");
             optionElt.text =n.id + " " + n.label;
-            //console.log(n.label);
+            console.log(n.label);
             nodelistElt.add(optionElt);
             // categories[n.attributes.modularity_class] = true;
           });
@@ -241,13 +247,13 @@
           //This will reset the view along with coloring all the nodes gray
           //This will zoom out using the configuration settings, so that all nodes are seen
 
-//          $('#reset-btn').addEventListener("click", function(e) {
-//            $('nodelist').selectedIndex = 0;
+          document.getElementById("reset-btn").addEventListener("click", function(e) {
+            document.getElementById("nodelist").selectedIndex = 0;
 //            s.graph.nodes().forEach(function (n) {
 //              n.color="gray";
 //            });
-//            locate.center(conf.zoomDef);
-//          });
+            locate.center(conf.zoomDef);
+          });
 
 
           //This function is responsible for zooming into the selected node
@@ -268,7 +274,7 @@
             }
           };
 
-//          $('nodelist').addEventListener("change", locateNode);
+          document.getElementById("nodelist").addEventListener("change", locateNode);
 
 
 
@@ -362,7 +368,7 @@
                 node.degree = this.degree(node.id);
         
                 // Returns an HTML string:
-//                return Mustache.render(template, node);
+                return Mustache.render(template, node);
         
                 // Returns a DOM Element:
                 //var el = document.createElement('div');
