@@ -23,13 +23,6 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
     $module = $form_state['values']['module'];
   }
 
-  // If we have a species and a module then generate the network data
-  // and reset the 'network_data' javascript variable.
-  if ($species and $module) {
-    $network_data = tripal_network_viewer_get_network($species, $module);
-    drupal_add_js("network_data = " . json_encode($network_data), 'inline');
-  }
-
   // Get the modules for the selected speices from Neo4j.
   $module_options = array();
   $module_options['0'] = '-- Select --';
@@ -104,7 +97,18 @@ function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
   $_SESSION['tripal_network_filter_species'] = $form_state['values']['species'];
   $_SESSION['tripal_network_filter_module'] = $form_state['values']['module'];
 
-  //gensas_add_ajax_command(ajax_command_invoke(NULL, "load_job_status_panel", array()));
+
+  // Now that our form is updated we want to reload the network.  The network
+  // is handled by JavaScript so we need to force the JS code to call our
+  // tripal_network_viewer_ajax_retrieve() function.  The following code
+  // will instruct Drupal to call a Javascript function named 'retreiveNetwork'
+  // which will then make an AJAX call to update the network.
+  $data = array(
+    'species' => $form_state['values']['species'],
+    'module' => $form_state['values']['module'],
+  );
+  tripal_network_add_ajax_command(ajax_command_invoke(NULL, "retrieveNetwork", array($data)));
+
   return $form;
 }
 
@@ -113,21 +117,25 @@ function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
  * @param unknown $species
  * @param unknown $module
  */
-function tripal_network_viewer_get_network($species, $module) {
+function tripal_network_viewer_ajax_retrieve() {
 
-  $status = 0;
-  $rel = $species . "module";
-  $file_path = drupal_get_path('module', 'tripal_network');
+  // Initialize our network data array.
   $network_data = array(
-      'nodes' => array(),
-      'edges' => array(),
-    );
+    'nodes' => array(),
+    'edges' => array(),
+  );
 
+  // Get the fitering variables requested by the user.
+  $species = $_GET['species'];
+  $module = $_GET['module'];
+
+  // Make sure we have required filters.
   if (!$species or !$module) {
-    return $network_data;
+    drupal_json_output($network_data);
   }
 
-  //Matching query for neo4j
+  // Matching query for neo4j
+  $rel = $species . "module";
   $que = "MATCH(n1:".$species.")-[rel:".$rel."]->(n2:".$species.") WHERE rel.modulename = {value} RETURN rel.modulename,n1.id,n2.id";
   $data = array(
     "query" => $que,
@@ -216,41 +224,6 @@ function tripal_network_viewer_get_network($species, $module) {
     'nodes' => $node,
     'edges' => $edges
   );
-  return $network_data;
-}
 
-
-/**
- *
- * @param $species
- */
-function tripal_network_viewer_ajax_retrieve($species) {
-  //$species = $_GET["q"];
-
-  $que = "MATCH p=()-[r:".$species."module]->() RETURN distinct(r.modulename)";
-  $data=array(
-    "query" => $que
-  );
-
-  $data = json_encode($data);
-  $curl = curl_init();
-  curl_setopt($curl, CURLOPT_URL, 'http://localhost:7474/db/data/cypher/');
-  curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-  curl_setopt($curl, CURLOPT_HTTPHEADER,array('Accept: application/json; charset=UTF-8','Content-Type: application/json'));
-  curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
-  curl_setopt($curl, CURLOPT_POSTFIELDS,$data);
-  $result1 = curl_exec($curl);
-  curl_close($curl);
-
-  //When TRUE returned objects will be converted into associative arrays
-  $result1 = json_decode($result1,TRUE);
-  error_log('retrieve.php: ' . print_r($result1, TRUE), 3, "/tmp/php_log");
-  $string = "<select>";
-
-  foreach ($result1['data'] as $row) {
-    $string .= "<option>". $row[0]."</option>";
-  }
-
-  $string = $string + "</select>";
-
+  drupal_json_output($network_data);
 }

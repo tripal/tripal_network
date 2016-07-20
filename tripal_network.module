@@ -66,9 +66,9 @@ function tripal_network_menu() {
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
   );
-  $items['networks/retrieve/%'] = array(
+  $items['networks/retrieve'] = array(
     'page callback' => 'tripal_network_viewer_ajax_retrieve',
-    'page arguments' => array(2),
+    'page arguments' => array(),
     'access arguments' => array('access network'),
     'file' => '/includes/tripal_network.viewer.inc',
     'file path' => drupal_get_path('module','tripal_network'),
@@ -146,4 +146,45 @@ function tripal_network_help ($path, $arg) {
   if ($path == 'admin/help#tripal_network') {
     return theme('tripal_network_help', array());
   }
+}
+
+
+/**
+ * Impelmentation of hook_ajax_render_alter().
+ *
+ * This function allows us to add new command to the ajax callback when
+ * it returns.  This way we can call Javascript functions directly from our
+ * PHP code.
+ *
+ * @param $commands
+ */
+function tripal_network_ajax_render_alter(&$commands) {
+
+  // always update the sidebar on every ajax return.
+  if(array_key_exists('tripal-network-ajax-commands', $_SESSION)) {
+    foreach ($_SESSION['tripal-network-ajax-commands'] as $command) {
+      $commands[] = $command;
+    }
+    unset($_SESSION['tripal-network-ajax-commands']);
+  }
+}
+
+/**
+ * A helper function for adding new command to ajax calls.
+ *
+ * When we want to call a function in JavaScript we use this function to
+ * add new "commands".  These commands are added to the ajax response by
+ * the tripal_network_ajax_render_alter() function before the AJAX is
+ * returned. This function stores all of the commands that are requested
+ * until that AJAX call is returned.
+ *
+ * @param $commands
+ *   A single Drupal compatible ajax command created by calling
+ *   ajax_command_invoke().
+ */
+function tripal_network_add_ajax_command($command) {
+  if(!array_key_exists('tripal-network-ajax-commands', $_SESSION)) {
+    $_SESSION['tripal-network-ajax-commands'] = array();
+  }
+  $_SESSION['tripal-network-ajax-commands'][] = $command;
 }
