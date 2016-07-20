@@ -248,6 +248,19 @@
 //            s.graph.nodes().forEach(function (n) {
 //              n.color="gray";
 //            });
+              
+
+        // Set the default colors of the nodes after being reset 
+          s.graph.nodes().forEach(function (n) {
+          
+          degree = s.graph.degree(n.id);
+          //n.color = "rgb(255,140,0)";
+          cscale = chroma.scale(['yellow', 'orange', 'red']).domain([1, max_degree]);
+          n.color = cscale(degree);
+          n.size = degree * 2;
+          });
+
+
             locate.center(conf.zoomDef);
           });
 
