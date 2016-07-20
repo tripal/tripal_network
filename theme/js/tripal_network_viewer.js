@@ -44,11 +44,7 @@
 
     /**
      * Use SigmaJS to load the network onto the canvas.
-
-
      */
-
-    
 
 
     sigma.parsers.json(
@@ -235,7 +231,7 @@
           s.graph.nodes().forEach(function(n) {
             var optionElt = document.createElement("option");
             optionElt.text =n.id + " " + n.label;
-            console.log(n.label);
+            //console.log(n.label);
             nodelistElt.add(optionElt);
             // categories[n.attributes.modularity_class] = true;
           });
@@ -327,22 +323,17 @@
             //console.log(event);
           });
 
-  /**
-    * End of dragging functionality
-  */
-
-
-
-
-  /**
-   * The following code is responsible for assigning tool-tips to the nodes
-   * In the first part, the configuration settings for the tooltips are set
-   * In the second part, a tooltip instance is getting created
-   * This tooltip instance is getting binded by events then
-   * For rendering of tooltips, Mustache is used
-  */
-
-
+          /**
+            * End of dragging functionality
+          */
+          
+          /**
+           * The following code is responsible for assigning tool-tips to the nodes
+           * In the first part, the configuration settings for the tooltips are set
+           * In the second part, a tooltip instance is getting created
+           * This tooltip instance is getting binded by events then
+           * For rendering of tooltips, Mustache is used
+          */
           // Snippet for assigning Tooltips for information about the nodes to the end-user
           var config = {
             node: [{
@@ -430,7 +421,7 @@
    * @param lasso
    *   An instance of a lasso object.
    */
-  var addLassoActivateEvent = function(sigmaInstance, lasso) {
+  function addLassoActivateEvent(sigmaInstance, lasso) {
 
     document.addEventListener('keyup', function (event) {
       //console.log("Into addEventListener");
@@ -464,7 +455,7 @@
    * @return
    *   A instance of a lasso object.
    */
-  var createLasso = function (sigmaInstance) {
+   function createLasso(sigmaInstance) {
     
     // Read the network
     //console.log("Into the function lasso");

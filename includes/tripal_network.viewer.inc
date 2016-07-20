@@ -23,9 +23,11 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
     $module = $form_state['values']['module'];
   }
 
-  // If we have a species and a module then generate the miss.json file.
+  // If we have a species and a module then generate the network data
+  // and reset the 'network_data' javascript variable.
   if ($species and $module) {
-    tripal_network_viewer_get_network($species, $module);
+    $network_data = tripal_network_viewer_get_network($species, $module);
+    drupal_add_js("network_data = " . json_encode($network_data), 'inline');
   }
 
   // Get the modules for the selected speices from Neo4j.
@@ -112,18 +114,17 @@ function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
  * @param unknown $module
  */
 function tripal_network_viewer_get_network($species, $module) {
+
   $status = 0;
   $rel = $species . "module";
   $file_path = drupal_get_path('module', 'tripal_network');
-
-  if (!$species or !$module) {
-    $return = array(
+  $network_data = array(
       'nodes' => array(),
       'edges' => array(),
     );
-    $fh = fopen($file_path . "/miss.json",'w') or die("Error opening file");
-    fwrite($fh, json_encode($return));
-    fclose($fh);
+
+  if (!$species or !$module) {
+    return $network_data;
   }
 
   //Matching query for neo4j
@@ -140,7 +141,7 @@ function tripal_network_viewer_get_network($species, $module) {
   $curl = curl_init();
   curl_setopt($curl, CURLOPT_URL, 'http://localhost:7474/db/data/cypher/');
   curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-  curl_setopt($curl,CURLOPT_HTTPHEADER,array('Accept: application/json; charset=UTF-8','Content-Type: application/json'));
+  curl_setopt($curl, CURLOPT_HTTPHEADER,array('Accept: application/json; charset=UTF-8','Content-Type: application/json'));
   curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
   curl_setopt($curl, CURLOPT_POSTFIELDS,$data);
   $result1 = curl_exec($curl);
@@ -211,17 +212,11 @@ function tripal_network_viewer_get_network($species, $module) {
     $e++;
   }
 
-  $return = array(
+  $network_data = array(
     'nodes' => $node,
     'edges' => $edges
   );
-  $jsonarray = json_encode($return);
-
-  // Write the JSON array to the 'miss.json' file
-  $fh = fopen($file_path . "/miss.json",'w') or die("Error opening file");
-  fwrite($fh, $jsonarray);
-  fclose($fh);
-
+  return $network_data;
 }
 
 
