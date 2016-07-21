@@ -32,15 +32,6 @@
         $("#dataset").slideToggle("fast");
       });
   
-      // console.log("Slide Toggle is done");
-//      $(function() {
-//        $("#tripal-network-viewer-filter-form").draggable();
-//        //console.log("Draggable is enabled");
-//        $("#dataset").draggable();
-//        $(".table1").resizable();
-//        $("#control-pane").draggable();
-//      });
-
       /**
        * Use SigmaJS to load the network onto the canvas.
        */
@@ -60,9 +51,9 @@
    * Importance : Prevention of auto populating the list
    */
 
-  function cleardropdown()
-  {
-    document.getElementById("nodelist").innerHTML = "";
+  function cleardata() {
+
+    document.getElementById("nodelist").innerHTML = "<option>Select the node</option>";
   }
 
   
@@ -75,7 +66,7 @@
 
   function network_loader(network_data){
 
-         cleardropdown();
+         cleardata();
 
         
          if(s){
@@ -358,32 +349,6 @@
               //console.log(event);
             });
             
-            //t[0].id="";
-            //s.graph.kill();
-
-            
-            /**
-              * End of dragging functionality
-            */
-            
-            /**
-             * The following code is responsible for assigning tool-tips to the nodes
-             * In the first part, the configuration settings for the tooltips are set
-             * In the second part, a tooltip instance is getting created
-             * This tooltip instance is getting binded by events then
-             * For rendering of tooltips, Mustache is used
-            */ 
-            // Snippet for assigning Tooltips for information about the nodes to the end-user
-            //s=null;
-
-/*      
-           
-*/
-           //s.graph.clear();
-           //s.refresh();
-           //s.graph.kill();
-           //s.refresh();
-
        // END sigma.parsers.json()
   } // END of network_loader
 
@@ -411,6 +376,17 @@
     })
   }
   
+  /**
+   * Function for populating the table
+   * Once nodes are selected, their info will be in tabs
+  */
+
+   function populate(dataset)
+   {
+    //document.getElementById("data-panel-node-list").innerHTML = dataset;
+   }
+
+
   /**
    * Create the lasso object.
    * 
@@ -457,8 +433,12 @@
     var datas ="";
     nodes.forEach(function (node) {
       node.active = true;
-      //datas=datas + "<br />"+ node.label;
+      datas=datas + node.label+"<br />";
+     
+
     });
+    //document.getElementById("data-panel-node-list").innerHTML = datas;
+    //populate(datas);
   
     $("#current_data").innerHTML = datas;
       sigmaInstance.refresh();
