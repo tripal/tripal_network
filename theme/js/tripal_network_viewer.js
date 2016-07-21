@@ -15,7 +15,7 @@
       });
       // Add a click response to open and close the panels.
       $('.toggle-header').click(function(){
-        $(this).parent().find('.toggle-content').slideToggle('fast');
+        $(this).parent().find('.toggle-content').slideToggle('slow');
       });
   
       // Use JQuery UI to format the data panel with tabs.
@@ -25,7 +25,7 @@
       //var $j = jQuery.noConflict();
       $("#filter").click(function(){
         //console.log("Filter is clicked");
-          $("#tripal-network-viewer-filter-form").slideToggle("fast");
+          $("#tripal-network-viewer-filter-form").slideToggle("slow");
       });
   
       $("#get_table").click(function(){
@@ -75,10 +75,18 @@
   {
 
         
+         if(s){
+            //alert("S is set");
+            //s.graph.kill();
+            s.graph.clear();
+            //s.refresh();
+            
+            s.refresh();
+            s.kill();
 
+         }
         
-
-        
+        //s.refresh();
         s = new sigma({
         graph: network_data,
         renderer: {
@@ -86,6 +94,7 @@
         type: 'canvas'
         },
         settings: {
+         clone:true,
          edgeColor: 'default',
          defaultEdgeColor: '#ccc',
          animationsTime: 5000,
@@ -101,15 +110,20 @@
          defaultNodeActiveBorderColor: '#A0A0A0',
          defaultNodeActiveOuterBorderColor: 'rgb(236, 81, 72)',
          enableEdgeHovering: true,
-       }
+       },
+        function()
+        {
+          alert("hello ");
+        }
       });
+
 
         /**
          * This function is scaffolding all the sub-functions needed for visualizations
          * It is passed with an argument 's' , which is needed by all the sub-functions to execute
          * It is defined according to the syntax of sigma.parsers.json
         */
-        
+         
          
   
           var max_degree = 0;
@@ -357,12 +371,17 @@
              * In the second part, a tooltip instance is getting created
              * This tooltip instance is getting binded by events then
              * For rendering of tooltips, Mustache is used
-            */
+            */ 
             // Snippet for assigning Tooltips for information about the nodes to the end-user
+            //s=null;
 
 /*      
            
 */
+           //s.graph.clear();
+           //s.refresh();
+           //s.graph.kill();
+           //s.refresh();
 
        // END sigma.parsers.json()
   } // END of network_loader
@@ -414,7 +433,7 @@
     //alert("Read data before");
     var r = network_data;
     sigmaInstance.refresh();
-    alert("Read data");
+    //alert("Read data");
     ////console.log(r);
   
     var lasso = new sigma.plugins.lasso(sigmaInstance, sigmaInstance.renderers[0], {
