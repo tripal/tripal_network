@@ -44,43 +44,73 @@
       /**
        * Use SigmaJS to load the network onto the canvas.
        */
-      sigma.parsers.json(
-        network_url + '/miss.json', 
-        {
-          // Indicate the object for graph rendering.
-          renderer: {
-            container: document.getElementById('graph-container'),
-            type: 'canvas'
-          },
-          // Settings for SigmaJS.
-          settings: {
-            edgeColor: 'default',
-            defaultEdgeColor: '#888888',
-            animationsTime: 5000,
-            drawLabels: false,
-            scalingMode: 'outside',
-            batchEdgesDrawing: true,
-            hideEdgesOnMove: true,
-            sideMargin: 1,
-            nodeBorderSize: 1,
-            nodeBorderColor: '#000',
-            nodeHoverBorderSize: 3,
-            defaultNodeHoverBorderColor: 'yellow',
-            nodeActiveBorderSize: 2,
-            nodeActiveOuterBorderSize: 3,
-            defaultNodeActiveBorderColor: 'yellow',
-            defaultNodeActiveOuterBorderColor: 'yellow',
-            enableEdgeHovering: true,
-            defaultNodeType: 'border'
-          },
-        }, 
+
+       
+     
+       //$("#graph-container").empty();
+      
+    
+
+
+    } // END attach: function (context, settings){
+  } // End Drupal.behaviors.tripal_network.
+  
+  /**
+   * Adds an event handler for the lasso.
+   * 
+   * When our document loads we want the lass selection tool to work.
+   * This code activates the lasso when a keyup event is captured with
+   * the key combination of alt + l.
+   * 
+   * @param sigmaInstance
+   *   An instance of a sigmaJS object.
+   * @param lasso
+   *   An instance of a lasso object.
+
+    
+   */
+
+
+  function network_loader(network_data)
+  {
+
+ 
+
+        
+
+
+        s = new sigma({
+        graph: network_data,
+        renderer: {
+        container: document.getElementById('graph-container'),
+        type: 'canvas'
+        },
+        settings: {
+         edgeColor: 'default',
+         defaultEdgeColor: '#ccc',
+         animationsTime: 5000,
+         drawLabels: false,
+         scalingMode: 'outside',
+         batchEdgesDrawing: true,
+         hideEdgesOnMove: true,
+         sideMargin: 1,
+         nodeHoverBorderSize: 3,
+         defaultNodeHoverBorderColor: '#A0A0A0',
+         nodeActiveBorderSize: 2,
+         nodeActiveOuterBorderSize: 3,
+         defaultNodeActiveBorderColor: '#A0A0A0',
+         defaultNodeActiveOuterBorderColor: 'rgb(236, 81, 72)',
+         enableEdgeHovering: true,
+       }
+      });
+
         /**
          * This function is scaffolding all the sub-functions needed for visualizations
          * It is passed with an argument 's' , which is needed by all the sub-functions to execute
          * It is defined according to the syntax of sigma.parsers.json
         */
-        function(s) {
-  
+        
+         
   
           var max_degree = 0;
           s.graph.nodes().forEach(function (n) {
@@ -281,7 +311,7 @@
             });
   
             // Add a lasso to the this object and add an event
-            var firstLasso = createLasso(s);
+            var firstLasso = createLasso(s,network_data);
             //Activating the lassoActivateEvent
             var j = addLassoActivateEvent(s, firstLasso);
   
@@ -310,7 +340,12 @@
             dragListener.bind('dragend', function(event) {
               //console.log(event);
             });
-  
+            
+            //t[0].id="";
+            //s.graph.kill();
+
+             s.kill();
+             s.refresh();
             /**
               * End of dragging functionality
             */
@@ -323,92 +358,17 @@
              * For rendering of tooltips, Mustache is used
             */
             // Snippet for assigning Tooltips for information about the nodes to the end-user
-            var config = {
-              node: [{
-                show: 'hovers',
-                hide: 'hovers',
-                cssClass: 'sigma-tooltip',
-                position: 'top',
-                autoadjust: true,
-                template:
-                  '<div class="arrow"></div>' +
-                  ' <div class="sigma-tooltip-header">{{label}}</div>' +
-                  '  <div class="sigma-tooltip-body">' +
-                  '    <table>' +
-                  '      <tr><th>Feature1</th> <td>{{label}}</td></tr>' +
-                  '      <tr><th>Feature2</th> <td>{{data.gender}}</td></tr>' +
-                  '      <tr><th>Feature3</th> <td>{{data.age}}</td></tr>' +
-                  '      <tr><th>Feature4</th> <td>{{data.city}}</td></tr>' +
-                  '    </table>' +
-                  '  </div>' +
-                  '  <div class="sigma-tooltip-footer">Number of connections: {{degree}}</div>',
-                renderer: function(node, template) {
-                  // The function context is s.graph
-                  node.degree = this.degree(node.id);
-          
-                  // Returns an HTML string:
-                  return Mustache.render(template, node);
-          
-                  // Returns a DOM Element:
-                  //var el = document.createElement('div');
-                  //return el.innerHTML = Mustache.render(template, node);
-               }
-            }, 
-            {
-               show: 'rightClickNode',
-               cssClass: 'sigma-tooltip',
-               position: 'right',
-               template:
-                 '<div class="arrow"></div>' +
-                 ' <div class="sigma-tooltip-header">{{label}}</div>' +
-                 '  <div class="sigma-tooltip-body">' +
-                 '   <p> Context menu for {{label}} </p>' +
-                 '  </div>' +
-                 ' <div class="sigma-tooltip-footer">Number of connections: {{degree}}</div>',
-               renderer: function(node, template) {
-                 node.degree = this.degree(node.id);
-                 return Mustache.render(template, node);
-               }
-            }],
-            stage: {
-               template:
-                 '<div class="arrow"></div>' +
-                 '<div class="sigma-tooltip-header"> Menu </div>'
-            }
-          };
-  
-          // Instanciate the tooltips plugin with a Mustache renderer for node tooltips:
-          var tooltips = sigma.plugins.tooltips(s, s.renderers[0], config);
-    
-          // Manually open a tooltip on a node:
-          var n = s.graph.nodes('10');
-          var prefix = s.renderers[0].camera.prefix;
-          tooltips.open(n, config.node[0], n[prefix + 'x'], n[prefix + 'y']);    
-  
-          tooltips.bind('shown', function(event) {
-            //console.log('tooltip shown', event);
-          });
-  
-          tooltips.bind('hidden', function(event) {
-            //console.log('tooltip hidden', event);
-          });
-        }
-      ); // END sigma.parsers.json()
-    } // END attach: function (context, settings){
-  } // End Drupal.behaviors.tripal_network.
-  
-  /**
-   * Adds an event handler for the lasso.
-   * 
-   * When our document loads we want the lass selection tool to work.
-   * This code activates the lasso when a keyup event is captured with
-   * the key combination of alt + l.
-   * 
-   * @param sigmaInstance
-   *   An instance of a sigmaJS object.
-   * @param lasso
-   *   An instance of a lasso object.
-   */
+
+/*      
+           
+*/
+
+       // END sigma.parsers.json()
+  } // END of network_loader
+
+
+
+
   function addLassoActivateEvent(sigmaInstance, lasso) {
 
     document.addEventListener('keyup', function (event) {
@@ -443,13 +403,14 @@
    * @return
    *   A instance of a lasso object.
    */
-   function createLasso(sigmaInstance) {
+   function createLasso(sigmaInstance,network_data) {
+
     
     // Read the network
     //console.log("Into the function lasso");
     // TODO: find some otherway to get the graph without calling another
     // AJAX call. 
-    var r = sigmaInstance.graph.read(network_url + "/miss.json");
+    var r = sigmaInstance.graph.read(network_data);
     sigmaInstance.refresh();
     ////console.log(r);
   
@@ -513,6 +474,9 @@
       data: {'species': species, 'module': module},
       success: function(json) {
         network_data = json;
+        //document.getElementById("graph-container").innerHTML="";
+        network_loader(network_data);
+
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
