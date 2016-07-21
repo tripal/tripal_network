@@ -33,13 +33,13 @@
       });
   
       // console.log("Slide Toggle is done");
-      $(function() {
-        $("#tripal-network-viewer-filter-form").draggable();
-        //console.log("Draggable is enabled");
-        $("#dataset").draggable();
-        $(".table1").resizable();
-        $("#control-pane").draggable();
-      });
+//      $(function() {
+//        $("#tripal-network-viewer-filter-form").draggable();
+//        //console.log("Draggable is enabled");
+//        $("#dataset").draggable();
+//        $(".table1").resizable();
+//        $("#control-pane").draggable();
+//      });
 
       /**
        * Use SigmaJS to load the network onto the canvas.
@@ -97,22 +97,24 @@
         type: 'canvas'
         },
         settings: {
-         clone:true,
          edgeColor: 'default',
-         defaultEdgeColor: '#ccc',
+         defaultEdgeColor: '#888888',
          animationsTime: 5000,
          drawLabels: false,
          scalingMode: 'outside',
          batchEdgesDrawing: true,
          hideEdgesOnMove: true,
          sideMargin: 1,
+         nodeBorderSize: 1,
+         nodeBorderColor: '#000',
          nodeHoverBorderSize: 3,
-         defaultNodeHoverBorderColor: '#A0A0A0',
+         defaultNodeHoverBorderColor: 'yellow',
          nodeActiveBorderSize: 2,
          nodeActiveOuterBorderSize: 3,
-         defaultNodeActiveBorderColor: '#A0A0A0',
-         defaultNodeActiveOuterBorderColor: 'rgb(236, 81, 72)',
+         defaultNodeActiveBorderColor: 'yellow',
+         defaultNodeActiveOuterBorderColor: 'yellow',
          enableEdgeHovering: true,
+         defaultNodeType: 'border'
        }
       });
 
