@@ -1,7 +1,11 @@
 (function($) {
 
+  // Globals
+  // Holds the network data (edges and nodes)
+  var Network_Data;
+  
   // An instance of a sigmaJS object.
-  var s;
+  var Sigma_Instance;
 
   // All code within this Drupal.behavior.tripal_network array is 
   // executed everytime a page load occurs or when an ajax call returns.
@@ -9,9 +13,11 @@
     attach: function (context, settings) {
 
 
-    } // END attach: function (context, settings){
-  } // End Drupal.behaviors.tripal_network.
+    } 
+  } 
 
+  // Code that must be executed when the document is ready and never again
+  // goes in this section
   $(document).ready(function() {
     $('.bg-color-picker').click(function(){
       $('body').css('background-color', $(this).css('background-color'));
@@ -57,14 +63,14 @@
 
     // If the sigma instance exists, then we need to clear the existing
     // graph, and kill the object so we can recreate it.
-    if(s){
-      s.graph.clear();
-      s.refresh();
-      s.kill();
+    if(Sigma_Instance){
+      Sigma_Instance.graph.clear();
+      Sigma_Instance.refresh();
+      Sigma_Instance.kill();
     } 
 
     // Create our new sigma instance.
-    s = new sigma({
+    Sigma_Instance = new sigma({
       graph: network_data,
       renderer: {
         container: document.getElementById('graph-container'),
@@ -94,31 +100,31 @@
 
     // Calculate the maximum degree in the network.
     var max_degree = 0;
-    s.graph.nodes().forEach(function (n) {
-      degree = s.graph.degree(n.id);
+    Sigma_Instance.graph.nodes().forEach(function (n) {
+      degree = Sigma_Instance.graph.degree(n.id);
       if (degree > max_degree) {
         max_degree = degree;
       }
     });
 
     // Set the default x,y coordinate.  
-    s.graph.nodes().forEach(function (n) {
-      if (!s.graph.degree(n.id)) {
-        s.graph.dropNode(n.id);
+    Sigma_Instance.graph.nodes().forEach(function (n) {
+      if (!Sigma_Instance.graph.degree(n.id)) {
+        Sigma_Instance.graph.dropNode(n.id);
       }
       else {
         n.x = Math.random();
         n.y = Math.random();
       }
-      degree = s.graph.degree(n.id);
+      degree = Sigma_Instance.graph.degree(n.id);
       cscale = chroma.scale(['yellow', 'orange', 'red']).domain([1, max_degree]);
       n.color = cscale(degree);
       n.size = degree * 2;
     });
-    s.refresh();
+    Sigma_Instance.refresh();
     
     // Add an onClick event to each node.
-    s.bind('clickNode', function(e) {
+    Sigma_Instance.bind('clickNode', function(e) {
       // Currently, this event does nothing... just here for future use.
     });
 
@@ -139,23 +145,22 @@
     }
 
     // Add the force link layout to this graph and start it.
-    addForceLinkLayout(s, grav);   
+    addForceLinkLayout(Sigma_Instance, grav);   
 
     // Add a drag event listernet to this sigma object.
-    addDragListner(s);
+    addDragListner(Sigma_Instance);
    
     // Setup the node locator form element;
-    setupNodeLocater(s);
+    setupNodeLocater(Sigma_Instance);
     
 
     // Create a lasso object and and an activation event.
-    var lasso = createLasso(s, network_data);
-    addLassoActivateEvent(s, lasso);
+    var lasso = createLasso(Sigma_Instance, network_data);
+    addLassoActivateEvent(Sigma_Instance, lasso);
 
     // Curve parallel edges: this is to distinguish between interconnections.
-    sigma.canvas.edges.autoCurve(s);
-    s.refresh();
-
+    sigma.canvas.edges.autoCurve(Sigma_Instance);
+    Sigma_Instance.refresh();
   } 
 
   /**
@@ -166,7 +171,7 @@
    * @param lasso
    *   An intance of a lasso object.
    */
-  function addLassoActivateEvent(sigmaInstance, lasso) {
+  function addLassoActivateEvent(sigma_instance, lasso) {
     document.addEventListener('keyup', function (event) {
       switch (event.keyCode) {
         case 76:
@@ -241,17 +246,17 @@
    * in the graph.  This function is a wrapper for quick instanation of
    * a new lasso on a sigmaJS object.
    * 
-   * @param sigmaInstance
+   * @param sigma_instance
    *   An instance of a sigmaJS object.
    *   
    * @return
    *   A instance of a lasso object.
    */
-  function createLasso(sigmaInstance,network_data) {
+  function createLasso(sigma_instance,network_data) {
     var r = network_data;
-    sigmaInstance.refresh();
+    sigma_instance.refresh();
 
-    var lasso = new sigma.plugins.lasso(sigmaInstance, sigmaInstance.renderers[0], {
+    var lasso = new sigma.plugins.lasso(sigma_instance, sigma_instance.renderers[0], {
       'strokeStyle': 'gray',
       'lineWidth': 2,
       'fillWhileDrawing': true,
@@ -276,7 +281,7 @@
     //populate(datas);
 
     $("#current_data").innerHTML = datas;
-      sigmaInstance.refresh();
+      sigma_instance.refresh();
     });
 
     return lasso;
@@ -310,8 +315,8 @@
       dataType: 'json',
       data: {'species': species, 'module': module},
       success: function(json) {
-        network_data = json;
-        loadNetwork(network_data);
+        Network_Data = json;
+        loadNetwork(Network_Data);
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
@@ -325,15 +330,15 @@
    * TODO: perhaps layouts could be handled by a class with adding and
    * starting a layout handled through seperate functions of the class.
    * 
-   * @param sigmaInstance
+   * @param sigma_instance
    *   An instance of a sigmaJS object.
    * @param gravity
    *   A integer that indicates the amount of gravity used by the force
    *   linked layout.
    */
-  function addForceLinkLayout(sigmaInstance, gravity) {
+  function addForceLinkLayout(sigma_instance, gravity) {
     // Create a forced link layout object.
-    var fa = sigma.layouts.configForceLink(sigmaInstance, {
+    var fa = sigma.layouts.configForceLink(sigma_instance, {
       worker: true,
       autoStop: true,
       background: true,
@@ -366,15 +371,15 @@
    * functions that should occur when start, drag, drop, and end events
    * occur.
    * 
-   * @param sigmaInstance
+   * @param sigma_instance
    *   An instance of a sigmaJS object.
    */
-  function addDragListner(sigmaInstance) {
+  function addDragListner(sigma_instance) {
     
-    var activeState = sigma.plugins.activeState(sigmaInstance);
-    var dragListener = sigma.plugins.dragNodes(sigmaInstance, sigmaInstance.renderers[0], activeState);
-    var keyboard = sigma.plugins.keyboard(sigmaInstance, sigmaInstance.renderers[0]);
-    var select = sigma.plugins.select(sigmaInstance, activeState);
+    var activeState = sigma.plugins.activeState(sigma_instance);
+    var dragListener = sigma.plugins.dragNodes(sigma_instance, sigma_instance.renderers[0], activeState);
+    var keyboard = sigma.plugins.keyboard(sigma_instance, sigma_instance.renderers[0]);
+    var select = sigma.plugins.select(sigma_instance, activeState);
 
     // Bind the Keyboard plugin to the Select plugin:
     select.bindKeyboard(keyboard);
@@ -407,10 +412,10 @@
    * in the graph. If the user selects a node then the graph should 
    * zoom to that node.
    * 
-   * @param sigmaInstance
+   * @param sigma_instance
    *   An instance of a sigmaJS object.
    */
-  function setupNodeLocater(sigmaInstance) {
+  function setupNodeLocater(sigma_instance) {
     // Setting the configuration for zooming to the selected node
     var conf = {
       animation: {
@@ -429,22 +434,22 @@
     };
 
     // Initializing the instance for locate.
-    var locate = sigma.plugins.locate(sigmaInstance, conf);
+    var locate = sigma.plugins.locate(sigma_instance, conf);
 
     locate.setPadding({
       right:250,
     });
 
 
-    if (!sigmaInstance.settings('autoRescale')) {
-      sigma.utils.zoomTo(sigmaInstance.camera, 0, 0, conf.zoomDef);
+    if (!sigma_instance.settings('autoRescale')) {
+      sigma.utils.zoomTo(sigma_instance.camera, 0, 0, conf.zoomDef);
     }
 
     var categories = {};
 
     // Add the nodes to the nodelist form element. 
     $("#nodelist").html("<option>Select the node</option>");
-    sigmaInstance.graph.nodes().forEach(function(n) {
+    sigma_instance.graph.nodes().forEach(function(n) {
       $('#nodelist').append($("<option></option>").attr("value", n.id).text(n.label)); 
     });
   
@@ -452,7 +457,7 @@
       document.getElementById("nodelist").selectedIndex = 0;
 
       // Set the default colors of the nodes after being reset 
-      sigmaInstance.graph.nodes().forEach(function (n) {
+      sigma_instance.graph.nodes().forEach(function (n) {
         n.active = false;
       });
       locate.center(conf.zoomDef);
@@ -466,7 +471,7 @@
         locate.center(1);
       }
       else {
-        s.graph.nodes(nid).active = true;
+        sigma_instance.graph.nodes(nid).active = true;
         locate.nodes(nid);
       }
     });

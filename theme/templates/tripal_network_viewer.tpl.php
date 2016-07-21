@@ -1,10 +1,6 @@
 <?php
 $module_path = drupal_get_path('module', 'tripal_network');
-
 ?>
-<script type="text/javascript">
-  var network_data;
-</script>
 
 <div id="graph-container">
   <span id="layout-notification"></span>
