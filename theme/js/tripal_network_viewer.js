@@ -15,7 +15,7 @@
       });
       // Add a click response to open and close the panels.
       $('.toggle-header').click(function(){
-        $(this).parent().find('.toggle-content').slideToggle('slow');
+        $(this).parent().find('.toggle-content').slideToggle('fast');
       });
   
       // Use JQuery UI to format the data panel with tabs.
@@ -25,7 +25,7 @@
       //var $j = jQuery.noConflict();
       $("#filter").click(function(){
         //console.log("Filter is clicked");
-          $("#tripal-network-viewer-filter-form").slideToggle("slow");
+          $("#tripal-network-viewer-filter-form").slideToggle("fast");
       });
   
       $("#get_table").click(function(){
@@ -56,23 +56,26 @@
   } // End Drupal.behaviors.tripal_network.
   
   /**
-   * Adds an event handler for the lasso.
-   * 
-   * When our document loads we want the lass selection tool to work.
-   * This code activates the lasso when a keyup event is captured with
-   * the key combination of alt + l.
-   * 
-   * @param sigmaInstance
-   *   An instance of a sigmaJS object.
-   * @param lasso
-   *   An instance of a lasso object.
-
-    
+   * This function is responsible for clearing the drop down menu after every ajax call
+   * Importance : Prevention of auto populating the list
    */
 
-
-  function network_loader(network_data)
+  function cleardropdown()
   {
+    document.getElementById("nodelist").innerHTML = "";
+  }
+
+  
+
+  /**
+   * This function is responsible for handling all the visualizations
+  */
+  var s;
+
+
+  function network_loader(network_data){
+
+         cleardropdown();
 
         
          if(s){
@@ -110,11 +113,7 @@
          defaultNodeActiveBorderColor: '#A0A0A0',
          defaultNodeActiveOuterBorderColor: 'rgb(236, 81, 72)',
          enableEdgeHovering: true,
-       },
-        function()
-        {
-          alert("hello ");
-        }
+       }
       });
 
 
