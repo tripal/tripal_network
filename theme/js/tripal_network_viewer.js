@@ -44,8 +44,8 @@
       /**
        * Use SigmaJS to load the network onto the canvas.
        */
-
        
+        
      
        //$("#graph-container").empty();
       
@@ -74,11 +74,11 @@
   function network_loader(network_data)
   {
 
- 
+        
 
         
 
-
+        
         s = new sigma({
         graph: network_data,
         renderer: {
@@ -179,6 +179,8 @@
         
             // Start the ForceLink algorithm:
             sigma.layouts.startForceLink({linLogMode:true});
+
+
         
             // This plugin provides a new state called active to nodes and edges. 
             //Graphical elements in user interfaces have usually multiple states like hidden, hover, focus, and active. 
@@ -344,8 +346,7 @@
             //t[0].id="";
             //s.graph.kill();
 
-             s.kill();
-             s.refresh();
+            
             /**
               * End of dragging functionality
             */
@@ -410,8 +411,10 @@
     //console.log("Into the function lasso");
     // TODO: find some otherway to get the graph without calling another
     // AJAX call. 
-    var r = sigmaInstance.graph.read(network_data);
+    //alert("Read data before");
+    var r = network_data;
     sigmaInstance.refresh();
+    alert("Read data");
     ////console.log(r);
   
     var lasso = new sigma.plugins.lasso(sigmaInstance, sigmaInstance.renderers[0], {
@@ -474,7 +477,8 @@
       data: {'species': species, 'module': module},
       success: function(json) {
         network_data = json;
-        //document.getElementById("graph-container").innerHTML="";
+        //alert("Data is being loaded");
+        //$("#graph-container").empty();
         network_loader(network_data);
 
       },
