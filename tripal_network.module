@@ -188,3 +188,34 @@ function tripal_network_add_ajax_command($command) {
   }
   $_SESSION['tripal-network-ajax-commands'][] = $command;
 }
+
+
+/**
+ * Implements hook_libraries_info().
+ *
+ * For defining external libraries.
+ */
+
+function tripal_network_libraries_info() {
+  $libraries = array();
+  $libraries['linkurious.js'] = array(
+    'name' => 'linkurious.js',
+    'vendor url' => 'http://linkurio.us/',
+    'download url' => 'https://github.com/Linkurious/linkurious.js',
+    'version arguments' => array(
+      'file' => 'package.json',
+      'pattern' => '/"version": "(.*?)"/',
+      'lines' => 5,
+    ),
+    'files' => array(
+    ),
+    'depenedencies' => array(
+      'sigmajs (>1.1.0)'
+    ),
+    'versions' => array(
+      '1.5.1' => array(),
+    ),
+  );
+
+  return $libraries;
+}

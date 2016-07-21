@@ -8,21 +8,25 @@
   Drupal.behaviors.tripal_network = {
     attach: function (context, settings) {
 
-      $('.bg-color-picker').click(function(){
-        $('body').css('background-color', $(this).css('background-color'));
-      });
-
-      // Add a click response to open and close the panels.
-      $('.toggle-header').click(function(){
-        $(this).parent().find('.toggle-content').slideToggle('fast');
-      });
-
-      // Use JQuery UI to format the data panel with tabs.
-      $("#tripal-network-viewer-data-panel").tabs();
 
     } // END attach: function (context, settings){
   } // End Drupal.behaviors.tripal_network.
 
+  $(document).ready(function() {
+    $('.bg-color-picker').click(function(){
+      $('body').css('background-color', $(this).css('background-color'));
+    });
+
+    // Add a click response to open and close the panels.
+    $('.toggle-header').click(function(){
+      $(this).parent().find('.toggle-content').slideToggle('fast');
+    });
+
+    // Use JQuery UI to format the data panel with tabs.
+    $("#tripal-network-viewer-data-panel").tabs();
+  });
+
+  
   /**
    * Resets all of the form elements and data tables.
    * 

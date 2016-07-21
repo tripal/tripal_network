@@ -10,3 +10,4 @@ scripts[]          = theme/js/tripal_network.js
 
 dependencies[] = tripal
 dependencies[] = tripal_chado
+dependencies[] = libraries
