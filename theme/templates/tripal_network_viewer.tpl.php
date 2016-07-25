@@ -3,9 +3,9 @@ $module_path = drupal_get_path('module', 'tripal_network');
 ?>
 
 <div id="graph-container">
-  <span id="layout-notification"></span>
-</div>
 
+</div>
+<span id="layout-notification"></span>
 
 <div id="tripal-network-viewer-settings-panel">
   <div class="toggle-header">

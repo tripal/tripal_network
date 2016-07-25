@@ -64,9 +64,8 @@
     // If the sigma instance exists, then we need to clear the existing
     // graph, and kill the object so we can recreate it.
     if(Sigma_Instance){
-      Sigma_Instance.graph.clear();
-      Sigma_Instance.refresh();
-      Sigma_Instance.kill();
+      $('#graph').remove(); 
+      $('#graph-container').html('<div id="graph"></div>');
     } 
 
     // Create our new sigma instance.

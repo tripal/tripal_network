@@ -15,7 +15,7 @@ $linkurius_path = url(libraries_get_path('linkurious.js'), array('absolute' => T
 
     <!--  Javascript -->
     <?php print $scripts ?>
-    <script type="text/javascript" src="<?php print $linkurius_path . '/dist/sigma.min.js'?>"></script>
+    <script type="text/javascript" src="<?php print $linkurius_path . '/dist/sigma.js'?>"></script>
     <script type="text/javascript" src="<?php print $linkurius_path . '/dist/plugins/sigma.layouts.forceLink.min.js'?>"></script>
     <script type="text/javascript" src="<?php print $linkurius_path . '/dist/plugins/sigma.plugins.activeState.min.js'?>"></script>
     <script type="text/javascript" src="<?php print $linkurius_path . '/dist/plugins/sigma.plugins.dragNodes.min.js'?>"></script>
