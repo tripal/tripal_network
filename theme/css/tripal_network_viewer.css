@@ -312,3 +312,7 @@ input[type=range] {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+thead{
+  width:100%;
+}

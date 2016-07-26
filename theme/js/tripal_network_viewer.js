@@ -33,13 +33,7 @@
   });
 
   // Code that handles the data-tables of the node-list when the lasso tool is used
-  $(document).ready(function() {
-    $('table.display').DataTable( {
-        "scrollY":        "100px",
-        //"scrollCollapse": true,
-        "paging":         false
-    });
-  });
+ 
 
 
 
@@ -236,13 +230,24 @@
    
     var no_of_nodes = selection["nodes"].length;
     var i;
-    var data ="";
+    var data ="<table id='current_node_display' class='display1' width='100%'' cellspacing='0'><thead><tr><th>Node Name</th><th>Function Annotations</th></tr></thead><tbody>";
+   
     for(i=0;i<no_of_nodes;i++){
       data = data + "<tr><td>" + (selection["nodes"][i]).label + "</td><td>Unknown</td></tr>";
-
     }
 
-    document.getElementById("current_node_list").innerHTML = data;
+    data = data + "</tbody></table>";
+
+    document.getElementById("data-panel-node-list").innerHTML = data;
+    $(document).ready(function() {
+      $('#current_node_display').DataTable( {
+          "scrollY":        "100px",
+          "ordering": false,
+          "scrollCollapse": true,
+          "paging": false
+      });
+    });
+
   
 
   }
@@ -258,7 +263,7 @@
     //document.getElementById("data-panel-node-list").innerHTML = dataset;
     var no_of_edges = selection["edges"].length;
     var i;
-    var data="";
+    var data="<table id='current_edge_display' class='display' width='100%' cellspacing='0'><thead><tr><th>Number</th><th>Source </th><th>Target</th><th>Weight</th><th>Direction</th><th>Selected Traits</th></tr></thead><tbody>";
     for(i = 0; i < no_of_edges; i++){
       var temp_source = parseInt((selection["edges"][i]).source);
       var temp_target = parseInt((selection["edges"][i]).target);
@@ -266,7 +271,20 @@
 
     }
 
-    document.getElementById("current_edge").innerHTML = data;
+    data = data + "</tbody></table>"
+
+    document.getElementById("data-panel-edge-list").innerHTML = data;
+    $(document).ready(function() {
+      $('#current_edge_display').DataTable( {
+          "scrollY":        "100px",
+          "ordering": false,
+          "scrollCollapse": true,
+          "paging": false
+      });
+    });
+
+
+
   }
 
   /**
@@ -324,13 +342,25 @@
     var nodes = event.data;
 
     // List of nodes which are selected.
-    var datas ="";
+    var datas ="<table id='current_selection' class='display' width='100%'' cellspacing='0'><thead><tr><th>Node</th><th>Functional Annotations</th></tr></thead><tbody>";
     nodes.forEach(function (node) {
       node.active = true;
       datas=datas + "<tr><td>"+node.label+"</td><td>Unknown</td></tr>";
     });
+    datas = datas + "</tbody></table>";
 
-    document.getElementById("current_node_body").innerHTML = datas;
+    //Adding Dynamic content to build the table
+    document.getElementById("data-panel-current-list").innerHTML = datas;
+    $(document).ready(function() {
+      $('#current_selection').DataTable( {
+          "scrollY":        "100px",
+          "ordering": false,
+          "scrollCollapse": true,
+          "paging": false
+      });
+    });
+
+
     //populate(datas);
     //alert(datas);
   

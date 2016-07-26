@@ -86,17 +86,7 @@ $module_path = drupal_get_path('module', 'tripal_network');
     </div>
 
     <div id="data-panel-node-list">
-      <table id="current_node_display" class="display" width="100%" cellspacing="0">
-        <thead>
-          <tr>
-            <th>Node Name</th>
-            <th>Function Annotations</th>
-          </tr>
-        </thead>
-        <tbody id="current_node_list">
-          
-        </tbody>
-      </table>
+      
     </div>
 
     <div id="data-panel-markers-list">
@@ -106,19 +96,7 @@ $module_path = drupal_get_path('module', 'tripal_network');
     </div>
 
     <div id="data-panel-current-list">
-       <table id="current_selection" class="display" width="100%" cellspacing="0">
-         <thead>
-            <tr>
-                <th>Node</th>
-                <th>Functional Annotations</th>
-            </tr>
-        </thead>
-
-
-        <tbody id="current_node_body">             
-        </tbody>
-
-       </table>
+       
     </div>
 
   </div>
