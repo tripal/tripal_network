@@ -62,12 +62,13 @@ $module_path = drupal_get_path('module', 'tripal_network');
       <li><a href="#data-panel-node-list">Nodes</a></li>
       <li><a href="#data-panel-markers-list">Markers</a></li>
       <li><a href="#data-panel-functional-list">Functional</a></li>
+      <li><a href="#data-panel-current-list">Current Selection</a></li>
     </ul>
     <div id="data-panel-network-stats" class="data-panel-item">
     Network stats go here.
     </div>
     <div id="data-panel-edge-list" class="data-panel-item">
-      <table id="data-panel-edge-list-table">
+      <table id="current_edge_display" class="display" width="100%" cellspacing="0">
         <thead>
           <tr>
             <th>Number</th>
@@ -78,50 +79,22 @@ $module_path = drupal_get_path('module', 'tripal_network');
             <th>Selected Traits</th>
           </tr>
         </thead>
-        <tbody><?php
-          if (isset($_POST["submit"])) {
-            for ($i = 0; $i < $edge_count; $i++) {
-              $j=$i+1;
-              $src = $edges[$i]["source"];
-              $source = $nodes[(int)$src];
-              $trg = $edges[$i]["target"];
-              $target = $nodes[(int)$trg]; ?>
-              <tr>
-                <td><?php print $j?></td>
-                <td><?php print $source ?></td>
-                <td><?php print $target ?></td>
-                <td>1.5</td>
-                <td>undirected</td>
-                <td></td>
-              </tr><?php
-            }
-          }
-          else { ?>
-            <tr><td colspan="6"><i>No Edges Selected</i></td></tr><?php
-          }
-          ?>
+        <tbody id="current_edge">
+          
         </tbody>
       </table>
     </div>
 
     <div id="data-panel-node-list">
-      <table>
+      <table id="current_node_display" class="display" width="100%" cellspacing="0">
         <thead>
           <tr>
             <th>Node Name</th>
             <th>Function Annotations</th>
           </tr>
         </thead>
-        <tbody> <?php
-          if (isset($_POST["submit"])) {
-           for($i = 0; $i < $num; $i++) {
-             $j = $i + 1; ?>
-             <tr>
-               <td><?php print $nodes[$i] ?></td>
-               <td>Unknown</td>
-             </tr> <?php
-            }
-          } ?>
+        <tbody id="current_node_list">
+          
         </tbody>
       </table>
     </div>
@@ -130,6 +103,22 @@ $module_path = drupal_get_path('module', 'tripal_network');
     </div>
 
     <div id="data-panel-functional-list">
+    </div>
+
+    <div id="data-panel-current-list">
+       <table id="current_selection" class="display" width="100%" cellspacing="0">
+         <thead>
+            <tr>
+                <th>Node</th>
+                <th>Functional Annotations</th>
+            </tr>
+        </thead>
+
+
+        <tbody id="current_node_body">             
+        </tbody>
+
+       </table>
     </div>
 
   </div>

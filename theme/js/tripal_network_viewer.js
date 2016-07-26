@@ -32,6 +32,21 @@
     $("#tripal-network-viewer-data-panel").tabs();
   });
 
+  // Code that handles the data-tables of the node-list when the lasso tool is used
+  $(document).ready(function() {
+    $('table.display').DataTable( {
+        "scrollY":        "100px",
+        //"scrollCollapse": true,
+        "paging":         false
+    });
+  });
+
+
+
+ 
+
+
+
   
   /**
    * Resets all of the form elements and data tables.
@@ -44,7 +59,7 @@
     // There is a form element containing the list of nodes on the graph. The
     // user can select a node from the drop down and the visualization will
     // focus on that node.
-    $("#nodelist").html("<option>Select the node</option>");
+    //$("#nodelist").html("<option>Select the node</option>");
   }
 
   /**
@@ -59,13 +74,22 @@
 
     // Clear out any values in forl elements or the data table when we have
     // new network data.
-    clearData();
+    //clearData();
 
     // If the sigma instance exists, then we need to clear the existing
     // graph, and kill the object so we can recreate it.
     if(Sigma_Instance){
-      $('#graph').remove(); 
-      $('#graph-container').html('<div id="graph"></div>');
+      //sigma.layouts.startForceLink({linLogMode:true});
+      //Sigma_Instance.stopForceLink();
+      //$('#graph').remove(); 
+      //$('#graph-container').html('<div id="graph"></div>');
+ 
+      Sigma_Instance.graph.clear();
+      Sigma_Instance.refresh();
+      Sigma_Instance.kill();
+      
+
+
     } 
 
     // Create our new sigma instance.
@@ -96,6 +120,11 @@
         defaultNodeType: 'border'
       }
     });
+     
+    //Setting the data in the Nodes Table 
+    setNodesTable(network_data);
+    //Setting the data in the Edges Table
+    setEdgesTable(network_data);
 
     // Calculate the maximum degree in the network.
     var max_degree = 0;
@@ -148,9 +177,11 @@
 
     // Add a drag event listernet to this sigma object.
     addDragListner(Sigma_Instance);
-   
+    
     // Setup the node locator form element;
     setupNodeLocater(Sigma_Instance);
+
+    
     
 
     // Create a lasso object and and an activation event.
@@ -202,7 +233,18 @@
    *   in the network data will be displayed.
    */
   function setNodesTable(selection) {
-   //document.getElementById("data-panel-node-list").innerHTML = dataset;
+   
+    var no_of_nodes = selection["nodes"].length;
+    var i;
+    var data ="";
+    for(i=0;i<no_of_nodes;i++){
+      data = data + "<tr><td>" + (selection["nodes"][i]).label + "</td><td>Unknown</td></tr>";
+
+    }
+
+    document.getElementById("current_node_list").innerHTML = data;
+  
+
   }
 
   /**
@@ -214,6 +256,17 @@
    */
   function setEdgesTable(selection) {
     //document.getElementById("data-panel-node-list").innerHTML = dataset;
+    var no_of_edges = selection["edges"].length;
+    var i;
+    var data="";
+    for(i = 0; i < no_of_edges; i++){
+      var temp_source = parseInt((selection["edges"][i]).source);
+      var temp_target = parseInt((selection["edges"][i]).target);
+      data = data + "<tr><td>" + i + "</td><td>" + (selection["nodes"][temp_source]).label + "</td><td>" + (selection["nodes"][temp_target]).label + "</td><td></td><td></td><td></td></tr>";
+
+    }
+
+    document.getElementById("current_edge").innerHTML = data;
   }
 
   /**
@@ -225,6 +278,7 @@
    */
   function setFunctionalTable(selection) {
     //document.getElementById("data-panel-node-list").innerHTML = dataset;
+
   }
 
   /**
@@ -273,13 +327,13 @@
     var datas ="";
     nodes.forEach(function (node) {
       node.active = true;
-      datas=datas + node.label+"<br />";
+      datas=datas + "<tr><td>"+node.label+"</td><td>Unknown</td></tr>";
     });
 
-    //document.getElementById("data-panel-node-list").innerHTML = datas;
+    document.getElementById("current_node_body").innerHTML = datas;
     //populate(datas);
-
-    $("#current_data").innerHTML = datas;
+    //alert(datas);
+  
       sigma_instance.refresh();
     });
 
