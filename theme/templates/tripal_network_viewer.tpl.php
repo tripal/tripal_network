@@ -68,21 +68,9 @@ $module_path = drupal_get_path('module', 'tripal_network');
     Network stats go here.
     </div>
     <div id="data-panel-edge-list" class="data-panel-item">
-      <table id="current_edge_display" class="display" width="100%" cellspacing="0">
-        <thead>
-          <tr>
-            <th>Number</th>
-            <th>Source </th>
-            <th>Target</th>
-            <th>Weight</th>
-            <th>Direction</th>
-            <th>Selected Traits</th>
-          </tr>
-        </thead>
-        <tbody id="current_edge">
+    
           
-        </tbody>
-      </table>
+      
     </div>
 
     <div id="data-panel-node-list">
