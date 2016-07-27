@@ -173,81 +173,7 @@
     addDragListner(Sigma_Instance);
     
     // Setup the node locator form element;
-    //setupNodeLocater(Sigma_Instance,network_data);
-
-
-    //The following piece of code handles the locate functionality
-    //This uses the Sigma_instance which is declared into the scope -- IMPORTANT
-    //Locate plugin cannot use sigma_instance value copied to some other variable -- IMPORTANT
-
-
-
-    var conf = {
-      animation: {
-        node: {
-          duration: 800
-        },
-        edge: {
-          duration: 800
-        },
-        center: {
-          duration: 300
-        }
-      },
-    //focusOut: true,
-     zoomDef: 1
-    };
-    var locate = sigma.plugins.locate(Sigma_Instance, conf);
-
-    locate.setPadding({
-      // top:250,
-      // bottom: 250,
-      right:250,
-      // left:250
-    });
-  
-    if (!Sigma_Instance.settings('autoRescale')) {
-      sigma.utils.zoomTo(Sigma_Instance.camera, 0, 0, conf.zoomDef);
-    }
-
-    var categories = {};
-
-    // read nodes
-    var nodelistElt = document.getElementById("nodelist");
-    nodelistElt.innerHTML = "<option>All nodes</option>";
-    Sigma_Instance.graph.nodes().forEach(function(n) {
-      $('#nodelist').append($("<option></option>").attr("value", n.id).text(n.label)); 
-
-      //categories[n.attributes.modularity_class] = true;
-    });
-
-    var reset = document.getElementById("reset-btn");
-    reset.addEventListener("click", function(e) {
-      var n_list = document.getElementById("nodelist");
-      n_list.selectedIndex = 0;
-      Sigma_Instance.graph.nodes().forEach(function (n) {
-        n.active=false;
-      });
-      locate.center(conf.zoomDef);
-    });
-
-    function locateNode (e) {
-      var nid = $("#nodelist").val();
-
-      if (nid == '') {
-        
-        locate.center(1);
-      }
-      else {
-        Sigma_Instance.graph.nodes(nid).active = true;
-        locate.nodes(nid);
-      }
-    };
-
-   
-    var n_list2 = document.getElementById("nodelist");
-    n_list2.addEventListener("change", locateNode);
-    
+    setUpLocater();
 
     // Create a lasso object and and an activation event.
     var lasso = createLasso(Sigma_Instance, network_data);
@@ -558,6 +484,74 @@
     dragListener.bind('dragend', function(event) {
 
     });
+  }
+
+  function setUpLocater(){
+    var conf = {
+      animation: {
+        node: {
+          duration: 800
+        },
+        edge: {
+          duration: 800
+        },
+        center: {
+          duration: 300
+        }
+      },
+    //focusOut: true,
+     zoomDef: 1
+    };
+    var locate = sigma.plugins.locate(Sigma_Instance, conf);
+
+    locate.setPadding({
+      // top:250,
+      // bottom: 250,
+      right:250,
+      // left:250
+    });
+  
+    if (!Sigma_Instance.settings('autoRescale')) {
+      sigma.utils.zoomTo(Sigma_Instance.camera, 0, 0, conf.zoomDef);
+    }
+
+    var categories = {};
+
+    // read nodes
+    var nodelistElt = document.getElementById("nodelist");
+    nodelistElt.innerHTML = "<option>All nodes</option>";
+    Sigma_Instance.graph.nodes().forEach(function(n) {
+      $('#nodelist').append($("<option></option>").attr("value", n.id).text(n.label)); 
+
+      //categories[n.attributes.modularity_class] = true;
+    });
+
+    var reset = document.getElementById("reset-btn");
+    reset.addEventListener("click", function(e) {
+      var n_list = document.getElementById("nodelist");
+      n_list.selectedIndex = 0;
+      Sigma_Instance.graph.nodes().forEach(function (n) {
+        n.active=false;
+      });
+      locate.center(conf.zoomDef);
+    });
+
+    function locateNode (e) {
+      var nid = $("#nodelist").val();
+
+      if (nid == '') {
+        
+        locate.center(1);
+      }
+      else {
+        Sigma_Instance.graph.nodes(nid).active = true;
+        locate.nodes(nid);
+      }
+    };
+
+   
+    var n_list2 = document.getElementById("nodelist");
+    n_list2.addEventListener("change", locateNode);
   }
   
   /**
