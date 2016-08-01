@@ -61,7 +61,7 @@ body {
   position: absolute;
   bottom: 0px;
   left: 0px;
-  max-height: 200px; 
+  
   margin: 5px;
 }
 
@@ -107,6 +107,20 @@ body {
 .ui-widget-content {
   background: none !important;
   border: none !important;
+}
+
+/* CSS for the dataTables */
+
+#data-panel-edge-list-table_info{
+  color:white;
+}
+
+#data-panel-node-list-table_info{
+  color:white;
+}
+
+#current_selection_info{
+  color:white;
 }
 
 #bg-color-picker {
@@ -313,6 +327,5 @@ input[type=range] {
   100% { transform: rotate(360deg); }
 }
 
-thead{
-  width:100%;
-}
+
+
