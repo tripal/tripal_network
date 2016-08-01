@@ -114,8 +114,6 @@ function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
 
 /**
  *
- * @param unknown $species
- * @param unknown $module
  */
 function tripal_network_viewer_ajax_retrieve() {
 
@@ -226,4 +224,75 @@ function tripal_network_viewer_ajax_retrieve() {
   );
 
   drupal_json_output($network_data);
+}
+
+/**
+ * An AJAX callback for retrieving funcational informtion for a set of nodes.
+ *
+ * This function expects the following parameters in the $_GET array (as
+ * provided in an HTML GET).
+ *
+ * - nodes: An associative array with the following keys:
+ *    - nodes: An array containing the list of node names.
+ *    - genus: The genus to which the node belongs
+ *    - species:  The species to which the node belongs
+ *    - type:  The feature 'type' of the node (e.g. 'gene', 'mRNA'). The
+ *        type should be a valid name of a Sequence Ontology term.
+ *
+ * @return
+ *   An associative array where the key is the node name and the value is an
+ *   array of key / value paris where the key is the term accession from a
+ *   controlled vocabulary, and the value is the term name.
+ */
+function tripal_network_viewer_ajax_function() {
+  $nodes = $_GET['nodes'];
+  $genus = $_GET['genus'];
+  $species = $_GET['species'];
+  $type = $_GET['type'];
+
+  // Get the list of terms for this feature.
+  // TODO: using the 'name' will have problems when trying to find unique
+  // features. It's not part of the unqiue constraint, but rather the uniquename
+  // field is.  If we could have feature_id's passed in rather than node
+  // names that would ensure we get unique features.
+  $sql = "
+    SELECT
+      F.name as node_name, DB.name as dbname, DBX.accession,
+      CVT.name as term_name, CVT.definition
+    FROM {feature} F
+      INNER JOIN {feature_cvterm} FCVT ON F.feature_id = FCVT.feature_id
+      INNER JOIN {cvterm} CVT on CVT.cvterm_id = FCVT.cvterm_id
+      INNER JOIN {dbxref} DBX ON DBX.dbxref_id = CVT.dbxref_id
+      INNER JOIN {db} DB ON DBX.db_id = DB.db_id
+      INNER JOIN {organism} O on O.organism_id = F.organism_id
+      INNER JOIN {cvterm} FCVT on FCVT.cvterm_id = F.type_id
+    WHERE
+      F.name IN :name
+      O.genus = :genus
+      O.species = :species
+      FCVT.name = :type
+    ORDER BY DB.name, CVT.name
+  ";
+
+  $args = array(
+    ':name' => $nodes,
+    ':genus' => $genus,
+    ':species' => $species,
+    ':type' => $type,
+  );
+  $query = chado_query($sql, $args);
+
+  $results = array();
+  while ($record = $query->fetchObject()) {
+    $accession = $record->accession;
+    if (is_numeric($accession)) {
+      $accession = $record->dbname . ":" . $accession;
+    }
+    $results[$record->node_name][] = array(
+      $accession => $term->term_name
+    );
+  }
+
+  return drupal_json($results);
+
 }
