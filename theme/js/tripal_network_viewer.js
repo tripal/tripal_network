@@ -30,6 +30,9 @@
 
     // Use JQuery UI to format the data panel with tabs.
     $("#tripal-network-viewer-data-panel").tabs();
+
+    
+    
   });
 
   // Code that handles the data-tables of the node-list when the lasso tool is used
@@ -228,25 +231,26 @@
    
     var no_of_nodes = selection["nodes"].length;
     var i;
-    var data ="<table id='current_node_display' class='display1' width='100%'' cellspacing='0'><thead><tr><th>Node Name</th><th>Function Annotations</th></tr></thead><tbody>";
-   
+    var data ="";
+    $('#data-panel-node-list tbody').html("");
+  
     for(i=0;i<no_of_nodes;i++){
-      data = data + "<tr><td>" + (selection["nodes"][i]).label + "</td><td>Unknown</td></tr>";
-    }
+      $('#data-panel-node-list tbody').append('<tr><td>'+ (selection["nodes"][i]).label + '</td><td>Unknown</td></tr>');
+    }  
 
-    data = data + "</tbody></table>";
-
-    document.getElementById("data-panel-node-list").innerHTML = data;
-    $(document).ready(function() {
-      $('#current_node_display').DataTable( {
-          "scrollY":        "100px",
-          "ordering": false,
-          "scrollCollapse": true,
-          "paging": false
-      });
+    
+    table1 = $('#data-panel-node-list-table').DataTable( {
+        "scrollY":        "100px",
+        "ordering": false,
+        "scrollCollapse": true,
+        "paging": false,
+        "retrieve" : true
     });
 
   
+    
+
+
 
   }
 
@@ -261,25 +265,23 @@
     //document.getElementById("data-panel-node-list").innerHTML = dataset;
     var no_of_edges = selection["edges"].length;
     var i;
-    var data="<table id='current_edge_display' class='display' width='100%' cellspacing='0'><thead><tr><th>Number</th><th>Source </th><th>Target</th><th>Weight</th><th>Direction</th><th>Selected Traits</th></tr></thead><tbody>";
+    $('#data-panel-edge-list tbody').html('');
     for(i = 0; i < no_of_edges; i++){
       var temp_source = parseInt((selection["edges"][i]).source);
       var temp_target = parseInt((selection["edges"][i]).target);
-      data = data + "<tr><td>" + i + "</td><td>" + (selection["nodes"][temp_source]).label + "</td><td>" + (selection["nodes"][temp_target]).label + "</td><td></td><td></td><td></td></tr>";
+      $('#data-panel-edge-list tbody').append('<tr><td>'+ (selection["nodes"][temp_source]).label + '</td><td>' + (selection["nodes"][temp_target]).label + '</td><td>1.5</td></tr>');
 
     }
 
-    data = data + "</tbody></table>"
-
-    document.getElementById("data-panel-edge-list").innerHTML = data;
-    $(document).ready(function() {
-      $('#current_edge_display').DataTable( {
-          "scrollY":        "100px",
-          "ordering": false,
-          "scrollCollapse": true,
-          "paging": false
-      });
+    
+    table2 = $('#data-panel-edge-list-table').DataTable( {
+        "scrollY":        "100px",
+        "retrieve": true,
+        "ordering": false,
+        "scrollCollapse": true,
+        "paging": false,
     });
+    
 
 
 
@@ -349,15 +351,15 @@
 
     //Adding Dynamic content to build the table
     document.getElementById("data-panel-current-list").innerHTML = datas;
-    $(document).ready(function() {
+  
       $('#current_selection').DataTable( {
           "scrollY":        "100px",
           "ordering": false,
+          "retrieve": true,
           "scrollCollapse": true,
           "paging": false
       });
-    });
-
+    
 
     //populate(datas);
     //alert(datas);
