@@ -74,6 +74,14 @@ function tripal_network_menu() {
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
   );
+  $items['networks/function'] = array(
+    'page callback' => 'tripal_network_viewer_ajax_function',
+    'page arguments' => array(),
+    'access arguments' => array('access network'),
+    'file' => '/includes/tripal_network.viewer.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'type' => MENU_CALLBACK,
+  );
   return $items;
 }
 

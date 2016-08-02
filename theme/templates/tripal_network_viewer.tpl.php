@@ -57,24 +57,42 @@ $module_path = drupal_get_path('module', 'tripal_network');
   </div>
   <div class="toggle-content">
     <ul>
-      <li><a href="#data-panel-network-stats">Network</a></li>
-      <li><a href="#data-panel-edge-list">Edges</a></li>
-      <li><a href="#data-panel-node-list">Nodes</a></li>
-      <li><a href="#data-panel-markers-list">Markers</a></li>
-      <li><a href="#data-panel-functional-list">Functional</a></li>
-      <li><a href="#data-panel-current-list">Current Selection</a></li>
+      <li><a id="network_info" href="#data-panel-network-stats">Network</a></li>
+      <li><a id="edges_info" href="#data-panel-edge-list">Edges</a></li>
+      <li><a id="nodes_info" href="#data-panel-node-list">Nodes</a></li>
+      <li><a id="markers_info" href="#data-panel-markers-list">Markers</a></li>
+      <li><a id="functional_info" href="#data-panel-functional-list">Functional</a></li>
+      <li><a  href="#data-panel-current-list">Current Selection</a></li>
     </ul>
     <div id="data-panel-network-stats" class="data-panel-item">
     Network stats go here.
     </div>
     <div id="data-panel-edge-list" class="data-panel-item">
-    
-          
-      
-    </div>
+       <table id="data-panel-edge-list-table" width='100%' cellspacing='0'>
+        <thead>
+          <tr>
+            <th>Source </th>
+            <th>Target</th>
+            <th>Weight</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+       </table>
+     </div>
 
     <div id="data-panel-node-list">
-      
+      <table id="data-panel-node-list-table" width='100%' cellspacing='0'>
+        <thead>
+          <tr>
+            <th>Node Name</th>
+            <th>Function Annotations</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+
     </div>
 
     <div id="data-panel-markers-list">

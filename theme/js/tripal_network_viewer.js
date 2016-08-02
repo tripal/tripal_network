@@ -7,6 +7,8 @@
   // An instance of a sigmaJS object.
   var Sigma_Instance;
 
+
+
   // All code within this Drupal.behavior.tripal_network array is 
   // executed everytime a page load occurs or when an ajax call returns.
   Drupal.behaviors.tripal_network = {
@@ -30,6 +32,20 @@
 
     // Use JQuery UI to format the data panel with tabs.
     $("#tripal-network-viewer-data-panel").tabs();
+    
+    // Loading of nodes data on clicking the nodes tab
+    $("#nodes_info").click(function(){
+      setNodesTable(Network_Data);
+
+    });
+
+    // Loading of edges data on clicking the edges tab
+    $("#edges_info").click(function(){
+      setEdgesTable(Network_Data);
+
+    });
+
+
 
     
     
@@ -69,9 +85,14 @@
    */
   function loadNetwork(network_data){
 
-    // Clear out any values in forl elements or the data table when we have
-    // new network data.
-    //clearData();
+    // Clearing out data from the tables after every ajax call for module load
+    $('#data-panel-node-list tbody').html("");
+    $('#data-panel-edge-list tbody').html("");
+    $("#current_selection").html("");
+
+    
+
+
 
     // If the sigma instance exists, then we need to clear the existing
     // graph, and kill the object so we can recreate it.
@@ -119,9 +140,9 @@
     });
      
     //Setting the data in the Nodes Table 
-    setNodesTable(network_data);
+    //setNodesTable(network_data);
     //Setting the data in the Edges Table
-    setEdgesTable(network_data);
+    //setEdgesTable(network_data);
 
     // Calculate the maximum degree in the network.
     var max_degree = 0;
@@ -228,7 +249,9 @@
    *   in the network data will be displayed.
    */
   function setNodesTable(selection) {
-   
+
+    
+    var table1;
     var no_of_nodes = selection["nodes"].length;
     var i;
     var data ="";
@@ -244,8 +267,37 @@
         "ordering": false,
         "scrollCollapse": true,
         "paging": false,
-        "retrieve" : true
+        "retrieve" : true,
+        "info": false
     });
+    
+    // Making an Ajax call to retrieve the functional data
+
+    var functional_data;
+
+    // Ajax Call to retrieve the functional data
+    $.ajax({
+      // The baseurl is a variable set by Tripal that indicates the
+      // "base" of the URL for this site.
+      url: baseurl + '/networks/function',
+      type: "GET",
+      dataType: 'json',
+      data: {'nodes': selection["nodes"], 'genus': 'oryza','species':'sativa','type':'mRNA'},
+      success: function(json) {
+        functional_data = json;
+        
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+      }
+    });
+
+    
+
+    
+
+
+
 
   
     
@@ -263,6 +315,7 @@
    */
   function setEdgesTable(selection) {
     //document.getElementById("data-panel-node-list").innerHTML = dataset;
+    var table2;
     var no_of_edges = selection["edges"].length;
     var i;
     $('#data-panel-edge-list tbody').html('');
@@ -280,6 +333,7 @@
         "ordering": false,
         "scrollCollapse": true,
         "paging": false,
+        "info" : false
     });
     
 

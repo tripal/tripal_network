@@ -82,6 +82,7 @@ body {
 #tripal-network-viewer-data-panel th, td {
   padding: 10px;
   text-align: left;
+
 }
 
 /* CSS for the JQuery Tabs section of the data panel */
@@ -122,6 +123,20 @@ body {
 #current_selection_info{
   color:white;
 }
+
+#data-panel-node-list-table_filter label{
+  color:white;
+}
+
+#data-panel-edge-list-table_filter label{
+  color:white;
+}
+
+#current_selection_filter label{
+  color:white;
+}
+
+/*CSS for the background filter and location selector */
 
 #bg-color-picker {
  height: 60px;
