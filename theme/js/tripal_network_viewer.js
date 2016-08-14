@@ -7,6 +7,8 @@
   // An instance of a sigmaJS object.
   var Sigma_Instance;
 
+  
+
 
 
   // All code within this Drupal.behavior.tripal_network array is 
@@ -255,42 +257,78 @@
     var no_of_nodes = selection["nodes"].length;
     var i;
     var data ="";
+    var node_labels=new Array();
     $('#data-panel-node-list tbody').html("");
-  
+    
     for(i=0;i<no_of_nodes;i++){
-      $('#data-panel-node-list tbody').append('<tr><td>'+ (selection["nodes"][i]).label + '</td><td>Unknown</td></tr>');
+      node_labels[i] = ((selection["nodes"])[i]).label;
     }  
 
     
-    table1 = $('#data-panel-node-list-table').DataTable( {
-        "scrollY":        "100px",
-        "ordering": false,
-        "scrollCollapse": true,
-        "paging": false,
-        "retrieve" : true,
-        "info": false
-    });
-    
     // Making an Ajax call to retrieve the functional data
 
-    var functional_data;
+    
 
     // Ajax Call to retrieve the functional data
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
       url: baseurl + '/networks/function',
-      type: "GET",
+      type: "POST",
       dataType: 'json',
-      data: {'nodes': selection["nodes"], 'genus': 'oryza','species':'sativa','type':'mRNA'},
+      data: {'nodes': node_labels, 'genus': 'Oryza','species':'sativa','type':'gene'},
       success: function(json) {
         functional_data = json;
+        populate_data(functional_data);
         
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
       }
     });
+    
+    function populate_data(functional_data){
+      for(i=0;i<no_of_nodes;i++){
+      var char_label,char_length;
+      char_label = ((selection["nodes"])[i]).label;
+      if(functional_data[char_label]){
+        char_length = functional_data[char_label].length;
+        var function_data="",j;
+        for(j = 0;j < char_length; j++){
+          var val = (functional_data[char_label])[j];
+          for (var k in val){
+            var sub_key = k;
+            var sub_val = val[k];
+            function_data = function_data + sub_key + ':' + sub_val +"<br />";
+          }
+        }
+
+      }
+      else{
+        var function_data;
+        function_data = '-';
+      }
+
+      
+        $('#data-panel-node-list tbody').append('<tr><td>'+ (selection["nodes"][i]).label + '</td><td>' + function_data + '</td></tr>');
+     }
+
+     table1 = $('#data-panel-node-list-table').DataTable({
+        "scrollY":        "140px",
+        "ordering": false,
+        "scrollCollapse": true,
+        "paging": false,
+        "retrieve" : true,
+        "info": false,
+        "searching" : false
+     });
+
+
+   }
+
+
+    
+
 
     
 
@@ -328,7 +366,7 @@
 
     
     table2 = $('#data-panel-edge-list-table').DataTable( {
-        "scrollY":        "100px",
+        "scrollY":        "140px",
         "retrieve": true,
         "ordering": false,
         "scrollCollapse": true,
@@ -394,17 +432,67 @@
 
     // Do something with the selected nodes.
     var nodes = event.data;
-
+    var node_label = new Array();
+    var i=0;
     // List of nodes which are selected.
     var datas ="<table id='current_selection' class='display' width='100%'' cellspacing='0'><thead><tr><th>Node</th><th>Functional Annotations</th></tr></thead><tbody>";
     nodes.forEach(function (node) {
       node.active = true;
-      datas=datas + "<tr><td>"+node.label+"</td><td>Unknown</td></tr>";
+      node_label[i] = node.label;
+      i++;
+      //datas=datas + "<tr><td>"+node.label+"</td><td>Unknown</td></tr>";
     });
-    datas = datas + "</tbody></table>";
+    //datas = datas + "</tbody></table>";
 
-    //Adding Dynamic content to build the table
-    document.getElementById("data-panel-current-list").innerHTML = datas;
+    var functional_data;
+
+    // Ajax Call to retrieve the functional data
+    $.ajax({
+      // The baseurl is a variable set by Tripal that indicates the
+      // "base" of the URL for this site.
+      url: baseurl + '/networks/function',
+      type: "POST",
+      dataType: 'json',
+      data: {'nodes': node_label, 'genus': 'Oryza','species':'sativa','type':'gene'},
+      success: function(json) {
+        functional_data = json;
+        populate_lasso_data(functional_data);
+        
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+      }
+    });
+
+    function populate_lasso_data(functional_data){
+      var j;
+      for(j=0;j<i;j++){
+        var function_data = "";
+        if(functional_data[node_label[j]]){
+          var functional_length = functional_data[node_label[j]].length;
+          var k;
+          for(k=0;k<functional_length;k++){
+            var val = (functional_data[node_label[j]])[k];
+            for(var m in val){
+              var sub_key = m;
+              var sub_val = val[m];
+              function_data = function_data + sub_key + ":" + sub_val+"<br />";
+            }
+          }
+
+
+
+        }
+        else{
+          function_data = '-';
+        }
+
+        datas=datas + "<tr><td>"+node_label[j]+"</td><td>"+function_data+"</td></tr>"; 
+      }
+
+          //Adding Dynamic content to build the table
+      document.getElementById("data-panel-current-list").innerHTML = datas;
+
   
       $('#current_selection').DataTable( {
           "scrollY":        "100px",
@@ -413,6 +501,9 @@
           "scrollCollapse": true,
           "paging": false
       });
+
+
+    }
     
 
     //populate(datas);

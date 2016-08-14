@@ -251,10 +251,10 @@ function tripal_network_viewer_ajax_retrieve() {
 
 
 function tripal_network_viewer_ajax_function() {
-  $nodes = $_GET['nodes'];
-  $genus = $_GET['genus'];
-  $species = $_GET['species'];
-  $type = $_GET['type'];
+  $nodes = $_POST['nodes'];
+  $genus = $_POST['genus'];
+  $species = $_POST['species'];
+  $type = $_POST['type'];
   // Get the list of terms for this feature.
   // TODO: using the 'name' will have problems when trying to find unique
   // features. It's not part of the unqiue constraint, but rather the uniquename
@@ -270,12 +270,12 @@ function tripal_network_viewer_ajax_function() {
       INNER JOIN {dbxref} DBX ON DBX.dbxref_id = CVT.dbxref_id
       INNER JOIN {db} DB ON DBX.db_id = DB.db_id
       INNER JOIN {organism} O on O.organism_id = F.organism_id
-      INNER JOIN {cvterm} FCVT on FCVT.cvterm_id = F.type_id
+      INNER JOIN {cvterm} FCVT2 on FCVT2.cvterm_id = F.type_id
     WHERE
-      F.name IN :name
-      O.genus = :genus
-      O.species = :species
-      FCVT.name = :type
+      F.name IN (:name) and 
+      O.genus = :genus and 
+      O.species = :species and 
+      FCVT2.name = :type
     ORDER BY DB.name, CVT.name
   ";
   $args = array(
@@ -292,8 +292,8 @@ function tripal_network_viewer_ajax_function() {
       $accession = $record->dbname . ":" . $accession;
     }
     $results[$record->node_name][] = array(
-      $accession => $term->term_name
+      $accession => $record->term_name
     );
   }
-  return drupal_json($results);
+  return drupal_json_output($results);
 }
