@@ -114,8 +114,6 @@ function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
 
 /**
  *
- * @param unknown $species
- * @param unknown $module
  */
 function tripal_network_viewer_ajax_retrieve() {
 
@@ -228,8 +226,11 @@ function tripal_network_viewer_ajax_retrieve() {
   drupal_json_output($network_data);
 }
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> e70f22f676399db3f8bbd177fffdfe32b8105f06
 /**
  * An AJAX callback for retrieving funcational informtion for a set of nodes.
  *
@@ -248,6 +249,7 @@ function tripal_network_viewer_ajax_retrieve() {
  *   array of key / value paris where the key is the term accession from a
  *   controlled vocabulary, and the value is the term name.
  */
+<<<<<<< HEAD
 
 
 function tripal_network_viewer_ajax_function() {
@@ -255,6 +257,14 @@ function tripal_network_viewer_ajax_function() {
   $genus = $_POST['genus'];
   $species = $_POST['species'];
   $type = $_POST['type'];
+=======
+function tripal_network_viewer_ajax_function() {
+  $nodes = $_GET['nodes'];
+  $genus = $_GET['genus'];
+  $species = $_GET['species'];
+  $type = $_GET['type'];
+
+>>>>>>> e70f22f676399db3f8bbd177fffdfe32b8105f06
   // Get the list of terms for this feature.
   // TODO: using the 'name' will have problems when trying to find unique
   // features. It's not part of the unqiue constraint, but rather the uniquename
@@ -270,6 +280,7 @@ function tripal_network_viewer_ajax_function() {
       INNER JOIN {dbxref} DBX ON DBX.dbxref_id = CVT.dbxref_id
       INNER JOIN {db} DB ON DBX.db_id = DB.db_id
       INNER JOIN {organism} O on O.organism_id = F.organism_id
+<<<<<<< HEAD
       INNER JOIN {cvterm} FCVT2 on FCVT2.cvterm_id = F.type_id
     WHERE
       F.name IN (:name) and 
@@ -278,6 +289,17 @@ function tripal_network_viewer_ajax_function() {
       FCVT2.name = :type
     ORDER BY DB.name, CVT.name
   ";
+=======
+      INNER JOIN {cvterm} FCVT on FCVT.cvterm_id = F.type_id
+    WHERE
+      F.name IN :name
+      O.genus = :genus
+      O.species = :species
+      FCVT.name = :type
+    ORDER BY DB.name, CVT.name
+  ";
+
+>>>>>>> e70f22f676399db3f8bbd177fffdfe32b8105f06
   $args = array(
     ':name' => $nodes,
     ':genus' => $genus,
@@ -285,6 +307,10 @@ function tripal_network_viewer_ajax_function() {
     ':type' => $type,
   );
   $query = chado_query($sql, $args);
+<<<<<<< HEAD
+=======
+
+>>>>>>> e70f22f676399db3f8bbd177fffdfe32b8105f06
   $results = array();
   while ($record = $query->fetchObject()) {
     $accession = $record->accession;
@@ -292,8 +318,17 @@ function tripal_network_viewer_ajax_function() {
       $accession = $record->dbname . ":" . $accession;
     }
     $results[$record->node_name][] = array(
+<<<<<<< HEAD
       $accession => $record->term_name
     );
   }
   return drupal_json_output($results);
+=======
+      $accession => $term->term_name
+    );
+  }
+
+  return drupal_json($results);
+
+>>>>>>> e70f22f676399db3f8bbd177fffdfe32b8105f06
 }
