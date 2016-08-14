@@ -1,10 +1,12 @@
 <?php
+
 /**
  *
  */
 function tripal_network_viewer_page() {
   return theme('tripal_network_viewer', array());
 }
+
 /**
  *
  * @param $form
@@ -13,12 +15,14 @@ function tripal_network_viewer_page() {
  */
 function tripal_network_viewer_filter_form($form, &$form_state) {
   $form = array();
+
   $species = isset($_SESSION['tripal_network_filter_species']) ? $_SESSION['tripal_network_filter_species'] : '';
   $module = isset($_SESSION['tripal_network_filter_module']) ? $_SESSION['tripal_network_filter_module'] : '';
   if (array_key_exists('values', $form_state)) {
     $species = $form_state['values']['species'];
     $module = $form_state['values']['module'];
   }
+
   // Get the modules for the selected speices from Neo4j.
   $module_options = array();
   $module_options['0'] = '-- Select --';
@@ -36,12 +40,14 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
     curl_setopt($curl, CURLOPT_POSTFIELDS,$data);
     $result = curl_exec($curl);
     $result = json_decode($result, TRUE);
+
     // Format the modules returned from Neo4j into an array for the modules
     // form element.
     foreach ($result['data'] as $mod) {
       $module_options[$mod[0]] = $mod[0];
     }
   }
+
   //$options = tripal_get_organism_select_options();
   $species_options = array();
   $species_options['0'] = '-- Select --';
@@ -74,12 +80,15 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
       'method'   => 'replace',
     ),
   );
+
   $form['#prefix'] = '<div id ="tripal-network-viewer-filter-form">';
   $form['#suffix'] = '</div>';
   $form['#attributes'] = array(
   );
   return $form;
 }
+
+
 /**
  * Ajax function which returns the form via ajax
  */
@@ -87,6 +96,8 @@ function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
   // Set session variables to remember the form selections
   $_SESSION['tripal_network_filter_species'] = $form_state['values']['species'];
   $_SESSION['tripal_network_filter_module'] = $form_state['values']['module'];
+
+
   // Now that our form is updated we want to reload the network.  The network
   // is handled by JavaScript so we need to force the JS code to call our
   // tripal_network_viewer_ajax_retrieve() function.  The following code
@@ -97,26 +108,32 @@ function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
     'module' => $form_state['values']['module'],
   );
   tripal_network_add_ajax_command(ajax_command_invoke(NULL, "retrieveNetwork", array($data)));
+
   return $form;
 }
+
 /**
  *
  * @param unknown $species
  * @param unknown $module
  */
 function tripal_network_viewer_ajax_retrieve() {
+
   // Initialize our network data array.
   $network_data = array(
     'nodes' => array(),
     'edges' => array(),
   );
+
   // Get the fitering variables requested by the user.
   $species = $_GET['species'];
   $module = $_GET['module'];
+
   // Make sure we have required filters.
   if (!$species or !$module) {
     drupal_json_output($network_data);
   }
+
   // Matching query for neo4j
   $rel = $species . "module";
   $que = "MATCH(n1:".$species.")-[rel:".$rel."]->(n2:".$species.") WHERE rel.modulename = {value} RETURN rel.modulename,n1.id,n2.id";
@@ -126,6 +143,7 @@ function tripal_network_viewer_ajax_retrieve() {
       "value"=>$module
     )
   );
+
   // Neo4j REST API calls
   $data = json_encode($data);
   $curl = curl_init();
@@ -136,11 +154,14 @@ function tripal_network_viewer_ajax_retrieve() {
   curl_setopt($curl, CURLOPT_POSTFIELDS,$data);
   $result1 = curl_exec($curl);
   curl_close($curl);
+
   $result1 = json_decode($result1, TRUE);
   $nodes = array();
   $edges = array();
+
   $i = 0;
   $e = 0;
+
   // Storing the nodes in an array
   // Purpose of this is to use the index for mapping of ID's
   $edge_count = 0;
@@ -155,9 +176,12 @@ function tripal_network_viewer_ajax_retrieve() {
   // Creating an array with unique ID's as we don't want repetition of nodes in the given array
   $nodes = array_unique($nodes);
   sort($nodes);
+
+
   $num = count($nodes);
   $n = 0;
   $node = array();
+
   // Storage of the nodes in the proper format with the correct indexing
   $colors = array("#009999","#666","#003366","#660066","#00FF00");
   for ($x = 0; $x < $num; $x++) {
@@ -170,11 +194,13 @@ function tripal_network_viewer_ajax_retrieve() {
     $val = mt_rand(0,4);
     $temp["color"]="gray";
     //$temp["color"]="gray";
+
     //$temp["name"] = $nodes[$x];
     //$temp["group"] = 2;
     $node[$n] = $temp;
     $n++;
   }
+
   // Storage of the nodes in proper format
   foreach($result1['data'] as $row) {
     //Following is for the storage of the relationships with source and targets mapped to proper indexes
@@ -193,12 +219,17 @@ function tripal_network_viewer_ajax_retrieve() {
     $edges[$e]=$temp;
     $e++;
   }
+
   $network_data = array(
     'nodes' => $node,
     'edges' => $edges
   );
+
   drupal_json_output($network_data);
 }
+
+
+
 /**
  * An AJAX callback for retrieving funcational informtion for a set of nodes.
  *
@@ -217,6 +248,8 @@ function tripal_network_viewer_ajax_retrieve() {
  *   array of key / value paris where the key is the term accession from a
  *   controlled vocabulary, and the value is the term name.
  */
+
+
 function tripal_network_viewer_ajax_function() {
   $nodes = $_POST['nodes'];
   $genus = $_POST['genus'];
@@ -237,12 +270,12 @@ function tripal_network_viewer_ajax_function() {
       INNER JOIN {dbxref} DBX ON DBX.dbxref_id = CVT.dbxref_id
       INNER JOIN {db} DB ON DBX.db_id = DB.db_id
       INNER JOIN {organism} O on O.organism_id = F.organism_id
-      INNER JOIN {cvterm} FCVT on FCVT.cvterm_id = F.type_id
+      INNER JOIN {cvterm} FCVT2 on FCVT2.cvterm_id = F.type_id
     WHERE
-      F.name IN :name
-      O.genus = :genus
-      O.species = :species
-      FCVT.name = :type
+      F.name IN (:name) and 
+      O.genus = :genus and 
+      O.species = :species and 
+      FCVT2.name = :type
     ORDER BY DB.name, CVT.name
   ";
   $args = array(
@@ -259,8 +292,8 @@ function tripal_network_viewer_ajax_function() {
       $accession = $record->dbname . ":" . $accession;
     }
     $results[$record->node_name][] = array(
-      $accession => $term->term_name
+      $accession => $record->term_name
     );
   }
-  return drupal_json($results);
+  return drupal_json_output($results);
 }
