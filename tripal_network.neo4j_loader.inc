@@ -116,12 +116,13 @@ foreach($myfile->edge as $edgeinfo){
     $module = "";
     $networkname="";
 
+    //For looping through data and finding appropriate keys 
     foreach($edgeinfo->children() as $dataset ){
       if($dataset['key']=='module'){
-        $module = $dataset;
+        $module = (string)$dataset;
       }
       else if($dataset['key']=='network'){
-        $networkname = $dataset;
+        $networkname = (string)$dataset;
       }
     }
 
