@@ -168,8 +168,10 @@ function tripal_network_load_graphML($graphML_file, $organism_id, $analysis_id, 
       watchdog('tripal_network', "Cannot find organism with id: %organism_id",
         array('%organism_id' => $organism_id), WATCHDOG_ERROR);
       return FALSE;
+
     }
     $organism = $organism[0];
+    //print_r($organism);
 
     // Get the generic module type.
   //   $values = array(

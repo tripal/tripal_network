@@ -84,6 +84,7 @@ function tripal_network_graphML_load_form_validate($form, &$form_state) {
 
   $graphML_file = $form_state['values']['graphML_file'];
   $organism_id = $form_state['values']['organism_id'];
+  $analysis_id = $form_state['values']['analysis_id'];
 
   // check to see if the file is located local to Drupal
   $graphML_file = trim($graphML_file);
@@ -159,17 +160,19 @@ function tripal_network_load_graphML($graphML_file, $organism_id, $analysis_id, 
 
   // Begin the transaction.
   $transaction = db_transaction();
+  
   try {
 
     // Get the organism.
     $values = array('organism_id' => $organism_id);
-    $organism = chado_select_record('organism', array('organism_id'), $values);
+    $organism = chado_select_record('organism', array('organism_id','genus','species'), $values);
     if (count($organism) == 0) {
       watchdog('tripal_network', "Cannot find organism with id: %organism_id",
         array('%organism_id' => $organism_id), WATCHDOG_ERROR);
       return FALSE;
     }
     $organism = $organism[0];
+    
 
     // Get the generic module type.
   //   $values = array(
@@ -224,7 +227,7 @@ function tripal_network_load_graphML($graphML_file, $organism_id, $analysis_id, 
 
         // if this is a graph then parse the graph
         elseif (strcmp($graphml->name, 'graph')==0) {
-          tripal_network_load_graphML_graph($graphml, $attributes, $organism, $nodes_read, $mod_type);
+          tripal_network_load_graphML_graph($graphml, $attributes, $organism, $nodes_read, $mod_type,$analysis_id);
         }
       }
     }
@@ -261,7 +264,7 @@ function tripal_network_load_graphML($graphML_file, $organism_id, $analysis_id, 
  *   for the network module type.
  */
 function tripal_network_load_graphML_graph($graphml, $attributes,
-  $organism, &$nodes_read, $mod_type) {
+  $organism, &$nodes_read, $mod_type,$analysis_id) {
 
   // First get the graph attributes and ase the id as the default network name.
   $id = $graphml->getAttribute('id');
@@ -279,11 +282,11 @@ function tripal_network_load_graphML_graph($graphml, $attributes,
     $nodes_read++;
 
     if (strcmp($graphml->name, 'node') == 0) {
-      tripal_network_load_graphML_add_node($graphml, $attributes, $network, $organism, $nodes_read);
+      tripal_network_load_graphML_add_node($graphml, $attributes, $network, $organism, $nodes_read,$analysis_id);
     }
-    //elseif (strcmp($graphml->name, 'edge') == 0) {
-    //  tripal_network_load_graphML_add_edge($graphml, $attributes, $network, $organism, $nodes_read, $mod_type);
-    //}
+    elseif (strcmp($graphml->name, 'edge') == 0) {
+      tripal_network_load_graphML_add_edge($graphml, $attributes, $network, $organism, $nodes_read, $mod_type,$network_name);
+    }
 
     // Update our progress.
     tripal_network_graphML_loader_set_progress($nodes_read);
@@ -305,7 +308,7 @@ function tripal_network_load_graphML_graph($graphml, $attributes,
  *   is passed by reference and is updated by this call.
  */
 function tripal_network_load_graphML_add_node($graphml, $attributes,
-  $default_network, $organism, &$nodes_read) {
+  $default_network, $organism, &$nodes_read,$analysis_id) {
 
   // First get the graph attributes.
   $id = $graphml->getAttribute('id');
@@ -340,9 +343,9 @@ function tripal_network_load_graphML_add_node($graphml, $attributes,
     // chado_select_record function.
     $sql = "
      SELECT F.feature_id
-     FROM synonym S
-       INNER JOIN feature_synonym FS on FS.synonym_id = S.synonym_id
-       INNER JOIN feature F on FS.feature_id = F.feature_id
+     FROM {synonym} S
+       INNER JOIN {feature_synonym} FS on FS.synonym_id = S.synonym_id
+       INNER JOIN {feature} F on FS.feature_id = F.feature_id
      WHERE S.name = :name
     ";
     $feature = chado_query($sql, array(':name' => $id));
@@ -362,11 +365,23 @@ function tripal_network_load_graphML_add_node($graphml, $attributes,
   
 
   // Check if the node is present in the network node table, if not add it.
-    $nodeid=$id."-".$feature;
+    $nodeid = $id;
     $nodeid=(string)$nodeid;
-    $species = "arabidopsis";
+    $species = $organism->species;
+    $species = (string)$species;
+    $genus = $organism->genus;
+    $genus = (string)$genus;
+    $organismid = $organism->organism_id;
+    $feature = $feature[0];
+    $feature_id = $feature->feature_id;
+    
+
+    $label = "tripal_network";
+
+    //print_r($species);
+    
     // This statement is querying if the node with the given id exists;
-    $var="MATCH(u:".$species.") WHERE u.id = {id} RETURN u.id";
+    $var="MATCH(u:".$label.") WHERE u.id = {id} RETURN u.id";
      $data=array(
      "query" => $var,
       "params" => array(
@@ -415,11 +430,16 @@ function tripal_network_load_graphML_add_node($graphml, $attributes,
 
       // Here query chado database with the nodeid to extract the Feature.type_id
       //
-      $create_query="CREATE (x:".$species." { id : {id} }) RETURN x";
+      $create_query="CREATE (x:".$label." { id : {id}, genus:{genus},species:{species}, organism_id:{organism_id},analysis_id:{analysis_id},feature_id:{feature_id}}) RETURN x";
       $data=array(
        "query" => $create_query,
        "params" => array(
        "id" => $nodeid,
+       "genus"=>$genus,
+       "species"=>$species,
+       "organism_id"=>$organismid,
+       "analysis_id"=>$analysis_id,
+       "feature_id"=>$feature_id,
       )
      ); 
 
@@ -459,16 +479,17 @@ function tripal_network_load_graphML_add_node($graphml, $attributes,
  *   for the network module type.
  */
 
-/*
+
 
 function tripal_network_load_graphML_add_edge($graphml, $attributes,
-  $network, $organism, &$nodes_read, $mod_type) {
+  $network, $organism, &$nodes_read, $mod_type,$network_name) {
 
   // First get the graph attributes.
 
   $source= $graphml->getAttribute('source');
   $target = $graphml->getAttribute('target');
-  $species="arabidopsis";
+  $label = "tripal_network";
+  $species = $organism->species;
   $module_rel = $species."module";
 
   // Now iterate through data tags and get the attributes for this edge.
@@ -524,7 +545,7 @@ function tripal_network_load_graphML_add_edge($graphml, $attributes,
 
   // Now add in the edge if it doesn't already exist.
 
-  $que = "MATCH(n1:".$species."{id:{id1}})-[rel:".$species."module]->(n2:".$species."{id:{id2}}) WHERE rel.modulename = {value} RETURN rel.modulename,n1.id,n2.id";
+  $que = "MATCH(n1:".$label."{id:{id1}})-[rel:".$species."module]->(n2:".$label."{id:{id2}}) WHERE rel.modulename = {value} RETURN rel.modulename,n1.id,n2.id";
 
     //This query is checking if a relationship corresponding to the source and the destination with the specific label of the relationship already exists
 
@@ -579,7 +600,7 @@ function tripal_network_load_graphML_add_edge($graphml, $attributes,
         
         //The following query will attach a relationship to two nodes with the source and target as extracted from the graphml file
 
-          $insert_query="MATCH (u:".$species."{id:{source}}),(r:".$species."{id:{target}}) CREATE (u)-[:".$module_rel."{modulename:{mod},network:{net}}]->(r)";
+          $insert_query="MATCH (u:".$label."{id:{source}}),(r:".$label."{id:{target}}) CREATE (u)-[:".$module_rel."{modulename:{mod},network:{net}}]->(r)";
 
           $data=array(
           "query" => $insert_query,
@@ -587,7 +608,7 @@ function tripal_network_load_graphML_add_edge($graphml, $attributes,
           "source" => $source,
           "target" =>$target,
           "mod"=>$module,
-          "net"=>$networkname
+          "net"=>$network_name
         )
        ); 
 
@@ -610,107 +631,6 @@ function tripal_network_load_graphML_add_edge($graphml, $attributes,
 
 }
 
-*/
-
-
-/**
- * Imports a module.
- *
- * Modules are specified on the edge element of the GraphML file so this
- * function is called when processing edges.
- *
- * @param $network
- *   An network record object.
- * @param $organism
- *   An organism record object.
- * @param $module.
- *   The name of the module.
- * @param $mod_type
- *   A cvterm object record representing the controlled vocabulary term
- *   for the network module type.
- * @param $feature1
- *   A feature record object for the first node of the edge
- * @param $feature2
- *   A feature record object for the second node of the edge
- */
-
-/*
-function tripal_network_load_graphML_add_module($network, $organism, $module,
-    $mod_type, $feature1, $feature2) {
-
-  // Check to see if the module exists. If not then add it.
-  $values = array(
-    'network_id' => $network->network_id,
-    'name' => $module,
-    'type_id' => $mod_type->cvterm_id,
-  );
-  $result = chado_select_record('networkmod', array('networkmod_id'), $values);
-  if (count($result) == 0) {
-    // It doesn't exist so insert it.
-    $result = chado_insert_record('networkmod', $values);
-    if (!$result or !array_key_exists('networkmod_id', $result)) {
-      watchdog('tripal_network', "Could not add module, %module, for network, %network",
-          array('%network' => $network_name, '%module' => $module), WATCHDOG_ERROR);
-      return FALSE;
-    }
-    $networkmod = (object) $result;
-  }
-  else {
-    $networkmod = $result[0];
-  }
-
-  // Add the nodes to the networknod_node table.
-  $values = array(
-    'networkmod_id' => $networkmod->networkmod_id,
-    'node' => $feature1->feature_id,
-  );
-  $netmodnode = chado_select_record('networkmod_node', array('networkmod_node_id'), $values);
-  if (count($netmodnode) == 0){
-    // If the edge doens't exist then add it.
-    $result = chado_insert_record('networkmod_node', $values);
-    if (!array_key_exists('networkmod_node_id', $result)) {
-      watchdog('tripal_network', "Cannot add network node to database: %network %module %node1",
-          array('%network' => $network_name, '%module' => $module, '%node1' => $node1),
-          WATCHDOG_ERROR);
-      return FALSE;
-    }
-  }
-  // Add node to the networkmod_node table.
-  $values = array(
-    'networkmod_id' => $networkmod->networkmod_id,
-    'node' => $feature2->feature_id,
-  );
-  $netmodnode = chado_select_record('networkmod_node', array('networkmod_node_id'), $values);
-  if (count($netmodnode) == 0){
-    // If the edge doens't exist then add it.
-    $result = chado_insert_record('networkmod_node', $values);
-    if (!array_key_exists('networkmod_node_id', $result)) {
-      watchdog('tripal_network', "Cannot add network node to database: %network %module %node2",
-          array('%network' => $network_name, '%module' => $module, '%node2' => $node1),
-          WATCHDOG_ERROR);
-      return FALSE;
-    }
-  }
-
-  // Now add the edge to the module, but first check to see if exists.
-  $values = array(
-    'networkmod_id' => $networkmod->networkmod_id,
-    'networkedge_id' => $netedge->networkedge_id,
-  );
-  $netmodedge = chado_select_record('networkmod_edge', array('networkmod_edge_id'), $values);
-  if (count($netmodedge) == 0){
-    // If the edge doens't exist then add it.
-    $success = chado_insert_record('networkmod_edge', $values);
-    if (!$success) {
-      watchdog('tripal_network', "Cannot add network edge to database: %network %module %node1 %node2 %weight %direction",
-          array('%network' => $network_name, '%module' => $module, '%node1' => $node1, '%node2' => $node2, '%weight' => $weight, '%direction' => $direction),
-          WATCHDOG_ERROR);
-      return FALSE;
-    }
-  }
-}
-
-*/
 
 /**
  * Sets the job progress for the Tripal Jobs system.
