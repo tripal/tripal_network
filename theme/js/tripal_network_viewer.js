@@ -327,21 +327,6 @@
    }
 
 
-    
-
-
-    
-
-    
-
-
-
-
-  
-    
-
-
-
   }
 
   /**
@@ -701,89 +686,6 @@
     n_list2.addEventListener("change", locateNode);
   }
   
-  /**
-   * Adds functionality to zoom to a node from a form select box.
-   * 
-   * The display panel has a node drop down that lists all of the nodes
-   * in the graph. If the user selects a node then the graph should 
-   * zoom to that node.
-   * 
-   * @param sigma_instance
-   *   An instance of a sigmaJS object.
-   */
-
-/*
-  function setupNodeLocater(sigma_instance,network_data) {
-    // Setting the configuration for zooming to the selected node
-    var conf = {
-      animation: {
-        node: {
-          duration: 800
-        },
-        edge: {
-          duration: 800
-        },
-        center: {
-          duration: 300
-        }
-      },
-      //focusOut: true,
-      zoomDef: 1
-    };
-
-    // Initializing the instance for locate.
-    var locate = sigma.plugins.locate(sigma_instance, conf);
-
-    locate.setPadding({
-      right:250,
-    });
-
-
-    if (!sigma_instance.settings('autoRescale')) {
-      sigma.utils.zoomTo(sigma_instance.camera, 0, 0, conf.zoomDef);
-    }
-
-    var categories = {};
-
-    // Add the nodes to the nodelist form element. 
-    $("#nodelist").html('<option value="" selected>All nodes</option>');
-    sigma_instance.graph.nodes().forEach(function(n) {
-      $('#nodelist').append($("<option></option>").attr("value", n.id).text(n.label)); 
-    });
   
-    document.getElementById("reset-btn").addEventListener("click", function(e) {
-      document.getElementById("nodelist").selectedIndex = 0;
-
-      // Set the default colors of the nodes after being reset 
-      sigma_instance.graph.nodes().forEach(function (n) {
-        n.active = false;
-      });
-      locate.center(conf.zoomDef);
-    });
-
-    // Add an onChange event lister to the nodelist form element.  
-    $('#nodelist').on('change', function(){
-      nid = $("#nodelist").val();
-      
-      if (nid == '') {
-        locate.center(1);
-      }
-      else {
-        
-
-        sigma_instance.graph.nodes(nid).active = true;
-
-        locate.nodes(nid);
-
-
-
-      }
-    });
-  }
-
-  */
-
-
-
 
 })(jQuery);

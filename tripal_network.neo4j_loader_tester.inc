@@ -409,8 +409,7 @@ function tripal_network_load_graphML_add_node($graphml, $attributes,
     // The result given by the REST API request gives an empty field with "data". 
     $word="data";
 
-    if(strpos($result,$word)!==false)
-    {
+    if(strpos($result,$word)!==false){
       
       $pos=strpos($result,$word);
       
@@ -420,8 +419,7 @@ function tripal_network_load_graphML_add_node($graphml, $attributes,
     $pos=$pos+11;
 
     //
-    if($result[$pos]=="[")
-    {
+    if($result[$pos]=="["){
       echo "";
     }
 
