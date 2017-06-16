@@ -26,18 +26,6 @@ function tripal_network_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => 0,
   );
-
-  $items['admin/tripal/extension/network/gml_loader'] = array(
-    'title' => 'Import a Network',
-    'description' => 'Import a biological network from a file in GraphML format..',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('tripal_network_graphML_load_form'),
-    'access arguments' => array('administer tripal_network'),
-    'type' => MENU_LOCAL_TASK,
-    'file' => 'tripal_network.neo4j_loader_tester.inc',
-    'file path' => drupal_get_path('module','tripal_network'),
-    'weight' => 1,
-  );
   $items['admin/tripal/extension/network/help'] = array(
     'title' => 'Help',
     'description' => 'Documentation for the Tripal Network module..',
