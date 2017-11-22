@@ -16,6 +16,9 @@ function tripal_network_viewer_page() {
 function tripal_network_viewer_filter_form($form, &$form_state) {
   $form = array();
 
+  tripal_neo4j_connect("bolt", "bolt://neo4j:testing123@localhost:7687");
+
+
   $species = isset($_SESSION['tripal_network_filter_species']) ? $_SESSION['tripal_network_filter_species'] : '';
   $module = isset($_SESSION['tripal_network_filter_module']) ? $_SESSION['tripal_network_filter_module'] : '';
   if (array_key_exists('values', $form_state)) {
@@ -23,7 +26,7 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
     $module = $form_state['values']['module'];
   }
 
-  // Get the modules for the selected speices from Neo4j.
+  // Get the modules for the selected species from Neo4j.
   $module_options = array();
   $module_options['0'] = '-- Select --';
   if ($species) {
@@ -48,12 +51,27 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
     }
   }
 
-  //$options = tripal_get_organism_select_options();
+  // Get the species that have network data and match those with Chado.
+  $results = tripal_neo4j_query("MATCH (n:Transcript) RETURN DISTINCT n.taxId AS taxId");
+  $taxIds = array();
+  foreach ($results->getRecords() as $record) {
+    $taxIds[] = $record->value('taxId');
+  }
+
+  $sql = "
+    SELECT O.*, DBX.accession as taxid
+    FROM {organism} O
+      INNER JOIN {organism_dbxref} ODBX on ODBX.organism_id = O.organism_id
+      INNER JOIN {dbxref} DBX on DBX.dbxref_id = ODBX.dbxref_id
+      INNER JOIN {db} DB on DB.db_id = DBX.db_id
+    WHERE DB.name = 'NCBITaxon' AND DBX.accession IN (:taxIds)
+  ";
+  $results = chado_query($sql, array(':taxIds' => $taxIds));
   $species_options = array();
   $species_options['0'] = '-- Select --';
-  $species_options['rice'] = 'Rice';
-  $species_options['maize'] = 'Maize';
-  $species_options['arabidopsis'] = 'Arabidopsis';
+  while ($organism = $results->fetchObject()) {
+    $species_options[$organism->taxid] = tripal_get_organism_scientific_name($organism);
+  }
   $form['species'] = array(
     '#type' => 'select',
     '#title' => t('Species'),
@@ -272,9 +290,9 @@ function tripal_network_viewer_ajax_function() {
       INNER JOIN {organism} O on O.organism_id = F.organism_id
       INNER JOIN {cvterm} FCVT2 on FCVT2.cvterm_id = F.type_id
     WHERE
-      F.name IN (:name) and 
-      O.genus = :genus and 
-      O.species = :species and 
+      F.name IN (:name) and
+      O.genus = :genus and
+      O.species = :species and
       FCVT2.name = :type
     ORDER BY DB.name, CVT.name
   ";

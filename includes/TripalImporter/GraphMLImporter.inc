@@ -142,7 +142,7 @@ class GraphMLImporter extends TripalImporter {
    */
   public function run() {
     $arguments = $this->arguments['run_args'];
-    $file_path = $this->arguments['file']['file_path'];
+    $file_path = $this->arguments['files'][0]['file_path'];
 
     $graphML_file = $file_path;
     $organism_id = $arguments['organism_id'];

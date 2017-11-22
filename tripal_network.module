@@ -1,5 +1,8 @@
 <?php
 
+require_once "api/tripal_network.neo4j.api.inc";
+
+
 /**
  * Implements hook_menu()
  *
@@ -9,6 +12,55 @@
  */
 function tripal_network_menu() {
   $items = array();
+
+  /*
+   * Module Search Form
+   */
+  $items['networks/search'] = array(
+    'title' => 'Network Search',
+    'description' => 'Search for network modules',
+    'page callback' => 'tripal_network_search_page',
+    'access arguments' => array('access chado_network content'),
+    'file' => '/includes/tripal_network.search.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+  // the AJAX callback for advanced search form networks
+  $items['networks/search/networks'] = array(
+    'page callback' => 'tripal_network_search_get_networks',
+    'access arguments' => array('access chado_network content'),
+    'type' => MENU_CALLBACK
+  );
+  // the AJAX callback for advanced search form networks
+  $items['networks/search/traits'] = array(
+    'page callback' => 'tripal_network_search_get_traits',
+    'access arguments' => array('access chado_network content'),
+    'type' => MENU_CALLBACK
+  );
+
+  $items['networks/viewer'] = array(
+    'page callback' => 'tripal_network_viewer_page',
+    'page arguments' => array(),
+    'access arguments' => array('access network'),
+    'file' => '/includes/tripal_network.viewer.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['networks/retrieve'] = array(
+    'page callback' => 'tripal_network_viewer_ajax_retrieve',
+    'page arguments' => array(),
+    'access arguments' => array('access network'),
+    'file' => '/includes/tripal_network.viewer.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['networks/function'] = array(
+    'page callback' => 'tripal_network_viewer_ajax_function',
+    'page arguments' => array(),
+    'access arguments' => array('access network'),
+    'file' => '/includes/tripal_network.viewer.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'type' => MENU_CALLBACK,
+  );
 
   // All extension modules should have an administrative menu item
   // with the path set to 'admin/tripal/extension/[module name]'.
@@ -46,34 +98,8 @@ function tripal_network_menu() {
     'type' => MENU_CALLBACK,
   );
 
-  $items['networks'] = array(
-    'page callback' => 'tripal_network_viewer_page',
-    'page arguments' => array(),
-    'access arguments' => array('access network'),
-    'file' => '/includes/tripal_network.viewer.inc',
-    'file path' => drupal_get_path('module','tripal_network'),
-    'type' => MENU_CALLBACK,
-  );
-  $items['networks/retrieve'] = array(
-    'page callback' => 'tripal_network_viewer_ajax_retrieve',
-    'page arguments' => array(),
-    'access arguments' => array('access network'),
-    'file' => '/includes/tripal_network.viewer.inc',
-    'file path' => drupal_get_path('module','tripal_network'),
-    'type' => MENU_CALLBACK,
-  );
-  $items['networks/function'] = array(
-    'page callback' => 'tripal_network_viewer_ajax_function',
-    'page arguments' => array(),
-    'access arguments' => array('access network'),
-    'file' => '/includes/tripal_network.viewer.inc',
-    'file path' => drupal_get_path('module','tripal_network'),
-    'type' => MENU_CALLBACK,
-  );
   return $items;
 }
-
-
 
 
 /**
@@ -91,7 +117,6 @@ function tripal_network_views_api() {
   );
 }
 
-
 /**
  *  Implements hook_theme()
  *
@@ -101,13 +126,13 @@ function tripal_network_theme($existing, $type, $theme, $path) {
 
   $items = array(
     // HTML AND PAGE THEMES
-     'html__networks' => array(
-       'template' => 'html--networks',
-       'render element' => 'html',
-       'base hook' => 'html',
-       'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
-     ),
-     'page__networks' => array(
+    'html__networks' => array(
+      'template' => 'html--networks',
+      'render element' => 'html',
+      'base hook' => 'html',
+      'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
+    ),
+    'page__networks' => array(
        'template' => 'page--networks',
        'render element' => 'page',
        'base hook' => 'page',
@@ -212,6 +237,15 @@ function tripal_network_libraries_info() {
       '1.5.1' => array(),
     ),
   );
+  $libraries['neo4j-php-client'] = array(
+    'name' => 'neo4j-php-client',
+    'vendor url' => 'https://github.com/graphaware/neo4j-php-client',
+    'download url' => 'https://github.com/graphaware/neo4j-php-client',
+    'files' => array(
+      'php' => array('galaxy.inc'),
+    ),
+  );
+
 
   return $libraries;
 }
