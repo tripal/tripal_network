@@ -7,9 +7,6 @@
   // An instance of a sigmaJS object.
   var Sigma_Instance;
 
-  
-
-
 
   // All code within this Drupal.behavior.tripal_network array is 
   // executed everytime a page load occurs or when an ajax call returns.
@@ -55,14 +52,6 @@
 
   // Code that handles the data-tables of the node-list when the lasso tool is used
  
-
-
-
- 
-
-
-
-  
   /**
    * Resets all of the form elements and data tables.
    * 
@@ -92,10 +81,6 @@
     $('#data-panel-edge-list tbody').html("");
     $("#current_selection").html("");
 
-    
-
-
-
     // If the sigma instance exists, then we need to clear the existing
     // graph, and kill the object so we can recreate it.
     if(Sigma_Instance){
@@ -106,10 +91,7 @@
  
       Sigma_Instance.graph.clear();
       Sigma_Instance.refresh();
-      Sigma_Instance.kill();
-      
-
-
+      //Sigma_Instance.kill();
     } 
 
     // Create our new sigma instance.
@@ -519,14 +501,14 @@
     // The data needed to retreive the network is provided to this function
     // by the tripal_network module of Drupal via the data function. 
     var species = filters['species'];
-    var module = filters['module'];
+    var genes = filters['genes'];
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
       url: baseurl + '/networks/retrieve',
       type: "GET",
       dataType: 'json',
-      data: {'species': species, 'module': module},
+      data: {'species': species, 'genes': genes},
       success: function(json) {
         Network_Data = json;
         loadNetwork(Network_Data);

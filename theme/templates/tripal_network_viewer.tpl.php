@@ -9,8 +9,8 @@ $module_path = drupal_get_path('module', 'tripal_network');
 
 <div id="tripal-network-viewer-settings-panel">
   <div class="toggle-header">
-    <img class="toggle-icon" src="<?php print $module_path . '/theme/images/menu_icon.png'?>">
-    <h2>Display</h2>
+    <img class="toggle-icon" src="<?php print url($module_path . '/theme/images/menu_icon.png')?>">
+    <h2>Settings</h2>
   </div>
   <div class="toggle-content">
     <div id="bg-color-picker">
@@ -38,7 +38,7 @@ $module_path = drupal_get_path('module', 'tripal_network');
 
 <div id="tripal-network-viewer-filter-panel">
   <div class="toggle-header">
-    <img class="toggle-icon" src="<?php print $module_path . '/theme/images/menu_icon.png'?>">
+    <img class="toggle-icon" src="<?php print url($module_path . '/theme/images/menu_icon.png')?>">
     <h2>Filters</h2>
   </div>
   <div class="toggle-content"><?php
@@ -52,7 +52,7 @@ $module_path = drupal_get_path('module', 'tripal_network');
 
 <div id="tripal-network-viewer-data-panel">
   <div class="toggle-header">
-    <img class="toggle-icon" src="<?php print $module_path . '/theme/images/menu_icon.png'?>">
+    <img class="toggle-icon" src="<?php print url($module_path . '/theme/images/menu_icon.png')?>">
     <h2>Data</h2>
   </div>
   <div class="toggle-content">
@@ -102,7 +102,7 @@ $module_path = drupal_get_path('module', 'tripal_network');
     </div>
 
     <div id="data-panel-current-list">
-       
+
     </div>
 
   </div>
