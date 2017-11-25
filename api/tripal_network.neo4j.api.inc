@@ -44,6 +44,7 @@ function tripal_neo4j_query($query, $params = array()) {
   global $tn_neo4j_sessions;
   global $tn_neo4j_active;
 
+  drupal_debug($params);
   $client = $tn_neo4j_sessions[$tn_neo4j_active];
   return $client->run($query, $params);
 }

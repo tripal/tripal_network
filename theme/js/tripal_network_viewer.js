@@ -12,8 +12,6 @@
   // executed everytime a page load occurs or when an ajax call returns.
   Drupal.behaviors.tripal_network = {
     attach: function (context, settings) {
-
-
     } 
   } 
 
@@ -27,44 +25,9 @@
     // Add a click response to open and close the panels.
     $('.toggle-header').click(function(){
       $(this).parent().find('.toggle-content').slideToggle('fast');
-    });
-
-    // Use JQuery UI to format the data panel with tabs.
-    $("#tripal-network-viewer-data-panel").tabs();
-    
-    // Loading of nodes data on clicking the nodes tab
-    $("#nodes_info").click(function(){
-      setNodesTable(Network_Data);
-
-    });
-
-    // Loading of edges data on clicking the edges tab
-    $("#edges_info").click(function(){
-      setEdgesTable(Network_Data);
-
-    });
-
-
-
-    
-    
+    });  
   });
-
-  // Code that handles the data-tables of the node-list when the lasso tool is used
  
-  /**
-   * Resets all of the form elements and data tables.
-   * 
-   * At times it is necessary to clear out the data in some form elements
-   * as well as the data tables. This function will clear everything.
-   * 
-   */
-  function clearData() {
-    // There is a form element containing the list of nodes on the graph. The
-    // user can select a node from the drop down and the visualization will
-    // focus on that node.
-    //$("#nodelist").html("<option>Select the node</option>");
-  }
 
   /**
    * Creates the visualization for the network.
@@ -77,8 +40,6 @@
   function loadNetwork(network_data){
 
     // Clearing out data from the tables after every ajax call for module load
-    $('#data-panel-node-list tbody').html("");
-    $('#data-panel-edge-list tbody').html("");
     $("#current_selection").html("");
 
     // If the sigma instance exists, then we need to clear the existing
@@ -122,11 +83,7 @@
         defaultNodeType: 'border'
       }
     });
-     
-    //Setting the data in the Nodes Table 
-    //setNodesTable(network_data);
-    //Setting the data in the Edges Table
-    //setEdgesTable(network_data);
+    
 
     // Calculate the maximum degree in the network.
     var max_degree = 0;
@@ -219,157 +176,6 @@
   }
 
   /**
-   * Populates the rows of the network table in the Data panel. 
-   */
-  function setNetworTable() {
-    //document.getElementById("data-panel-node-list").innerHTML = dataset;
-  }
-
-  /**
-   * Populates the rows of the nodes table in the Data panel.
-   * 
-   * @param selection
-   *   An array of the nodes that should be displayed. If NULL then all nodes
-   *   in the network data will be displayed.
-   */
-  function setNodesTable(selection) {
-
-    
-    var table1;
-    var no_of_nodes = selection["nodes"].length;
-    var i;
-    var data ="";
-    var node_labels=new Array();
-    $('#data-panel-node-list tbody').html("");
-    
-    for(i=0;i<no_of_nodes;i++){
-      node_labels[i] = ((selection["nodes"])[i]).label;
-    }  
-
-    
-    // Making an Ajax call to retrieve the functional data
-
-    
-
-    // Ajax Call to retrieve the functional data
-    $.ajax({
-      // The baseurl is a variable set by Tripal that indicates the
-      // "base" of the URL for this site.
-      url: baseurl + '/networks/function',
-      type: "POST",
-      dataType: 'json',
-      data: {'nodes': node_labels, 'genus': 'Oryza','species':'sativa','type':'gene'},
-      success: function(json) {
-        functional_data = json;
-        populate_data(functional_data);
-        
-      },
-      error: function(xhr, textStatus, thrownError) {
-        alert(thrownError);
-      }
-    });
-    
-    function populate_data(functional_data){
-      for(i=0;i<no_of_nodes;i++){
-      var char_label,char_length;
-      char_label = ((selection["nodes"])[i]).label;
-      if(functional_data[char_label]){
-        char_length = functional_data[char_label].length;
-        var function_data="",j;
-        for(j = 0;j < char_length; j++){
-          var val = (functional_data[char_label])[j];
-          for (var k in val){
-            var sub_key = k;
-            var sub_val = val[k];
-            function_data = function_data + sub_key + ':' + sub_val +"<br />";
-          }
-        }
-
-      }
-      else{
-        var function_data;
-        function_data = '-';
-      }
-
-      
-        $('#data-panel-node-list tbody').append('<tr><td>'+ (selection["nodes"][i]).label + '</td><td>' + function_data + '</td></tr>');
-     }
-
-     table1 = $('#data-panel-node-list-table').DataTable({
-        "scrollY":        "140px",
-        "ordering": false,
-        "scrollCollapse": true,
-        "paging": false,
-        "retrieve" : true,
-        "info": false,
-        "searching" : false
-     });
-
-
-   }
-
-
-  }
-
-  /**
-   * Populates the rows of the edges table in the Data panel.
-   * 
-   * @param selection
-   *   An array of the edges that should be displayed. If NULL then all edges
-   *   in the network data will be displayed.
-   */
-  function setEdgesTable(selection) {
-    //document.getElementById("data-panel-node-list").innerHTML = dataset;
-    var table2;
-    var no_of_edges = selection["edges"].length;
-    var i;
-    $('#data-panel-edge-list tbody').html('');
-    for(i = 0; i < no_of_edges; i++){
-      var temp_source = parseInt((selection["edges"][i]).source);
-      var temp_target = parseInt((selection["edges"][i]).target);
-      $('#data-panel-edge-list tbody').append('<tr><td>'+ (selection["nodes"][temp_source]).label + '</td><td>' + (selection["nodes"][temp_target]).label + '</td><td>1.5</td></tr>');
-
-    }
-
-    
-    table2 = $('#data-panel-edge-list-table').DataTable( {
-        "scrollY":        "140px",
-        "retrieve": true,
-        "ordering": false,
-        "scrollCollapse": true,
-        "paging": false,
-        "info" : false
-    });
-    
-
-
-
-  }
-
-  /**
-   * Populates the rows of the functional table in the Data panel.
-   * 
-   * @param selection
-   *   An array of the nodes that should be displayed. If NULL then all nodes
-   *   in the network data will be displayed.
-   */
-  function setFunctionalTable(selection) {
-    //document.getElementById("data-panel-node-list").innerHTML = dataset;
-
-  }
-
-  /**
-   * Populates the rows of the markers table in the Data panel.
-   * 
-   * @param selection
-   *   An array of the nodes that should be displayed. If NULL then all nodes
-   *   in the network data will be displayed.
-   */
-  function setMarkersTable(selection) {
-    //document.getElementById("data-panel-node-list").innerHTML = dataset;
-  }
-
-  /**
    * Create the lasso object.
    * 
    * The Lasso is a linkurious plugin that allows for selection of nodes
@@ -397,89 +203,18 @@
     // Listen for selectedNodes event.
     lasso.bind('selectedNodes', function (event) {
 
-    // Do something with the selected nodes.
-    var nodes = event.data;
-    var node_label = new Array();
-    var i=0;
-    // List of nodes which are selected.
-    var datas ="<table id='current_selection' class='display' width='100%'' cellspacing='0'><thead><tr><th>Node</th><th>Functional Annotations</th></tr></thead><tbody>";
-    nodes.forEach(function (node) {
-      node.active = true;
-      node_label[i] = node.label;
-      i++;
-      //datas=datas + "<tr><td>"+node.label+"</td><td>Unknown</td></tr>";
-    });
-    //datas = datas + "</tbody></table>";
-
-    var functional_data;
-
-    // Ajax Call to retrieve the functional data
-    $.ajax({
-      // The baseurl is a variable set by Tripal that indicates the
-      // "base" of the URL for this site.
-      url: baseurl + '/networks/function',
-      type: "POST",
-      dataType: 'json',
-      data: {'nodes': node_label, 'genus': 'Oryza','species':'sativa','type':'gene'},
-      success: function(json) {
-        functional_data = json;
-        populate_lasso_data(functional_data);
-        
-      },
-      error: function(xhr, textStatus, thrownError) {
-        alert(thrownError);
-      }
-    });
-
-    function populate_lasso_data(functional_data){
-      var j;
-      for(j=0;j<i;j++){
-        var function_data = "";
-        if(functional_data[node_label[j]]){
-          var functional_length = functional_data[node_label[j]].length;
-          var k;
-          for(k=0;k<functional_length;k++){
-            var val = (functional_data[node_label[j]])[k];
-            for(var m in val){
-              var sub_key = m;
-              var sub_val = val[m];
-              function_data = function_data + sub_key + ":" + sub_val+"<br />";
-            }
-          }
-
-
-
-        }
-        else{
-          function_data = '-';
-        }
-
-        datas=datas + "<tr><td>"+node_label[j]+"</td><td>"+function_data+"</td></tr>"; 
-      }
-
-          //Adding Dynamic content to build the table
-      document.getElementById("data-panel-current-list").innerHTML = datas;
-
-  
-      $('#current_selection').DataTable( {
-          "scrollY":        "100px",
-          "ordering": false,
-          "retrieve": true,
-          "scrollCollapse": true,
-          "paging": false
+      // Do something with the selected nodes.
+      var nodes = event.data;
+      var node_label = new Array();
+      var i=0;
+      // List of nodes which are selected.
+      nodes.forEach(function (node) {
+        node.active = true;
+        node_label[i] = node.label;
+        i++;
       });
-
-
-    }
-    
-
-    //populate(datas);
-    //alert(datas);
-  
-      sigma_instance.refresh();
-    });
-
-    return lasso;
+      return lasso;
+    })
   }
 
   /**
@@ -502,13 +237,14 @@
     // by the tripal_network module of Drupal via the data function. 
     var species = filters['species'];
     var genes = filters['genes'];
+    var props = filters['properties'];
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
       url: baseurl + '/networks/retrieve',
       type: "GET",
       dataType: 'json',
-      data: {'species': species, 'genes': genes},
+      data: {'species': species, 'genes': genes, 'properties': props},
       success: function(json) {
         Network_Data = json;
         loadNetwork(Network_Data);
@@ -629,21 +365,9 @@
       sigma.utils.zoomTo(Sigma_Instance.camera, 0, 0, conf.zoomDef);
     }
 
-    var categories = {};
-
-    // read nodes
-    var nodelistElt = document.getElementById("nodelist");
-    nodelistElt.innerHTML = "<option>All nodes</option>";
-    Sigma_Instance.graph.nodes().forEach(function(n) {
-      $('#nodelist').append($("<option></option>").attr("value", n.id).text(n.label)); 
-
-      //categories[n.attributes.modularity_class] = true;
-    });
 
     var reset = document.getElementById("reset-btn");
     reset.addEventListener("click", function(e) {
-      var n_list = document.getElementById("nodelist");
-      n_list.selectedIndex = 0;
       Sigma_Instance.graph.nodes().forEach(function (n) {
         n.active=false;
       });
@@ -651,23 +375,6 @@
     });
 
     function locateNode (e) {
-      var nid = $("#nodelist").val();
-
-      if (nid == '') {
-        
-        locate.center(1);
-      }
-      else {
-        Sigma_Instance.graph.nodes(nid).active = true;
-        locate.nodes(nid);
-      }
-    };
-
-   
-    var n_list2 = document.getElementById("nodelist");
-    n_list2.addEventListener("change", locateNode);
+    };   
   }
-  
-  
-
 })(jQuery);

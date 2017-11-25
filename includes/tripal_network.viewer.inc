@@ -20,7 +20,6 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
 
   // Get the species from the session.
   $species = array_key_exists('values', $form_state) ? $form_state['values']['species'] : '';
-  $genes = array_key_exists('values', $form_state) ? $form_state['values']['genes'] : '';
 
   // Get the species that have network data and match species in Chado.
   // This requires the sepcies have the NCBI Taxonomy ID in the
@@ -64,34 +63,115 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
   // for this species.
   if ($species) {
 
+    $genes = array_key_exists('genes', $form_state['values']) ? $form_state['values']['genes'] : '';
+    $properties = array();
+    $property_values = array();
+    if (array_key_exists('values', $form_state)) {
+      foreach (element_children($form_state['values']) as $element_key) {
+        $matches = array();
+
+        if (preg_match('/^property_(\d+)$/', $element_key, $matches)){
+
+          $id = $matches[1];
+          $properties[$id] = $form_state['values'][$element_key];
+        }
+        if (preg_match('/^property_(\d+)_value$/', $element_key, $matches)){
+          $id = $matches[1];
+          $property_values[$id] = $form_state['values'][$element_key];
+        }
+      }
+    }
+
     // Construct the Species drop-down.
     $form['genes'] = array(
       '#type' => 'textarea',
       '#title' => t('Genes'),
-      '#options' => $networks,
-      '#default_value' => $network,
+      '#default_value' => $genes,
       '#description' => t('Enter a list of gene, transcript or protein identifiers. Separate by spaces or new lines.'),
-      '#ajax' => array(
-        'callback' => "tripal_network_viewer_filter_form_ajax_callback",
-        'wrapper'  => 'tripal-network-viewer-filter-form',
-        'effect'   => 'fade',
-        'method'   => 'replace',
-      ),
       '#cols' => 30,
       '#rows' => 5,
     );
 
-    $form[$key]['filter'] = array(
-      '#type' => 'submit',
-      '#value' => 'Perform Filter',
-      '#name' => 'filter',
-      '#ajax' => array(
-        'callback' => "tripal_network_viewer_filter_form_ajax_callback",
-        'wrapper'  => 'tripal-network-viewer-filter-form',
-        'effect'   => 'fade',
-        'method'   => 'replace',
-      ),
-    );
+    // Get the list of properties.
+    $query = '
+      MATCH ()-[r:CO]-()
+      WHERE r.data__1179 = $taxId
+      RETURN DISTINCT KEYS(r) AS properties
+    ';
+    $params = array('taxId' => (int) $species);
+    $results = tripal_neo4j_query($query, $params);
+
+    $records =  $results->getRecords();
+    $props = $records[0]->value('properties');
+    $prop_options = array();
+    $prop_options['0'] = '-- Select --';
+    foreach ($props as $propname) {
+      // Skip that taxonomy ID property as we've used that for flitering.
+      if ($propname == 'data__1179') {
+        continue;
+      }
+      // Only allow searching on properly formed property names. These names
+      // must be vocabulary terms with the database and term separated
+      // by two underscores.
+      if (preg_match('/__/', $propname)) {
+        list($property, $subprop) = preg_split('/__/', $propname);
+        $prop_options[$property][$propname] = $property . ": " . $subprop;
+      }
+   }
+
+   foreach ($properties as $id => $propname) {
+     $form['property_' . $id] = array(
+       '#type' => 'hidden',
+       '#value' => $propname,
+       // It doesn't make sense to put an #ajax callback on a hidden
+       // element, but we need it because of the way we're re-using the
+       // name of this hidden field. It used to be a non-hidden field,
+       // but if we don't preseve the ajax settings then it confuses Drupal.
+       '#ajax' => array(
+         'callback' => "tripal_network_viewer_filter_form_ajax_callback",
+         'wrapper'  => 'tripal-network-viewer-filter-form',
+         'effect'   => 'fade',
+         'method'   => 'replace',
+       ),
+     );
+     $title = $propname;
+     if (preg_match('/__/', $propname)) {
+       list($property, $subprop) = preg_split('/__/', $propname);
+       $title = $property . ": " . $subprop;
+     }
+     $form['property_' . $id . '_value'] = array(
+       '#type' => 'textfield',
+       '#title' => $title,
+       '#default_value' => array_key_exists($id, $property_values) ? $property_values[$id] : '',
+       '#size' => 10,
+     );
+   }
+   $form['property_' . count($properties)] = array(
+     '#type' => 'select',
+     '#title' => t('Add a Property Filter'),
+     '#options' => $prop_options,
+     '#default_value' => $property,
+     '#description' => t(''),
+     '#ajax' => array(
+       'callback' => "tripal_network_viewer_filter_form_ajax_callback",
+       'wrapper'  => 'tripal-network-viewer-filter-form',
+       'effect'   => 'fade',
+       'method'   => 'replace',
+     ),
+   );
+
+   $form['filter'] = array(
+     '#type' => 'submit',
+     '#value' => 'Perform Filter',
+     '#name' => 'filter',
+     '#ajax' => array(
+       'callback' => "tripal_network_viewer_filter_form_ajax_callback",
+       'wrapper'  => 'tripal-network-viewer-filter-form',
+       'effect'   => 'fade',
+       'method'   => 'replace',
+     ),
+   );
+
   }
 
   $form['#prefix'] = '<div id ="tripal-network-viewer-filter-form">';
@@ -106,28 +186,64 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
  */
 function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
   $species = $form_state['values']['species'];
-  $genes = $form_state['values']['genes'];
 
-  $genes = array_unique(preg_split('/[\s\n]+/', $genes));
+  // Get the genes, if specified.
+  $genes = array_key_exists('genes', $form_state['values']) ? $form_state['values']['genes'] : '';
+  if ($genes) {
+    $genes = array_unique(preg_split('/[\s\n]+/', $genes));
+  }
+
+  // Get the filtering by properties if specified.
+  $properties = array();
+  $property_values = array();
+  foreach (element_children($form_state['values']) as $element_key) {
+    $matches = array();
+    if (preg_match('/^property_(\d+)$/', $element_key, $matches)){
+      $id = $matches[1];
+      $properties[$id] = $form_state['values'][$element_key];
+    }
+    if (preg_match('/^property_(\d+)_value$/', $element_key, $matches)){
+      $id = $matches[1];
+      $property_values[$id] = $form_state['values'][$element_key];
+    }
+  }
 
   // Now that our form is updated we want to reload the network.  The network
   // is handled by JavaScript so we need to force the JS code to call our
   // tripal_network_viewer_ajax_retrieve() function.  The following code
   // will instruct Drupal to call a Javascript function named 'retreiveNetwork'
   // which will then make an AJAX call to update the network.
-  $data = array(
-    'species' => $species,
-    'genes' => $genes,
-  );
-  tripal_network_add_ajax_command(ajax_command_invoke(NULL, "retrieveNetwork", array($data)));
-
+  if ($species) {
+    $data = array(
+      'species' => $species,
+    );
+    $retreive_network = FALSE;
+    if (is_array($genes) and count($genes) > 0) {
+      $data['genes'] = array_values($genes);
+      $retrieve_network = TRUE;
+    }
+    if (count($properties) > 0) {
+      foreach($properties as $id => $propname) {
+        if ($property_values[$id]) {
+          $data['properties'][$propname] = array(
+            'value' => $property_values[$id],
+            'op' => '<=',
+          );
+        }
+      }
+      $retrieve_network = TRUE;
+    }
+    if ($retrieve_network == TRUE) {
+      tripal_network_add_ajax_command(ajax_command_invoke(NULL, "retrieveNetwork", array($data)));
+    }
+  }
   return $form;
 }
 
 /**
  *
- * @param unknown $species
- * @param unknown $module
+ * @param $species
+ * @param $module
  */
 function tripal_network_viewer_ajax_retrieve() {
 
@@ -140,34 +256,55 @@ function tripal_network_viewer_ajax_retrieve() {
   // Get the fitering variables requested by the user.
   $species = $_GET['species'];
   $genes = $_GET['genes'];
+  $properties = $_GET['properties'];
 
   // Make sure we have required filters.
-  if (!$species or !$genes) {
+  if (!$species) {
     drupal_json_output($network_data);
+    return;
+  }
+
+  if (count($genes) == 0 and count(array_keys($properties)) == 0){
+    drupal_json_output($network_data);
+    return;
   }
 
   // Get the list of edges and rows that match the query.
   $nodes = array();
   $edges = array();
-  tripal_neo4j_connect("bolt", "bolt://neo4j:testing123@localhost:7687");
-  $query = "
-    MATCH(n1:Transcript)-[r]->(n2:Transcript)
-    WHERE (n1.schema__name IN {genes} OR n2.schema__name IN {genes}) AND
-      n1.data__1179 = {taxId}
-    RETURN r, n1.id, n2.id
-  ";
-  $query = "
-    MATCH(n1:Transcript)-[r]->(n2:Transcript)
-    WHERE (n1.schema__name IN ['LOC_Os04g45580.1', 'LOC_Os11g20790.1'] OR
-           n2.schema__name IN ['LOC_Os04g45580.1', 'LOC_Os11g20790.1']) AND
-        n1.data__1179 = 4530
-    RETURN r, n1, n2
-  ";
-  $params = array(
-    "genes" => $genes,
-    "taxId" => $species
-  );
   $params = array();
+
+  // Build the initial query to search for nodes by taxonomy ID.
+  tripal_neo4j_connect("bolt", "bolt://neo4j:testing123@localhost:7687");
+  $query = 'MATCH(n1:Transcript)-[r:CO]-(n2:Transcript)
+    WHERE (n1.data__1179 = $taxId OR n2.data__1179 = $taxId) ';
+  $params['taxId'] =(int) $species;
+
+  // If the user is filtering by gene name then add in that statement
+  if (count($genes) > 0) {
+    $query .= 'AND (n1.schema__name IN $genes OR n2.schema__name IN $genes))';
+    $params['genes'] = $genes;
+  }
+
+  // If the user is filtering by properties then add in those statements.
+  if (count($properties) > 0) {
+    $id = 0;
+    foreach ($properties as $propname => $details) {
+      $query .= ' AND (r.' . $propname . ' ' . $details['op'] . ' $prop' . $id .  ')';
+      $params['prop' . $id] = (float) $details['value'];
+      $id++;
+    }
+
+  }
+
+  // Finish off the query with the return statement.
+  $query .= '
+    RETURN r, n1, n2
+  ';
+
+  dpm($params);
+  dpm($query);
+  // Execute the query and return the parsed results.
   $results = tripal_neo4j_query($query, $params);
   foreach ($results->getRecords() as $record) {
     $edge = $record->get('r');
@@ -189,7 +326,7 @@ function tripal_network_viewer_ajax_retrieve() {
       'size' => mt_rand(1, 3) / 1000,
       'color' => "gray",
     );
-    $edges[] = array(
+    $edges[$edge->identity()] = array(
       'id' => $edge->identity(),
       'source' => $source->identity(),
       'target' => $target->identity(),
@@ -201,7 +338,7 @@ function tripal_network_viewer_ajax_retrieve() {
   }
   $network_data = array(
     'nodes' => array_values($nodes),
-    'edges' => $edges
+    'edges' => array_values($edges)
   );
 
   drupal_json_output($network_data);
