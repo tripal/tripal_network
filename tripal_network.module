@@ -138,12 +138,15 @@ function tripal_network_theme($existing, $type, $theme, $path) {
        'base hook' => 'page',
        'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
      ),
-
      'tripal_network_viewer' => array(
        'template' => 'tripal_network_viewer',
        'variables' =>  array(),
        'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
      ),
+     'tripal_network_viewer_property' => array(
+      'render element' => 'element',
+      'path' => drupal_get_path('module', 'tripal_network') . "/includes/tripal_network.viewer.inc",
+    )
   );
   return $items;
 }

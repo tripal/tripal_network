@@ -64,26 +64,29 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
   if ($species) {
 
     $genes = array_key_exists('genes', $form_state['values']) ? $form_state['values']['genes'] : '';
-    $properties = array();
-    $property_values = array();
-    $property_ops = array();
+    $prop_filters = array();;
     if (array_key_exists('values', $form_state)) {
+      // Find any existing filters.
       foreach (element_children($form_state['values']) as $element_key) {
         $matches = array();
 
-        if (preg_match('/^property_(\d+)$/', $element_key, $matches)){
-
+        if (preg_match('/^property_(\d+)_type$/', $element_key, $matches)){
           $id = $matches[1];
-          $properties[$id] = $form_state['values'][$element_key];
+          $prop_filters[$id]['type'] = $form_state['values'][$element_key];
         }
         if (preg_match('/^property_(\d+)_value$/', $element_key, $matches)){
           $id = $matches[1];
-          $property_values[$id] = $form_state['values'][$element_key];
+          $prop_filters[$id]['value'] = $form_state['values'][$element_key];
         }
         if (preg_match('/^property_(\d+)_op$/', $element_key, $matches)){
           $id = $matches[1];
-          $property_ops[$id] = $form_state['values'][$element_key];
+          $prop_filters[$id]['op'] = $form_state['values'][$element_key];
         }
+      }
+      // Store the type for the new property.
+      if (array_key_exists('new_property', $form_state['values'])) {
+        $id = count($prop_filters);
+        $prop_filters[$id]['type'] = $form_state['values']['new_property'];
       }
     }
 
@@ -122,70 +125,56 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
         list($property, $subprop) = preg_split('/__/', $propname);
         $prop_options[$property][$propname] = $property . ": " . $subprop;
       }
-   }
+    }
 
-   foreach ($properties as $id => $propname) {
-     $form['property_' . $id] = array(
-       '#type' => 'hidden',
-       '#value' => $propname,
-       // It doesn't make sense to put an #ajax callback on a hidden
-       // element, but we need it because of the way we're re-using the
-       // name of this hidden field. It used to be a non-hidden field,
-       // but if we don't preseve the ajax settings then it confuses Drupal.
-       '#ajax' => array(
-         'callback' => "tripal_network_viewer_filter_form_ajax_callback",
-         'wrapper'  => 'tripal-network-viewer-filter-form',
-         'effect'   => 'fade',
-         'method'   => 'replace',
-       ),
-     );
-     $title = $propname;
-     if (preg_match('/__/', $propname)) {
-       list($property, $subprop) = preg_split('/__/', $propname);
-       $title = $property . ": " . $subprop;
-     }
-     $form['property_' . $id . '_op'] = array(
-       '#type' => 'select',
-       '#options' => array(
-         '=' => '=',
-         '>=' => '>=',
-         '<=' => '<=',
-       ),
-       '#default_value' => array_key_exists($id, $property_ops) ? $property_ops[$id] : '',
-     );
-     $form['property_' . $id . '_value'] = array(
-       '#type' => 'textfield',
-       '#title' => $title,
-       '#default_value' => array_key_exists($id, $property_values) ? $property_values[$id] : '',
-       '#size' => 10,
-     );
-   }
-   $form['property_' . count($properties)] = array(
-     '#type' => 'select',
-     '#title' => t('Add a Property Filter'),
-     '#options' => $prop_options,
-     '#default_value' => $property,
-     '#description' => t(''),
-     '#ajax' => array(
-       'callback' => "tripal_network_viewer_filter_form_ajax_callback",
-       'wrapper'  => 'tripal-network-viewer-filter-form',
-       'effect'   => 'fade',
-       'method'   => 'replace',
-     ),
-   );
+    $form['property_filters'] = array(
+      '#theme' => array('tripal_network_viewer_property')
+    );
+    foreach ($prop_filters as $id => $filter) {
+      $propname = $filter['type'];
+      $form['property_filters']['property_' . $id . '_type'] = array(
+        '#type' => 'hidden',
+        '#value' => $propname,
+      );
+      $form['property_filters']['property_' . $id . '_op'] = array(
+        '#type' => 'select',
+        '#options' => array(
+          '=' => '=',
+          '>=' => '>=',
+          '<=' => '<=',
+        ),
+        '#default_value' => array_key_exists('op', $filter[$id]) ? $filter[$id]['op'] : '<=',
+      );
+      $form['property_filters']['property_' . $id . '_value'] = array(
+        '#type' => 'textfield',
+        '#default_value' => array_key_exists('value', $filter[$id]) ? $filter[$id]['value'] : '1e-4',
+        '#size' => 10,
+      );
+    }
+    $form['new_property'] = array(
+      '#type' => 'select',
+      '#title' => t('Add a Property Filter'),
+      '#options' => $prop_options,
+      '#default_value' => $property,
+      '#ajax' => array(
+        'callback' => "tripal_network_viewer_filter_form_ajax_callback",
+        'wrapper'  => 'tripal-network-viewer-filter-form',
+        'effect'   => 'fade',
+        'method'   => 'replace',
+      ),
+    );
 
-   $form['filter'] = array(
-     '#type' => 'submit',
-     '#value' => 'Perform Filter',
-     '#name' => 'filter',
-     '#ajax' => array(
-       'callback' => "tripal_network_viewer_filter_form_ajax_callback",
-       'wrapper'  => 'tripal-network-viewer-filter-form',
-       'effect'   => 'fade',
-       'method'   => 'replace',
-     ),
-   );
-
+    $form['filter'] = array(
+      '#type' => 'submit',
+      '#value' => 'Perform Filter',
+      '#name' => 'filter',
+      '#ajax' => array(
+        'callback' => "tripal_network_viewer_filter_form_ajax_callback",
+        'wrapper'  => 'tripal-network-viewer-filter-form',
+        'effect'   => 'fade',
+        'method'   => 'replace',
+      ),
+    );
   }
 
   $form['#prefix'] = '<div id ="tripal-network-viewer-filter-form">';
@@ -208,22 +197,24 @@ function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
   }
 
   // Get the filtering by properties if specified.
-  $properties = array();
-  $property_values = array();
-  $property_ops = array();
-  foreach (element_children($form_state['values']) as $element_key) {
-    $matches = array();
-    if (preg_match('/^property_(\d+)$/', $element_key, $matches)){
-      $id = $matches[1];
-      $properties[$id] = $form_state['values'][$element_key];
-    }
-    if (preg_match('/^property_(\d+)_value$/', $element_key, $matches)){
-      $id = $matches[1];
-      $property_values[$id] = $form_state['values'][$element_key];
-    }
-    if (preg_match('/^property_(\d+)_op$/', $element_key, $matches)){
-      $id = $matches[1];
-      $property_ops[$id] = $form_state['values'][$element_key];
+  $prop_filters = array();;
+  if (array_key_exists('values', $form_state)) {
+    // Find any existing filters.
+    foreach (element_children($form_state['values']) as $element_key) {
+      $matches = array();
+
+      if (preg_match('/^property_(\d+)_type$/', $element_key, $matches)){
+        $id = $matches[1];
+        $prop_filters[$id]['type'] = $form_state['values'][$element_key];
+      }
+      if (preg_match('/^property_(\d+)_value$/', $element_key, $matches)){
+        $id = $matches[1];
+        $prop_filters[$id]['value'] = $form_state['values'][$element_key];
+      }
+      if (preg_match('/^property_(\d+)_op$/', $element_key, $matches)){
+        $id = $matches[1];
+        $prop_filters[$id]['op'] = $form_state['values'][$element_key];
+      }
     }
   }
 
@@ -236,23 +227,14 @@ function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
     $data = array(
       'species' => $species,
     );
-    $retreive_network = FALSE;
     if (is_array($genes) and count($genes) > 0) {
       $data['genes'] = array_values($genes);
-      $retrieve_network = TRUE;
     }
-    if (count($properties) > 0) {
-      foreach($properties as $id => $propname) {
-        if ($property_values[$id]) {
-          $data['properties'][$propname] = array(
-            'value' => $property_values[$id],
-            'op' => $property_ops[$id],
-          );
-        }
-      }
-      $retrieve_network = TRUE;
+    if (count($prop_filters) > 0) {
+      $data['properties'] = $prop_filters;
     }
-    if ($retrieve_network == TRUE) {
+
+    if ($form_state['triggering_element']['#name'] == 'filter') {
       tripal_network_add_ajax_command(ajax_command_invoke(NULL, "retrieveNetwork", array($data)));
     }
   }
@@ -275,7 +257,7 @@ function tripal_network_viewer_ajax_retrieve() {
   // Get the fitering variables requested by the user.
   $species = $_GET['species'];
   $genes = $_GET['genes'];
-  $properties = $_GET['properties'];
+  $prop_filters = $_GET['properties'];
 
   // Make sure we have required filters.
   if (!$species) {
@@ -283,7 +265,7 @@ function tripal_network_viewer_ajax_retrieve() {
     return;
   }
 
-  if (count($genes) == 0 and count(array_keys($properties)) == 0){
+  if (count($genes) == 0 and count(array_keys($prop_filters)) == 0){
     drupal_json_output($network_data);
     return;
   }
@@ -306,14 +288,13 @@ function tripal_network_viewer_ajax_retrieve() {
   }
 
   // If the user is filtering by properties then add in those statements.
-  if (count($properties) > 0) {
-    $id = 0;
-    foreach ($properties as $propname => $details) {
-      $query .= ' AND (r.' . $propname . ' ' . $details['op'] . ' $prop' . $id .  ')';
-      $params['prop' . $id] = (float) $details['value'];
-      $id++;
+  if (count($prop_filters) > 0) {
+    foreach ($prop_filters as $id => $filter) {
+      if ($filter['value'] and $filter['value'] !== 0) {
+        $query .= ' AND (r.' . $filter['type'] . ' ' . $filter['op'] . ' $prop' . $id .  ')';
+        $params['prop' . $id] = (float) $filter['value'];
+      }
     }
-
   }
 
   // Finish off the query with the return statement.
@@ -431,4 +412,54 @@ function tripal_network_viewer_ajax_function() {
     );
   }
   return drupal_json_output($results);
+}
+
+
+/**
+ * Theme function for the property filters.
+ */
+function theme_tripal_network_viewer_property($variables){
+
+  $form = $variables['element'];
+
+  $headers = array();
+  $rows = array();
+  foreach ($form as $element_key => $element) {
+    if (preg_match('/^property_(\d+)_type$/', $element_key, $matches)){
+      $id = $matches[1];
+
+      $title = $element['#value'];
+      if (preg_match('/__/', $title)) {
+        list($property, $subprop) = preg_split('/__/', $title);
+        $title = $property . ": " . $subprop;
+      }
+      $rows[($id * 2)][0] = array(
+        'data' => $title,
+        'colspan' => 3,
+      );
+
+      $rows[($id * 2) + 1][0]['data'] = drupal_render($element);
+    }
+    if (preg_match('/^property_(\d+)_op$/', $element_key, $matches)){
+      $id = $matches[1];
+      $rows[($id * 2) + 1][1]['data'] = drupal_render($element);
+    }
+    if (preg_match('/^property_(\d+)_value$/', $element_key, $matches)){
+      $id = $matches[1];
+      $rows[($id * 2) + 1][2]['data'] = drupal_render($element);
+    }
+  }
+  $table = array(
+    'header' => $headers,
+    'rows' => $rows,
+    'attributes' => array(
+      'id' => array('tripal-network-viewer-prop-filters-table')
+    ),
+    'sticky' => TRUE,
+    'caption' => '',
+    'colgroups' => array(),
+    'empty' => '',
+  );
+
+  return theme_table($table);
 }

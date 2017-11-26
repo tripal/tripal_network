@@ -21,11 +21,10 @@
     $('.bg-color-picker').click(function(){
       $('body').css('background-color', $(this).css('background-color'));
     });
+    
+    $('#tripal-network-viewer-accordion').css("height", $(document).height());
+    $("#tripal-network-viewer-accordion").accordion({heightStyle: 'content', collapsible: true});
 
-    // Add a click response to open and close the panels.
-    $('.toggle-header').click(function(){
-      $(this).parent().find('.toggle-content').slideToggle('fast');
-    });  
   });
  
 
@@ -52,7 +51,7 @@
  
       Sigma_Instance.graph.clear();
       Sigma_Instance.refresh();
-      //Sigma_Instance.kill();
+      Sigma_Instance.kill();
     } 
 
     // Create our new sigma instance.
@@ -63,27 +62,29 @@
         type: 'canvas'
       },
       settings: {
-        edgeColor: 'default',
-        defaultEdgeColor: '#888888',
+        // Edge Settings.
+        edgeColor: '#888888',
+        defaultEdgeColor: 'default',
+        enableEdgeHovering: true,
+        batchEdgesDrawing: false,
+        hideEdgesOnMove: false,
+        // Misc Settings.
         animationsTime: 5000,
         drawLabels: false,
         scalingMode: 'outside',
-        batchEdgesDrawing: true,
-        hideEdgesOnMove: true,
         sideMargin: 1,
+        // Node Settings.
         nodeBorderSize: 1,
-        nodeBorderColor: '#000',
+        nodeBorderColor: '#00000',
         nodeHoverBorderSize: 3,
         defaultNodeHoverBorderColor: 'yellow',
         nodeActiveBorderSize: 2,
         nodeActiveOuterBorderSize: 3,
         defaultNodeActiveBorderColor: 'yellow',
         defaultNodeActiveOuterBorderColor: 'yellow',
-        enableEdgeHovering: true,
         defaultNodeType: 'border'
       }
     });
-    
 
     // Calculate the maximum degree in the network.
     var max_degree = 0;
@@ -92,6 +93,10 @@
       if (degree > max_degree) {
         max_degree = degree;
       }
+    });
+    
+    Sigma_Instance.graph.edges().forEach(function (e) {
+      e.color = "#444444";
     });
 
     // Set the default x,y coordinate.  
@@ -106,7 +111,7 @@
       degree = Sigma_Instance.graph.degree(n.id);
       cscale = chroma.scale(['yellow', 'orange', 'red']).domain([1, max_degree]);
       n.color = cscale(degree);
-      n.size = degree * 2;
+      n.size = Math.round((degree/max_degree) * 10) + 1;
     });
     Sigma_Instance.refresh();
     
@@ -115,24 +120,19 @@
       // Currently, this event does nothing... just here for future use.
     });
 
-    // Set the gravity according to the number of nodes.
-    var count = network_data['edges'].length;
-    var grav; 
-    if (count > 5000) {
-      grav = 40;
-    }
-    else if (count > 3000 && count <= 5000) {
-      grav = 30;
-    }
-    else if (count > 2000 && count <= 3000) {
-      grav = 20;
-    }
-    else {
-      grav = 3;
-    }
 
     // Add the force link layout to this graph and start it.
-    addForceLinkLayout(Sigma_Instance, grav);   
+    // Create a forced link layout object.
+    // See https://github.com/mv15/graph-visualization/tree/master/src/plugins/sigma.layout.forceLink
+    // for instructions.
+    var fa = sigma.layouts.configForceLink(Sigma_Instance, {
+      autoStop: true,
+      maxIterations: 200,
+      gravity: 5,
+    });
+
+    // Start the ForceLink algorithm:
+    sigma.layouts.startForceLink();
 
     // Add a drag event listernet to this sigma object.
     addDragListner(Sigma_Instance);
@@ -254,46 +254,6 @@
       }
     }) 
   };
-
-  /**
-   * Adds the force link layout to a sigmaJS object and starts it.
-   * 
-   * TODO: perhaps layouts could be handled by a class with adding and
-   * starting a layout handled through seperate functions of the class.
-   * 
-   * @param sigma_instance
-   *   An instance of a sigmaJS object.
-   * @param gravity
-   *   A integer that indicates the amount of gravity used by the force
-   *   linked layout.
-   */
-  function addForceLinkLayout(sigma_instance, gravity) {
-    // Create a forced link layout object.
-    var fa = sigma.layouts.configForceLink(sigma_instance, {
-      worker: true,
-      autoStop: true,
-      background: true,
-      scaleRatio: 30,
-      gravity: gravity,
-      easing: 'cubicInOut'
-    });
-
-    // When the forced link layout event is 'start stop', then we want to
-    // make a spinning wheel visible to the user. This function will
-    // be called anytime the 'fa' object starts or stops the layout.
-    fa.bind('start stop', function(e) {
-      //console.log(e.type);
-      // By default the spinning wheel is invisible but on 'start' it 
-      // is made visible.
-      document.getElementById('layout-notification').style.visibility = '';
-      if (e.type == 'start') {
-        document.getElementById('layout-notification').style.visibility = 'visible';
-      }
-    });
-
-    // Start the ForceLink algorithm:
-    sigma.layouts.startForceLink({linLogMode:true});
-  }
 
   /**
    * Adds a drag listener to a SigmaJS object.
