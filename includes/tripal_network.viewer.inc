@@ -332,6 +332,7 @@ function tripal_network_viewer_ajax_retrieve() {
       'type' => 'straight',
       'color' => '#CCCCC',
       'hover_color' => '#A0A0A0',
+      'sc' => $edge->value('Correlation_Method__sc')
     );
   }
   $network_data = array(

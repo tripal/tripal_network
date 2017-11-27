@@ -70,7 +70,7 @@
         hideEdgesOnMove: false,
         // Misc Settings.
         animationsTime: 5000,
-        drawLabels: false,
+        drawLabels: true,
         scalingMode: 'outside',
         sideMargin: 1,
         // Node Settings.
@@ -82,7 +82,12 @@
         nodeActiveOuterBorderSize: 3,
         defaultNodeActiveBorderColor: 'yellow',
         defaultNodeActiveOuterBorderColor: 'yellow',
-        defaultNodeType: 'border'
+        defaultNodeType: 'border',
+        // Node Labels
+        defaultLabelSize: 20,
+        labelSizeRatio: 2,
+        labelThreshold: 2,
+        labelSize: 'proportional'
       }
     });
 
@@ -95,11 +100,16 @@
       }
     });
     
+    // Set properties for Edges.
     Sigma_Instance.graph.edges().forEach(function (e) {
       e.color = "#444444";
+      if (e.sc < 0) {
+        e.type = 'dashed';
+        e.color = '#FF6666';
+      }
     });
 
-    // Set the default x,y coordinate.  
+    // Set properties for Nodes.  
     Sigma_Instance.graph.nodes().forEach(function (n) {
       if (!Sigma_Instance.graph.degree(n.id)) {
         Sigma_Instance.graph.dropNode(n.id);
@@ -111,7 +121,7 @@
       degree = Sigma_Instance.graph.degree(n.id);
       cscale = chroma.scale(['yellow', 'orange', 'red']).domain([1, max_degree]);
       n.color = cscale(degree);
-      n.size = Math.round((degree/max_degree) * 10) + 1;
+      n.size = Math.round((degree/max_degree) * 10) + 3;
     });
     Sigma_Instance.refresh();
     
