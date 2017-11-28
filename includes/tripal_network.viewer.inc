@@ -15,7 +15,7 @@ function tripal_network_viewer_page() {
  */
 function tripal_network_viewer_filter_form($form, &$form_state) {
   $form = array();
-
+  drupal_debug($form_state);
   tripal_neo4j_connect("bolt", "bolt://neo4j:testing123@localhost:7687");
 
   // Get the species from the session.
@@ -62,9 +62,9 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
   // If the user identified the species then get the listof networks
   // for this species.
   if ($species) {
-
     $genes = array_key_exists('genes', $form_state['values']) ? $form_state['values']['genes'] : '';
-    $prop_filters = array();;
+    $prop_filters = array();
+    $remove_filter = FALSE;
     if (array_key_exists('values', $form_state)) {
       // Find any existing filters.
       foreach (element_children($form_state['values']) as $element_key) {
@@ -102,7 +102,7 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
 
     // Get the list of properties.
     $query = '
-      MATCH ()-[r:CO]-()
+      MATCH (:Transcript)-[r:CO]-(:Transcript)
       WHERE r.data__1179 = $taxId
       RETURN DISTINCT KEYS(r) AS properties
     ';
@@ -150,12 +150,25 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
         '#default_value' => array_key_exists('value', $filter[$id]) ? $filter[$id]['value'] : '1e-4',
         '#size' => 10,
       );
+      if ($id == count($prop_filters) - 1) {
+        $form['property_filters']['property_' . $id . '_rm'] = array(
+          '#type' => 'submit',
+          '#value' => 'X',
+          '#name' => 'prop_filter_remove',
+          '#ajax' => array(
+            'callback' => "tripal_network_viewer_filter_form_ajax_callback",
+            'wrapper'  => 'tripal-network-viewer-filter-form',
+            'effect'   => 'fade',
+            'method'   => 'replace',
+          ),
+        );
+      }
     }
     $form['new_property'] = array(
       '#type' => 'select',
       '#title' => t('Add a Property Filter'),
       '#options' => $prop_options,
-      '#default_value' => $property,
+      '#default_value' => '',
       '#ajax' => array(
         'callback' => "tripal_network_viewer_filter_form_ajax_callback",
         'wrapper'  => 'tripal-network-viewer-filter-form',
@@ -164,9 +177,16 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
       ),
     );
 
+    $form['filter_cond'] = array(
+      '#title' => 'Filter Conditional',
+      '#type' => 'select',
+      '#options' => array('AND' => 'AND', 'OR' => 'OR'),
+      '#default_value' => 'AND',
+    );
+
     $form['filter'] = array(
       '#type' => 'submit',
-      '#value' => 'Perform Filter',
+      '#value' => 'Load Network',
       '#name' => 'filter',
       '#ajax' => array(
         'callback' => "tripal_network_viewer_filter_form_ajax_callback",
@@ -175,6 +195,7 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
         'method'   => 'replace',
       ),
     );
+
   }
 
   $form['#prefix'] = '<div id ="tripal-network-viewer-filter-form">';
@@ -182,12 +203,35 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
   $form['#attributes'] = array();
   return $form;
 }
+/**
+ * Validate function for the tripal_network_viewer_filter_form form.
+ */
+function tripal_network_viewer_filter_form_validate($form, &$form_state) {
+  // If the remove filter button was clicked then we need to remove the
+  // last filter from the form element and move the [X] button down to the
+  // next element.
+  if ($form_state['triggering_element']['#name'] == 'prop_filter_remove') {
+    $rm_id = 0;
+    foreach (element_children($form_state['values']) as $element_key) {
+      $matches = array();
+      if (preg_match('/^property_(\d+)_rm$/', $element_key, $matches)){
+        $rm_id = $matches[1];
+      }
+    }
+    unset($form_state['values']['property_' . $rm_id . '_op']);
+    unset($form_state['values']['property_' . $rm_id . '_value']);
+    unset($form_state['values']['property_' . $rm_id . '_type']);
+    unset($form_state['values']['property_' . $rm_id . '_rm']);
+    unset($form_state['values']['new_property']);
+    $form_state['rebuild'] = TRUE;
+  }
+}
 
 
 /**
  * Ajax function which returns the form via ajax
  */
-function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
+function tripal_network_viewer_filter_form_ajax_callback($form, $form_state) {
   $species = $form_state['values']['species'];
 
   // Get the genes, if specified.
@@ -202,6 +246,7 @@ function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
     // Find any existing filters.
     foreach (element_children($form_state['values']) as $element_key) {
       $matches = array();
+      $rm_id = 0;
 
       if (preg_match('/^property_(\d+)_type$/', $element_key, $matches)){
         $id = $matches[1];
@@ -233,6 +278,7 @@ function tripal_network_viewer_filter_form_ajax_callback($form, &$form_state) {
     if (count($prop_filters) > 0) {
       $data['properties'] = $prop_filters;
     }
+    $data['filter_cond'] = $form_state['values']['filter_cond'];
 
     if ($form_state['triggering_element']['#name'] == 'filter') {
       tripal_network_add_ajax_command(ajax_command_invoke(NULL, "retrieveNetwork", array($data)));
@@ -258,6 +304,7 @@ function tripal_network_viewer_ajax_retrieve() {
   $species = $_GET['species'];
   $genes = $_GET['genes'];
   $prop_filters = $_GET['properties'];
+  $filter_cond = $_GET['filter_cond'];
 
   // Make sure we have required filters.
   if (!$species) {
@@ -275,15 +322,21 @@ function tripal_network_viewer_ajax_retrieve() {
   $edges = array();
   $params = array();
 
+  // Make sure we only have OR or AND filter conditional.
+  if ($filter_cond != 'OR' and $filter_cond != 'AND') {
+    $filter_cond = 'AND';
+  }
+
   // Build the initial query to search for nodes by taxonomy ID.
   tripal_neo4j_connect("bolt", "bolt://neo4j:testing123@localhost:7687");
+  $where = array();
   $query = 'MATCH(n1:Transcript)-[r:CO]-(n2:Transcript)
     WHERE (n1.data__1179 = $taxId OR n2.data__1179 = $taxId) ';
   $params['taxId'] =(int) $species;
 
   // If the user is filtering by gene name then add in that statement
   if (count($genes) > 0) {
-    $query .= 'AND (n1.schema__name IN $genes OR n2.schema__name IN $genes))';
+    $where[] = '(n1.schema__name IN $genes OR n2.schema__name IN $genes))';
     $params['genes'] = $genes;
   }
 
@@ -291,11 +344,21 @@ function tripal_network_viewer_ajax_retrieve() {
   if (count($prop_filters) > 0) {
     foreach ($prop_filters as $id => $filter) {
       if ($filter['value'] and $filter['value'] !== 0) {
-        $query .= ' AND (r.' . $filter['type'] . ' ' . $filter['op'] . ' $prop' . $id .  ')';
+        $where[] =  '(r.' . $filter['type'] . ' ' . $filter['op'] . ' $prop' . $id .  ')';
         $params['prop' . $id] = (float) $filter['value'];
       }
     }
   }
+
+  if (count($where > 0)) {
+    $query .= 'AND (';
+    $query .= $where[0];
+    for ($i = 1; $i < count($where); $i++) {
+      $query .= ' ' . $filter_cond . ' ' . $where[$i];
+    }
+    $query .= ')';
+  }
+
 
   // Finish off the query with the return statement.
   $query .= '
@@ -436,7 +499,7 @@ function theme_tripal_network_viewer_property($variables){
       }
       $rows[($id * 2)][0] = array(
         'data' => $title,
-        'colspan' => 3,
+        'colspan' => 4,
       );
 
       $rows[($id * 2) + 1][0]['data'] = drupal_render($element);
@@ -448,6 +511,10 @@ function theme_tripal_network_viewer_property($variables){
     if (preg_match('/^property_(\d+)_value$/', $element_key, $matches)){
       $id = $matches[1];
       $rows[($id * 2) + 1][2]['data'] = drupal_render($element);
+    }
+    if (preg_match('/^property_(\d+)_rm$/', $element_key, $matches)){
+      $id = $matches[1];
+      $rows[($id * 2) + 1][3]['data'] = drupal_render($element);
     }
   }
   $table = array(

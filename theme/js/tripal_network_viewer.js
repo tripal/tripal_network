@@ -87,7 +87,8 @@
         defaultLabelSize: 20,
         labelSizeRatio: 2,
         labelThreshold: 2,
-        labelSize: 'proportional'
+        labelSize: 'proportional',
+        labelColor: '#888888'
       }
     });
 
@@ -102,7 +103,7 @@
     
     // Set properties for Edges.
     Sigma_Instance.graph.edges().forEach(function (e) {
-      e.color = "#444444";
+      e.color = "#888888";
       if (e.sc < 0) {
         e.type = 'dashed';
         e.color = '#FF6666';
@@ -137,7 +138,7 @@
     // for instructions.
     var fa = sigma.layouts.configForceLink(Sigma_Instance, {
       autoStop: true,
-      maxIterations: 200,
+      maxIterations: 100,
       gravity: 5,
     });
 
@@ -248,13 +249,14 @@
     var species = filters['species'];
     var genes = filters['genes'];
     var props = filters['properties'];
+    var filter_cond = filters['filter_cond'];
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
       url: baseurl + '/networks/retrieve',
       type: "GET",
       dataType: 'json',
-      data: {'species': species, 'genes': genes, 'properties': props},
+      data: {'species': species, 'genes': genes, 'properties': props, 'filter_cond': filter_cond},
       success: function(json) {
         Network_Data = json;
         loadNetwork(Network_Data);
