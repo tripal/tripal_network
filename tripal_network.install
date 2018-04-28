@@ -1720,9 +1720,36 @@ function tripal_network_add_mview_networkmod_qtlcount() {
  */
 function tripal_network_update_7100() {
   try {
+    // Add the new Chado tables.
+    $custom_tables = array();
+
+    tripal_network_add_network_table($custom_tables);
+    tripal_network_add_networkprop_table($custom_tables);
+    tripal_network_add_networknode_table($custom_tables);
+    tripal_network_add_networkedge_table($custom_tables);
+    tripal_network_add_networkedgeprop_table($custom_tables);
+    tripal_network_add_networkmod_table($custom_tables);
+    tripal_network_add_networkmodprop_table($custom_tables);
+    tripal_network_add_networkmod_analysis_table($custom_tables);
+    tripal_network_add_networkmod_analysisprop_table($custom_tables);
+    tripal_network_add_networkmod_edge_table($custom_tables);
+    tripal_network_add_networkmod_traits_table($custom_tables);
+    tripal_network_add_network_node_table($custom_tables);
+    tripal_network_add_network_relationship_table($custom_tables);
+    tripal_network_add_network_cvterm_table($custom_tables);
+    tripal_network_add_network_cvtermprop_table($custom_tables);
+    tripal_network_add_network_analysis_table($custom_tables);
+    tripal_network_add_network_analysisprop_table($custom_tables);
+    tripal_network_add_network_eimage_table($custom_tables);
+  
+    foreach ($custom_tables as $name => $schema){
+      chado_create_custom_table($name, $schema, TRUE, NULL, FALSE);
+    }
+
     tripal_network_add_terms();
-    tripal_network_semweb_setup();
+    tripal_network_setup_semweb();
     tripal_network_add_content_types();
+
   }
   catch (\PDOException $e) {
     $error = $e->getMessage();
