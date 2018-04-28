@@ -1,32 +1,12 @@
 <?php
 
-function theme_tripal_network_search_form($form) {
-  $rows = array(
-    array(
-      // column 1
-      drupal_render($form['species']) . '<br>' .
-      drupal_render($form['networks']) .
-      drupal_render($form['submit']) .
-      drupal_render($form['reset']),
-      // column 2
-      drupal_render($form['instructions']) .
-      drupal_render($form['filter_by_mod_name']) .
-      drupal_render($form['filter_by_gene_name']) .
-      drupal_render($form['filter_by_annotation']) .
-      drupal_render($form['filter_by_topology']) .
-      drupal_render($form['filter_by_trait']),
-    ),
-  );
-  $headers = array('Select a Network', 'Filters');
-  $form['criteria'] = array(
-    '#type' => 'markup',
-    '#value' =>  theme('table', $headers, $rows, array('id' => 'networkmod_search_form')),
-    '#prefix' => '<div id="networkmod-search-form">',
-    '#suffix' => '</div>',
-  );
-
-  return drupal_render($form);
+/**
+ * AJAX callback for the tripal_network_search_form.
+ */
+function tripal_network_search_form_ajax($form, $form_state) {
+  return $form;
 }
+
 /**
  *
  *
@@ -133,8 +113,6 @@ function tripal_network_search_form($form, &$form_state) {
   $form['criteria'] = array(
     '#type' => 'markup',
     '#value' => '',
-    '#prefix' => '<div id="networkmod-search-form">',
-    '#suffix' => '</div>',
   );
 
   $form['species'] = array(
@@ -144,22 +122,12 @@ function tripal_network_search_form($form, &$form_state) {
     '#default_value' => $dspecies,
     '#options'       => $species,
     '#multiple'      => FALSE,
-    '#prefix' => '<div id="networkmod-search-species">',
-    '#suffix' => '</div>',
-//     '#ahah'   => array(
-//       'event'   => 'change',
-//       'path'    => 'network/search/modules/networks',
-//       'wrapper' => 'networkmod-search-form',
-//       'method'  => 'replace',
-//       //'effect'  => 'fade',
-//     ),
-//     '#ajax' => array(
-//       'callback' => "tripal_pubs_setup_form_ajax_update",
-//       'wrapper'  => 'networkmod-search-form',
-//       'effect'   => 'fade',
-//       'method'   => 'replace',
-//     ),
-    '#size' => 5,
+    '#ajax' => array(
+      'callback' => "tripal_network_search_form_ajax",
+      'wrapper'  => 'networkmod-search-form',
+      'effect'   => 'fade',
+      'method'   => 'replace',
+    ),
   );
 
   $networks = array();
@@ -187,16 +155,12 @@ function tripal_network_search_form($form, &$form_state) {
     '#default_value' => $dnetworks,
     '#options'       => $networks,
     '#multiple'      => TRUE,
-    '#prefix' => '<div id="networkmod-search-networks">',
-    '#suffix' => '</div>',
-    '#ahah'   => array(
-      'event'   => 'change',
-      'path'    => 'network/search/modules/traits',
-      'wrapper' => 'networkmod-search-form',
-      'method'  => 'replace',
-      //'effect'  => 'fade',
+    '#ajax' => array(
+      'callback' => "tripal_network_search_form_ajax",
+      'wrapper'  => 'networkmod-search-form',
+      'effect'   => 'fade',
+      'method'   => 'replace',
     ),
-    '#size' => 10,
   );
 
   $form['instructions'] = array(
@@ -210,8 +174,6 @@ function tripal_network_search_form($form, &$form_state) {
     '#title'       => t('I want to find a specific module by name'),
     '#collapsible' => TRUE,
     '#collapsed'   => $collapsed,
-    '#prefix'      => '<div id="filter_by_mod_name">',
-    '#suffix'      => '</div>',
   );
   $form['filter_by_mod_name']['module'] = array(
     '#type' => 'textfield',
@@ -219,7 +181,6 @@ function tripal_network_search_form($form, &$form_state) {
     '#description' => t('Enter a module name'),
     '#default_value' => $dmodule,
     '#size' => 30,
-    '#prefix' => '<div id="networkmod-search-module">',
   );
 
   ($dgenes) ? $collapsed = FALSE : $collapsed = TRUE;
@@ -228,8 +189,6 @@ function tripal_network_search_form($form, &$form_state) {
     '#title'       => t('I want to find modules that contain a specific gene'),
     '#collapsible' => TRUE,
     '#collapsed'   => $collapsed,
-    '#prefix'      => '<div id="filter_by_gene_name">',
-    '#suffix'      => '</div>',
   );
  $form['filter_by_gene_name']['genes'] = array(
     '#type' => 'textarea',
@@ -238,8 +197,6 @@ function tripal_network_search_form($form, &$form_state) {
     '#default_value' => $dgenes,
     '#rows' => 3,
     '#cols' => 15,
-    '#prefix' => '<div id="networkmod-search-genes">',
-    '#suffix' => '</div></div>'
   );
 
   ($dannotation) ? $collapsed = FALSE : $collapsed = TRUE;
@@ -248,8 +205,6 @@ function tripal_network_search_form($form, &$form_state) {
     '#title'       => t('I want to find modules enriched for a specific annotation'),
     '#collapsible' => TRUE,
     '#collapsed'   => $collapsed,
-    '#prefix'      => '<div id="filter_by_annotation">',
-    '#suffix'      => '</div>',
   );
   $form['filter_by_annotation']['annotation'] = array(
     '#type' => 'textarea',
@@ -258,7 +213,6 @@ function tripal_network_search_form($form, &$form_state) {
     '#default_value' => $dannotation,
     '#rows' => 3,
     '#cols' => 15,
-    '#prefix' => '<div id="networkmod-search-annotation">',
   );
  $form['filter_by_annotation']['enriched'] = array(
     '#type' => 'checkbox',
@@ -266,7 +220,6 @@ function tripal_network_search_form($form, &$form_state) {
     '#description' => t('Only find annotations that are enriched (or significantly over-represented in comparision to genomic background).'),
     '#default_value' => $denriched,
     '#size' => 30,
-    '#suffix' => '</div>'
   );
 
   ($dnum_edges or $dnum_nodes) ? $collapsed = FALSE : $collapsed = TRUE;
@@ -275,8 +228,6 @@ function tripal_network_search_form($form, &$form_state) {
     '#title'       => t('I want to filter modules by topological properties'),
     '#collapsible' => TRUE,
     '#collapsed'   => $collapsed,
-    '#prefix'      => '<div id="filter_by_topology">',
-    '#suffix'      => '</div>',
   );
   $op_options = array(
     'gt' => 'greater than',
@@ -286,7 +237,6 @@ function tripal_network_search_form($form, &$form_state) {
  $form['filter_by_topology']['num_edges-title'] = array(
     '#type' => 'markup',
     '#value' => '<b>Number of Edges</b>',
-    '#prefix' => '<div id="networkmod-search-num-edges">',
   );
  $form['filter_by_topology']['num_edges_op'] = array(
     '#type' => 'select',
@@ -298,12 +248,10 @@ function tripal_network_search_form($form, &$form_state) {
     '#description' => t('Find modules by number of edges.'),
     '#default_value' => $dnum_edges,
     '#size' => 10,
-    '#suffix' => '</div>'
   );
  $form['filter_by_topology']['num_nodes-title'] = array(
     '#type' => 'markup',
     '#value' => '<b>Number of Nodes</b>',
-    '#prefix' => '<div id="networkmod-search-num-nodes">',
   );
  $form['filter_by_topology']['num_nodes_op'] = array(
     '#type' => 'select',
@@ -315,7 +263,6 @@ function tripal_network_search_form($form, &$form_state) {
     '#description' => t('Find modules by number of nodes.'),
     '#default_value' => $dnum_nodes,
     '#size' => 10,
-    '#suffix' => '</div>'
   );
 
   $traits = array();
@@ -338,16 +285,14 @@ function tripal_network_search_form($form, &$form_state) {
         foreach ($dnetworks as $network_id) {
           $args[':network_ids'][] = $network_id;
         }
-        $sql = substr($sql, 0, -2);
       }
     }
     if ($dtypes) {
       if (count($dtypes) > 1 or (count($dtypes) == 1 and !in_array('Any', $dtypes))) {
         $sql .= "AND feature_type IN (:feature_types) ";
         foreach ($dtypes as $feature_type) {
-          $args[] = $feature_type;
+          $args[':feature_types'][] = $feature_type;
         }
-        $sql = substr($sql, 0, -2);
       }
     }
     $sql .= " ORDER BY trait_name";
@@ -378,8 +323,6 @@ function tripal_network_search_form($form, &$form_state) {
     '#title'       => t('I want to search for modules overlapping mapped traits'),
     '#collapsible' => TRUE,
     '#collapsed'   => $collapsed,
-    '#prefix'      => '<div id="filter_by_trait">',
-    '#suffix'      => '</div>',
   );
   $form['filter_by_trait']['types'] = array(
     '#title'         => t('Genetic Feature Types'),
@@ -388,14 +331,11 @@ function tripal_network_search_form($form, &$form_state) {
     '#default_value' => $dtypes,
     '#options'       => $types,
     '#multiple'      => TRUE,
-    '#prefix' => '<div id="networkmod-search-types">',
-    '#suffix' => '</div>',
-    '#ahah'   => array(
-      'event'   => 'change',
-      'path'    => 'network/search/modules/traits',
-      'wrapper' => 'networkmod-search-form',
-      'method'  => 'replace',
-      //'effect'  => 'fade',
+    '#ajax' => array(
+      'callback' => "tripal_network_search_form_ajax",
+      'wrapper'  => 'networkmod-search-form',
+      'effect'   => 'fade',
+      'method'   => 'replace',
     ),
   );
   $form['filter_by_trait']['traits'] = array(
@@ -405,12 +345,10 @@ function tripal_network_search_form($form, &$form_state) {
     '#default_value' => $dtraits,
     '#options'       => $traits,
     '#multiple'      => TRUE,
-    '#prefix' => '<div id="networkmod-search-traits">',
-    '#suffix' => '</div>',
     '#size' => 10,
   );
-  if (!$doverlap) {
-    $doverlap = 2;
+  if (!$doverlaps) {
+    $doverlaps = 2;
   }
   /*
   $form['filter_by_trait']['overlaps'] = array(
@@ -420,23 +358,19 @@ function tripal_network_search_form($form, &$form_state) {
        overlaps with at least one genetic feature. Change this number to require that an
        edge overlap with more than just one feature."),
     '#default_value' => $doverlaps,
-    '#prefix'        => '<div id="networkmod-search-overlap">',
-    '#suffix'        => '</div>',
     '#size'          => 5,
   );*/
 
  $form['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Search',
-    '#prefix' => '<div id="networkmod-search-submit">',
-    '#suffix' => '</div>'
   );
    $form['reset'] = array(
     '#type' => 'submit',
     '#value' => 'Reset',
-    '#prefix' => '<div id="networkmod-search-reset">',
-    '#suffix' => '</div>'
   );
+  $form['#prefix'] = '<div id="networkmod-search-form">';
+  $form['#suffix'] = '</div>';
   return $form;
 }
 /**
@@ -507,7 +441,6 @@ function tripal_network_search_form_validate($form, &$form_state) {
   $num_nodes     = trim($form_state['values']['num_nodes']);
   $num_nodes_op  = trim($form_state['values']['num_nodes_op']);
   $types         = $form_state['values']['types'];
-  $overlaps      = trim($form_state['values']['overlaps']);
 
   if ($num_edges and !is_numeric($num_edges)) {
     form_set_error('num_edges', "Please enter a numeric value.");
@@ -524,20 +457,24 @@ function tripal_network_search_form_validate($form, &$form_state) {
  * @ingroup tripal_network
  */
 function tripal_network_search_form_submit($form, &$form_state) {
-  $module        = trim($form_state['values']['module']);
-  $genes         = trim($form_state['values']['genes']);
-  $annotation    = trim($form_state['values']['annotation']);
-  $enriched      = trim($form_state['values']['enriched']);
-  $species       = trim($form_state['values']['species']);
-  $networks      = $form_state['values']['networks'];
-  $traits        = $form_state['values']['traits'];
-  $num_edges     = trim($form_state['values']['num_edges']);
+  $module = trim($form_state['values']['module']);
+  $genes = trim($form_state['values']['genes']);
+  $annotation = trim($form_state['values']['annotation']);
+  $enriched = trim($form_state['values']['enriched']);
+  $species = trim($form_state['values']['species']);
+  $networks = $form_state['values']['networks'];
+  $traits = $form_state['values']['traits'];
+  $num_edges = trim($form_state['values']['num_edges']);
   $num_edges_op  = trim($form_state['values']['num_edges_op']);
-  $num_nodes     = trim($form_state['values']['num_nodes']);
+  $num_nodes = trim($form_state['values']['num_nodes']);
   $num_nodes_op  = trim($form_state['values']['num_nodes_op']);
-  $types         = $form_state['values']['types'];
-  $overlaps      = trim($form_state['values']['overlaps']);
-  $op            = $form_state['values']['op'];
+  $types = $form_state['values']['types'];
+  $op = $form_state['values']['op'];
+
+  $overlaps = '';
+  if (array_key_exists('overlaps', $form_state['values'])) {
+    $overlaps = trim($form_state['values']['overlaps']);
+  }
 
   if ($op == 'Reset') {
     unset($_SESSION['network_search_criteria']);
@@ -569,9 +506,20 @@ function tripal_network_search_form_submit($form, &$form_state) {
  */
 function tripal_network_search_page() {
   $form = drupal_get_form('tripal_network_search_form');
-  //$results = tripal_network_search_page_results();
-  return $form;
-  //$form . '<p><b>Results</b></br>' . $results . '</p>';
+  $results = tripal_network_search_page_results();
+ 
+  $content = array();
+
+  $content['search_form'] = array(
+    '#type' => 'markup',
+    '#markup' => drupal_render($form),
+  );
+  $content['search_results'] = array(
+    '#type' => 'item',
+    '#title' => 'Results',
+    '#markup' => $results,
+  );
+  return $content;
 }
 /**
  *
@@ -603,51 +551,56 @@ function tripal_network_search_page_results() {
     $overlaps = 0;
   }
 
-  $order = $_GET['order'];
-  $sort = $_GET['sort'];
+  $order = '';
+  if (array_key_exists('order', $_GET)) {
+    $order = $_GET['order'];
+  }
+  $sort = '';
+  if (array_key_exists('sort', $_GET)) {
+    $sort = $_GET['sort'];
+  }
 
   $args = array();
   $out_args = array();
   $select = "
     SELECT N.name as network_name, NM.name as module_name,
-      NM.networkmod_id, O.genus, O.species, CN.nid as network_nid,
+      NM.networkmod_id, O.genus, O.species, CBD.entity_id,
       (SELECT count(*)
-       FROM networkmod_node NN
+       FROM {networkmod_node} NN
        WHERE NN.networkmod_id = NM.networkmod_id) as num_nodes,
       (SELECT count(*)
-       FROM networkmod_edge NE
+       FROM {networkmod_edge} NE
        WHERE NE.networkmod_id = NM.networkmod_id) as num_edges
   ";
+  $term = tripal_load_term_entity(array('vocabulary' => 'NCIT', 'accession' => 'C61377'));
+  $bundle = tripal_load_bundle_entity(array('term_id' => $term->id));
   $from = "
-    FROM networkmod NM
-      INNER JOIN network N on NM.network_id = N.network_id
-      INNER JOIN organism O on O.organism_id = N.organism_id
-      LEFT JOIN chado_network CN on CN.network_id = N.network_id
+    FROM {networkmod} NM
+      INNER JOIN {network} N on NM.network_id = N.network_id
+      INNER JOIN {organism} O on O.organism_id = N.organism_id
+      LEFT JOIN [chado_" . $bundle->name . "] CBD ON CBD.record_id = N.network_id
   ";
-  $group = "\nGROUP BY N.name, NM.name, NM.networkmod_id, O.genus, O.species, CN.nid ";
+      //LEFT JOIN chado_network CN on CN.network_id = N.network_id
+  $group = "\nGROUP BY N.name, NM.name, NM.networkmod_id, O.genus, O.species, CBD.entity_id ";
   $where = "";
   $where_out = "";
 
   // if a species is provided, add it to the where clause.
   if ($species) {
     $where .= "O.organism_id = :organism_id AND ";
-    $args[] = $species;
+    $args[':organism_id'] = $species;
   }
 
   // if a network is provided, add it to the where clause
   if (count($networks) > 0) {
     if (count($networks) == 1 and !in_array(0, $networks)) {
-      $block = '';
+      $where .= "N.network_id IN (:network_id) ";
       foreach ($networks as $network_id) {
         if ($network_id != 0) {
-          $block .= "N.network_id = :network_id OR ";
-          $args[] = $network_id;
+          $args[':network_id'][] = $network_id;
         }
       }
-      if ($block) {
-        $block = substr($block, 0, -3);
-        $where .= "($block) AND ";
-      }
+      $where .= " AND ";
     }
   }
 
@@ -656,7 +609,7 @@ function tripal_network_search_page_results() {
     if (count($traits) > 1 or (count($traits) == 1 and !in_array(0, $traits))) {
       $block = '';
       $select .= ", array_agg(NMET.feature_type || ':' || NMET.feature_name || ':' || NMET.trait_name) as matching_traits ";
-      $from .= " INNER JOIN networkmod_exp_traits NMET ON NMET.networkmod_id = NM.networkmod_id ";
+      $from .= " INNER JOIN {networkmod_exp_traits} NMET ON NMET.networkmod_id = NM.networkmod_id ";
 
       foreach ($traits as $trait_dbxref_id) {
         if ($trait_dbxref_id != 0) {
@@ -675,7 +628,6 @@ function tripal_network_search_page_results() {
           foreach ($types as $feature_type) {
              $args[':feature_types'][] = $feature_type;
           }
-          $where = substr($where, 0, -2);
           $where .= " AND ";
         }
       }
@@ -691,8 +643,8 @@ function tripal_network_search_page_results() {
   // if searching by gene or annotations we need some additional tables
   if ($genes or $annotation) {
     $from .= "
-      INNER JOIN networkmod_node NMN ON NMN.networkmod_id = NM.networkmod_id
-      INNER JOIN feature F on NMN.node = F.feature_id
+      INNER JOIN {networkmod_node} NMN ON NMN.networkmod_id = NM.networkmod_id
+      INNER JOIN {feature} F on NMN.node = F.feature_id
     ";
   }
 
@@ -740,10 +692,10 @@ function tripal_network_search_page_results() {
 
     // add in the feature_dbxref records
     $from .= "
-      INNER JOIN feature_cvterm FCVT ON FCVT.feature_id = F.feature_id
-      INNER JOIN cvterm FCVT_CVT ON FCVT_CVT.cvterm_id = FCVT.cvterm_id
-      INNER JOIN dbxref FCVT_DBX ON FCVT_DBX.dbxref_id = FCVT_CVT.dbxref_id
-      INNER JOIN db FCVT_DB ON FCVT_DB.db_id = FCVT_DBX.db_id
+      INNER JOIN {feature_cvterm} FCVT ON FCVT.feature_id = F.feature_id
+      INNER JOIN {cvterm} FCVT_CVT ON FCVT_CVT.cvterm_id = FCVT.cvterm_id
+      INNER JOIN {dbxref} FCVT_DBX ON FCVT_DBX.dbxref_id = FCVT_CVT.dbxref_id
+      INNER JOIN {db} FCVT_DB ON FCVT_DB.db_id = FCVT_DBX.db_id
     ";
      $where .= "(  ";
      foreach ($values as $val){
@@ -770,10 +722,10 @@ function tripal_network_search_page_results() {
 
   if ($enriched and $annotation){
     $from .= "
-      INNER JOIN networkmod_cvterm NMCVT on FCVT.cvterm_id = NMCVT.cvterm_id
+      INNER JOIN {networkmod_cvterm} NMCVT on FCVT.cvterm_id = NMCVT.cvterm_id
         AND NMCVT.networkmod_id = NM.networkmod_id
-      INNER JOIN networkmod_cvtermprop NMCVTP on NMCVTP.networkmod_cvterm_id = NMCVT.networkmod_cvterm_id
-      INNER JOIN cvterm NMCVTP_CVT on NMCVTP_CVT.cvterm_id = NMCVTP.type_id
+      INNER JOIN {networkmod_cvtermprop} NMCVTP on NMCVTP.networkmod_cvterm_id = NMCVT.networkmod_cvterm_id
+      INNER JOIN {cvterm} NMCVTP_CVT on NMCVTP_CVT.cvterm_id = NMCVTP.type_id
         AND (NMCVTP_CVT.name = 'fishers_pvalue')
     ";
   }
@@ -837,24 +789,22 @@ function tripal_network_search_page_results() {
   $args = array_merge($args, $out_args);
 
   // execute the query
-  $previous = tripal_db_set_active('chado');
-//  dpm(array($sql, $args));
-  $results = pager_query($sql, $num_per_page, 0, $count_sql, $args);
-  $counts = db_fetch_object(db_query($count_sql, $args));
-  tripal_db_set_active($previous);
-
+  $results = chado_pager_query($sql, $args, $num_per_page, 0, $count_sql);
+  $q = $_GET['q'];
+  $total_records =  $GLOBALS['chado_pager'][$q][0]['total_records'];
 
   $rows = array();
-  while($module = db_fetch_object($results)) {
+  while($module = $results->fetchObject()) {
     // build the network name w/ link if available.
     $network_name = $module->network_name;
-    if ($module->network_nid) {
-      $network_name = "<a href=\"" . url("node/" . $module->network_nid) . "\" target=\"_blank\">" . $module->network_name . "</a>";
+    if ($module->entity_id) {
+    $network_name = "<a href=\"" . url("bio_data/" . $module->entity_id) . "\" target=\"_blank\">" . $module->network_name . "</a>";
     }
 
     // build the module name w/ link if available
     $module_name = $module->module_name;
-    if ($module->network_nid) {
+
+    if ($module->entity_id) {
       $vars = '';
       if (count($traits) > 0) {
          foreach ($traits as $trait_dbxref_id) {
@@ -869,8 +819,9 @@ function tripal_network_search_page_results() {
           $vars .= "&types=$feature_type";
         }
       }
-      $module_name = "<a href=\"" . url("node/" . $module->network_nid) . "?block=explorer&module_id=" . $module->networkmod_id . "$vars\" target=\"_blank\">" . $module->module_name . "</a>";
+      $module_name = "<a href=\"" . url("bio_data/" . $module->entity_id) . "?block=explorer&module_id=" . $module->networkmod_id . "$vars\" target=\"_blank\">" . $module->module_name . "</a>";
     }
+
 
     // calculate average degree
     $avg_degree = 'N/A';
@@ -880,24 +831,28 @@ function tripal_network_search_page_results() {
 
     // format the list of matching nodes (remove duplicates);
     $matching_features  = 'N/A';
+/*
     if($module->matching_features){
       $matching_features = preg_replace("/[{}]/",'', $module->matching_features);
       $matches = preg_split('/,/', $matching_features);
       $matching_features = '<div id="networkmod-search-match-list">' . implode(', ', array_unique($matches)) . '</div>';
     }
+*/
 
     // format the list of matching terms (remove duplicates);
     $matching_terms  = 'N/A';
+/*
     if($module->matching_terms){
       $matching_terms = preg_replace("/[{}]/", '', $module->matching_terms);
       $matches = preg_split('/(^"|","|"$)/', $matching_terms);
       $matching_terms = '<div id="networkmod-search-match-list"><ul><li>' . implode('</li><li>', array_unique($matches)) . '</li></ul></div>';
     }
+*/
 
     // format the list of matching traits, count the instances of each
     // trait and then (remove duplicates):
     $matching_traits  = 'N/A';
-    if($module->matching_traits){
+    if (property_exists($module, 'matching_traits') and $module->matching_traits) {
       $mtraits = preg_replace("/[{}]/", '', $module->matching_traits);
       $matches = array_unique(preg_split('/(^"|","|"$)/', $mtraits));
       $trait_counts = array();
@@ -953,13 +908,6 @@ function tripal_network_search_page_results() {
   }
   else {
     $_SESSION['network_search_criteria']['has_results'] = FALSE;
-    $rows[] = array(
-      array(
-        'data' => 'No results found that match the provided criteria',
-        'colspan' => 9,
-        'align' => 'center'
-      ),
-    );
   }
 
   $header = array(
@@ -985,10 +933,20 @@ function tripal_network_search_page_results() {
     'Matched Terms',
     'Matched Traits<sup>&dagger;</sup>',
   );
-  $pager = theme_pager();
-  $output = "Found <b>" . number_format($counts->count) . "</b> matching records.  Click column headers to sort.";
+  $pager = theme('pager');
+  $output = "Found <b>" . number_format($total_records) . "</b> matching records.  Click column headers to sort.";
   $output .= $pager;
-  $output .= theme('table', $header, $rows);
+  $output .= theme_table(array(
+    'header' => $header,
+    'rows' => $rows,
+    'attributes' => array(
+      'class' => array('tripal-data-table'),
+    ),
+    'sticky' => TRUE,
+    'caption' => '',
+    'colgroups' => array(),
+    'empty' => 'No results found that match the provided criteria',
+  ));
   $output .= $pager;
   $output .= "<sup><b>&dagger;</b></sup> The number in parentheses is the number of overlapping genetic features for the given trait and marker type. ";
   return $output;

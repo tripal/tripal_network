@@ -205,10 +205,6 @@ function tripal_network_theme($existing, $type, $theme, $path) {
       'render element' => 'element',
       'path' => drupal_get_path('module', 'tripal_network') . "/includes/tripal_network.viewer.inc",
     ),
-//     'tripal_network_search_form' => array(
-//       'render element' => 'form',
-//       'path' => drupal_get_path('module', 'tripal_network') . "/includes/tripal_network.search.inc",
-//     ),
   );
   return $items;
 }
