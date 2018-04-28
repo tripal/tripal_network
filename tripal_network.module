@@ -9,6 +9,55 @@ if ($library and $library['installed']) {
 
 require_once "includes/tripal_network.schema.inc";
 
+/**
+ * Implements hook_permission().
+ *
+ * Set the permission types that the chado module uses.  Essentially we
+ *  want permissionis that protect creation, editing and deleting of chado
+ *  data objects
+ *
+ * @ingroup tripal
+ */
+function tripal_network_permission() {
+  return array(
+    'install chado' => array(
+      'title' => t('Install Chado'),
+      'description' => t('Allow the user to install or upgrade a Chado database in the existing Drupal database.')
+    ),
+    'view chado_ids' => array(
+      'title' => t('View Internal IDs'),
+      'description' => t('On content pages Tripal will typically provide
+          a table of information pulled from the Chado database but the
+          primary key IDs for that data is typically not shown.  The
+          default Tripal templates can show the primary key ID inside of a
+          blue shaded table row if this permission is enabled. This can
+          be useful for site developers who might want these IDs when working
+          with the underlying database.'),
+      'restrict access' => TRUE,
+    ),
+    'administer chado mviews' => array(
+      'title' => t('Administer Chado Materialized Views'),
+      'description' => t('Allows the user to create, edit and populate materialized views in the Chado databse.'),
+    ),
+    'administer chado custom tables' => array(
+      'title' => t('Administer Chado Custom Tables'),
+      'description' => t('Allows the user to create, edit and delete custom tables in the Chado database.'),
+    ),
+    'administer db cross-references' => array(
+      'title' => t('Administer Chado Databases'),
+      'description' => t('Allows the user to create, edit and delete database records in the Chado database.')
+    ),
+    'administer controlled vocabularies' => array(
+      'title' => t('Administer Chado Controlled Vocabularies'),
+      'description' => t('Allows the user to create, edit and delete controlled vocabularies in the Chado database.')
+    ),
+    'administer chado semantic web' => array(
+      'title' => t('Administer Semantic Web and Chado Integration'),
+      'description' => t('Allows the user to assign controlled vocabulary terms to tables and table columns in Chado.')
+    ),
+    
+  );
+}
 
 /**
  * Implements hook_menu()
@@ -23,31 +72,33 @@ function tripal_network_menu() {
   /*
    * Module Search Form
    */
+  $term = tripal_load_term_entity(array('vocabulary' => 'NCIT', 'accession' => 'C61377'));
+  $bundle = tripal_load_bundle_entity(array('term_id' => $term->id));
   $items['networks/search'] = array(
     'title' => 'Network Search',
     'description' => 'Search for network modules',
     'page callback' => 'tripal_network_search_page',
-    'access arguments' => array('access chado_network content'),
+    'access arguments' => array('view ' . $bundle->name),
     'file' => '/includes/tripal_network.search.inc',
     'type' => MENU_CALLBACK,
   );
   // the AJAX callback for advanced search form networks
   $items['networks/search/networks'] = array(
     'page callback' => 'tripal_network_search_get_networks',
-    'access arguments' => array('access chado_network content'),
+    'access arguments' => array('view ' . $bundle->name),
     'type' => MENU_CALLBACK
   );
   // the AJAX callback for advanced search form networks
   $items['networks/search/traits'] = array(
     'page callback' => 'tripal_network_search_get_traits',
-    'access arguments' => array('access chado_network content'),
+    'access arguments' => array('view ' . $bundle->name),
     'type' => MENU_CALLBACK
   );
 
   $items['networks/viewer'] = array(
     'page callback' => 'tripal_network_viewer_page',
     'page arguments' => array(),
-    'access arguments' => array('access network'),
+    'access arguments' => array('view ' . $bundle->name),
     'file' => '/includes/tripal_network.viewer.inc',
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
@@ -55,7 +106,7 @@ function tripal_network_menu() {
   $items['networks/retrieve'] = array(
     'page callback' => 'tripal_network_viewer_ajax_retrieve',
     'page arguments' => array(),
-    'access arguments' => array('access network'),
+    'access arguments' => array('view ' . $bundle->name),
     'file' => '/includes/tripal_network.viewer.inc',
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
@@ -63,7 +114,7 @@ function tripal_network_menu() {
   $items['networks/function'] = array(
     'page callback' => 'tripal_network_viewer_ajax_function',
     'page arguments' => array(),
-    'access arguments' => array('access network'),
+    'access arguments' => array('view ' . $bundle->name),
     'file' => '/includes/tripal_network.viewer.inc',
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,

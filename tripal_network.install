@@ -34,6 +34,8 @@ function tripal_network_install() {
   tripal_network_add_terms();
   tripal_network_setup_semweb();
   tripal_network_add_content_types();
+  
+  //tripal_network_add_mviews();
 
 }
 
