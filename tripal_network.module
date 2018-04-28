@@ -1,6 +1,13 @@
 <?php
 
-require_once "api/tripal_network.neo4j.api.inc";
+
+// Support Neo4j if the library is installed.
+$library = libraries_detect('neo4j-php-client');
+if ($library and $library['installed']) {
+  require_once "api/tripal_network.neo4j.api.inc";
+}
+
+require_once "includes/tripal_network.schema.inc";
 
 
 /**
@@ -22,7 +29,7 @@ function tripal_network_menu() {
     'page callback' => 'tripal_network_search_page',
     'access arguments' => array('access chado_network content'),
     'file' => '/includes/tripal_network.search.inc',
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_CALLBACK,
   );
   // the AJAX callback for advanced search form networks
   $items['networks/search/networks'] = array(
@@ -126,27 +133,31 @@ function tripal_network_theme($existing, $type, $theme, $path) {
 
   $items = array(
     // HTML AND PAGE THEMES
-    'html__networks' => array(
-      'template' => 'html--networks',
+    'html__networks_viewer' => array(
+      'template' => 'html--networks_viewer',
       'render element' => 'html',
       'base hook' => 'html',
       'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
     ),
-    'page__networks' => array(
-       'template' => 'page--networks',
-       'render element' => 'page',
-       'base hook' => 'page',
-       'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
-     ),
-     'tripal_network_viewer' => array(
-       'template' => 'tripal_network_viewer',
-       'variables' =>  array(),
-       'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
-     ),
-     'tripal_network_viewer_property' => array(
+    'page__networks_viewer' => array(
+      'template' => 'page--networks_viewer',
+      'render element' => 'page',
+      'base hook' => 'page',
+      'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
+    ),
+    'tripal_network_viewer' => array(
+      'template' => 'tripal_network_viewer',
+      'variables' =>  array(),
+      'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
+    ),
+    'tripal_network_viewer_property' => array(
       'render element' => 'element',
       'path' => drupal_get_path('module', 'tripal_network') . "/includes/tripal_network.viewer.inc",
-    )
+    ),
+//     'tripal_network_search_form' => array(
+//       'render element' => 'form',
+//       'path' => drupal_get_path('module', 'tripal_network') . "/includes/tripal_network.search.inc",
+//     ),
   );
   return $items;
 }

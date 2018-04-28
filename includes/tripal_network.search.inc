@@ -27,24 +27,12 @@ function theme_tripal_network_search_form($form) {
 
   return drupal_render($form);
 }
-/*
- *
- */
-function tripal_network_form_alter(&$form, &$form_state, $form_id) {
-  if ($form_id == "tripal_network_search_form") {
-    // the tripal_network_search_form cann be updated through ajax
-    // so the form #action gets set to the ajax URL.  This isn't
-    // the correct submit URL so we need to fix it here.
-    $form['#action'] = url("network/search/modules");
-  }
-}
 /**
  *
  *
  * @ingroup tripal_network
  */
-function tripal_network_search_form($form_state = NULL) {
-  $form = array();
+function tripal_network_search_form($form, &$form_state) {
 
   $dmodule       = '';
   $dgenes        = '';
@@ -102,19 +90,22 @@ function tripal_network_search_form($form_state = NULL) {
   // all inclusive
   if (!is_array($dnetworks)) {
     if (!$dnetworks) {
-      $dnetworks = 0;  // set the default to 'Any Network'
+      // set the default to 'Any Network'
+      $dnetworks = 0;  
     }
     $dnetworks = array($dnetworks);
   }
   if (!is_array($dtypes)) {
     if (!$dtypes) {
-      $dtypes = 'Any';  // set the default to 'Any Type'
+      // set the default to 'Any Type'
+      $dtypes = 'Any';  
     }
     $dtypes = array($dtypes);
   }
   if (!is_array($dtraits)) {
     if (!$dtraits) {
-      $dtraits = 0;  // set the default to 'Any Trait'
+      // set the default to 'Any Trait'
+      $dtraits = 0;  
     }
     $dtraits = array($dtraits);
   }
@@ -125,7 +116,11 @@ function tripal_network_search_form($form_state = NULL) {
     $is_collapsed = TRUE;
   }
   $species = array();
-  $sql = "SELECT organism_id, genus, species FROM {organism} ORDER BY genus, species";
+  $sql = "
+    SELECT organism_id, genus, species 
+    FROM {organism} 
+    ORDER BY genus, species
+  ";
   $results = chado_query($sql);
   while ($organism = $results->fetchObject()) {
     // if we don't have a default species use the first one
@@ -151,20 +146,30 @@ function tripal_network_search_form($form_state = NULL) {
     '#multiple'      => FALSE,
     '#prefix' => '<div id="networkmod-search-species">',
     '#suffix' => '</div>',
-    '#ahah'   => array(
-      'event'   => 'change',
-      'path'    => 'network/search/modules/networks',
-      'wrapper' => 'networkmod-search-form',
-      'method'  => 'replace',
-      //'effect'  => 'fade',
-    ),
+//     '#ahah'   => array(
+//       'event'   => 'change',
+//       'path'    => 'network/search/modules/networks',
+//       'wrapper' => 'networkmod-search-form',
+//       'method'  => 'replace',
+//       //'effect'  => 'fade',
+//     ),
+//     '#ajax' => array(
+//       'callback' => "tripal_pubs_setup_form_ajax_update",
+//       'wrapper'  => 'networkmod-search-form',
+//       'effect'   => 'fade',
+//       'method'   => 'replace',
+//     ),
     '#size' => 5,
   );
 
   $networks = array();
   if ($dspecies) {
     $networks[0] = 'Any network';
-    $sql = "SELECT network_id, name FROM {network} WHERE organism_id = :organism ";
+    $sql = "
+      SELECT network_id, name 
+      FROM {network} 
+      WHERE organism_id = :organism 
+    ";
     $sql .= "ORDER BY name";
 
     $results = chado_query($sql, array(':organism' => $dspecies));
@@ -321,37 +326,33 @@ function tripal_network_search_form($form_state = NULL) {
     // TODO: These are hard coded and need not be
     $types['QTL'] = 'QTL';
     $types['SNP'] = 'GWAS SNP';
-    $sql = "SELECT * FROM networkmod_traits WHERE 1=1 ";
+    $sql = "SELECT * FROM {networkmod_traits} WHERE 1=1 ";
     $args = array();
     if ($dspecies) {
-      $sql .= "AND organism_id = %d ";
-      $args[] = $dspecies;
+      $sql .= "AND organism_id = :organism_id ";
+      $args[':organism_id'] = $dspecies;
     }
     if ($dnetworks) {
       if (count($dnetworks) > 1 or (count($dnetworks) ==1 and !in_array(0, $dnetworks))) {
-        $sql .= "AND network_id IN ( ";
+        $sql .= "AND network_id IN (:network_ids) ";
         foreach ($dnetworks as $network_id) {
-          $sql .= "%d, ";
-          $args[] = $network_id;
+          $args[':network_ids'][] = $network_id;
         }
         $sql = substr($sql, 0, -2);
-        $sql .= ") ";
       }
     }
     if ($dtypes) {
       if (count($dtypes) > 1 or (count($dtypes) == 1 and !in_array('Any', $dtypes))) {
-        $sql .= "AND feature_type IN ( ";
+        $sql .= "AND feature_type IN (:feature_types) ";
         foreach ($dtypes as $feature_type) {
-          $sql .= "'%s', ";
           $args[] = $feature_type;
         }
         $sql = substr($sql, 0, -2);
-        $sql .= ") ";
       }
     }
     $sql .= " ORDER BY trait_name";
     $results = chado_query($sql, $args);
-    while ($trait = db_fetch_object($results)) {
+    while ($trait = $results->fetchObject()) {
       $traits[$trait->trait_dbxref_id] = ucfirst($trait->trait_name);
     }
     if (count($traits) == 1) {
@@ -440,8 +441,6 @@ function tripal_network_search_form($form_state = NULL) {
 }
 /**
  *
- *
- * @ingroup tripal_network
  */
 function tripal_network_search_get_networks() {
   $status = TRUE;
@@ -524,7 +523,7 @@ function tripal_network_search_form_validate($form, &$form_state) {
  *
  * @ingroup tripal_network
  */
-function tripal_network_search_form_submit(&$form, &$form_state) {
+function tripal_network_search_form_submit($form, &$form_state) {
   $module        = trim($form_state['values']['module']);
   $genes         = trim($form_state['values']['genes']);
   $annotation    = trim($form_state['values']['annotation']);
@@ -570,8 +569,9 @@ function tripal_network_search_form_submit(&$form, &$form_state) {
  */
 function tripal_network_search_page() {
   $form = drupal_get_form('tripal_network_search_form');
-  $results = tripal_network_search_page_results();
-  return $form . '<p><b>Results</b></br>' . $results . '</p>';
+  //$results = tripal_network_search_page_results();
+  return $form;
+  //$form . '<p><b>Results</b></br>' . $results . '</p>';
 }
 /**
  *
@@ -630,7 +630,7 @@ function tripal_network_search_page_results() {
 
   // if a species is provided, add it to the where clause.
   if ($species) {
-    $where .= "O.organism_id = %d AND ";
+    $where .= "O.organism_id = :organism_id AND ";
     $args[] = $species;
   }
 
@@ -640,7 +640,7 @@ function tripal_network_search_page_results() {
       $block = '';
       foreach ($networks as $network_id) {
         if ($network_id != 0) {
-          $block .= "N.network_id = %d OR ";
+          $block .= "N.network_id = :network_id OR ";
           $args[] = $network_id;
         }
       }
@@ -660,8 +660,8 @@ function tripal_network_search_page_results() {
 
       foreach ($traits as $trait_dbxref_id) {
         if ($trait_dbxref_id != 0) {
-          $block .= "NMET.trait_dbxref_id = %d OR ";
-          $args[] = $trait_dbxref_id;
+          $block .= "NMET.trait_dbxref_id = :trait_dbxref_id OR ";
+          $args[':trait_dbxref_id'] = $trait_dbxref_id;
         }
       }
       if ($block) {
@@ -671,13 +671,12 @@ function tripal_network_search_page_results() {
       // if the user wants to limit by genetic feature types (e.g. SNP or QTL)
       if (count($types) > 0) {
         if (count($types) > 1 or (count($types) == 1 and !in_array('Any', $types))) {
-          $where .= " NMET.feature_type IN ( ";
+          $where .= " NMET.feature_type IN (:feature_types) ";
           foreach ($types as $feature_type) {
-             $where .= "'%s', ";
-             $args[] = $feature_type;
+             $args[':feature_types'][] = $feature_type;
           }
           $where = substr($where, 0, -2);
-          $where .= ") AND ";
+          $where .= " AND ";
         }
       }
     }
@@ -685,8 +684,8 @@ function tripal_network_search_page_results() {
 
   // if a module is provided, add it to the where clause
   if ($module) {
-    $where .= "NM.name = '%s' AND ";
-    $args[] = $module;
+    $where .= "NM.name = :module_name AND ";
+    $args[':module_name'] = $module;
   }
 
   // if searching by gene or annotations we need some additional tables
@@ -714,9 +713,9 @@ function tripal_network_search_page_results() {
 
     $where .= "(  ";
     foreach ($values as $val){
-      $where .= "F.name = '%s' OR F.uniquename = '%s' OR ";
-      $args[] = $val;
-      $args[] = $val;
+      $where .= "F.name = :fname OR F.uniquename = :funiquename OR ";
+      $args[':fname'] = $val;
+      $args[':funiquename'] = $val;
     }
     $where = substr($where, 0, -3); // remove trailing 'OR ';
     $where .= ") AND ";
@@ -753,17 +752,17 @@ function tripal_network_search_page_results() {
        // accession is simply numeric and then concatenate the DB
        $matches = array();
        if (preg_match('/^(.*?):(.*?)$/', $val, $matches)) {
-         $where .= " (FCVT_DB.name = '%s' AND FCVT_DBX.accession = '%s') OR ";
-         $args[] = $matches[1];
-         $args[] = $matches[2];
+         $where .= " (FCVT_DB.name = :dbname AND FCVT_DBX.accession = :accession) OR ";
+         $args[':dbname'] = $matches[1];
+         $args[':accession'] = $matches[2];
        }
        else {
-         $where .= " (FCVT_DBX.accession = '%s') OR ";
-         $args[] = $val;
+         $where .= " (FCVT_DBX.accession = :accession) OR ";
+         $args[':accession'] = $val;
        }
        // also look for this term as a keyword
-       $where .= "lower(FCVT_CVT.name) like lower('%%%s%%') OR ";
-       $args[] = $val;
+       $where .= "lower(FCVT_CVT.name) like lower('%%:cvtname%%') OR ";
+       $args[':cvtname'] = $val;
      }
      $where = substr($where, 0, -3); // remove trailing 'OR ';
      $where .= ") AND ";
@@ -782,29 +781,29 @@ function tripal_network_search_page_results() {
   // filter by node count
   if ($num_nodes) {
     if($num_nodes_op == 'lt') {
-      $where_out .= " num_nodes < %d AND ";
+      $where_out .= " num_nodes < :num_nodes AND ";
     }
     if($num_nodes_op == 'gt') {
-      $where_out .= " num_nodes > %d AND ";
+      $where_out .= " num_nodes > :num_nodes AND ";
     }
     if($num_nodes_op == 'eq') {
-      $where_out .= " num_nodes = %d AND ";
+      $where_out .= " num_nodes = :num_nodes AND ";
     }
-    $out_args[] = $num_nodes;
+    $out_args[':num_nodes'] = $num_nodes;
   }
 
   // filter by edge count
   if ($num_edges) {
     if($num_edges_op == 'lt') {
-      $where_out .= " num_edges < %d AND ";
+      $where_out .= " num_edges < :num_nodes AND ";
     }
     if($num_edges_op == 'gt') {
-      $where_out .= " num_edges > %d AND ";
+      $where_out .= " num_edges > :num_nodes AND ";
     }
     if($num_edges_op == 'eq') {
-      $where_out .= " num_edges = %d AND ";
+      $where_out .= " num_edges = :num_nodes AND ";
     }
-    $out_args[] = $num_edges;
+    $out_args[':num_nodes'] = $num_edges;
   }
 
   // clean up the where clause
@@ -993,84 +992,4 @@ function tripal_network_search_page_results() {
   $output .= $pager;
   $output .= "<sup><b>&dagger;</b></sup> The number in parentheses is the number of overlapping genetic features for the given trait and marker type. ";
   return $output;
-}
-///!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// SOMETHING IS WRONG. THE FOLLOWING CODE IS PART OF THE
-// tripal_core_ahah.inc file but for some reason it is not
-// being included.  So a temporary fix was to put these
-// functions here.
-/*
- * @file
- * Part of the Tripal Core API.
- *
- * Provides support for dynamic forms through AHAH
- */
-
-/*
- * This function simply gets the posted form ID, builds the form
- * and retrieves the specified element
- */
-function tripal_core_ahah_prepare_form() {
-
-  // Retrieve the form from the cache
-  $form_state = array('storage' => NULL);
-  $form_build_id = filter_xss($_POST['form_build_id']);
-  $form = form_get_cache($form_build_id, $form_state);
-
-  // Preparing to process the form
-  $args = $form['#parameters'];
-  $form_id = array_shift($args);
-  $form_state['post'] = $form['#post'] = $_POST;
-  $form['#programmed'] = $form['#redirect'] = FALSE;
-
-  // we don't want to submit the form or have required fields validated on
-  // an ahah callback.
-  $form_state['submitted'] = TRUE;
-  $form['#validate'] = NULL;
-  $form['#submit'] = NULL;
-  $form_state['submit_handlers'] = NULL;
-  $form_state['validate_handlers'] = NULL;
-  tripal_core_ahah_form_element_disable_validation($form);
-
-  // Sets the form_state so that the validate and submit handlers can tell
-  // when the form is submitted via AHAH
-  $form_state['ahah_submission'] = TRUE;
-
-  // Process the form with drupal_process_form. This function calls the submit
-  // handlers, which put whatever was worthy of keeping into $form_state.
-  drupal_process_form($form_id, $form, $form_state);
-
-  // You call drupal_rebuild_form which destroys $_POST.
-  // The form generator function is called and creates the form again but since
-  // it knows to use $form_state, the form will be different.
-  // The new form gets cached and processed again, but because $_POST is
-  // destroyed, the submit handlers will not be called again.
-  $form = drupal_rebuild_form($form_id, $form_state, $args, $form_build_id);
-
-
-  return $form;
-}
-
-/*
- *
- */
-function tripal_core_ahah_bind_events() {
-
-  // Get the JS settings so we can merge them.
-  $javascript = drupal_add_js(NULL, NULL, 'header');
-  $settings = call_user_func_array('array_merge_recursive', $javascript['setting']);
-
-  return array('ahah' => $settings['ahah']);
-}
-
-/*
- *
- */
-function tripal_core_ahah_form_element_disable_validation(&$form) {
-  // --START code borrowed from ahah_helper module
-  foreach (element_children($form) as $child) {
-    $form[$child]['#validated'] = TRUE;
-    tripal_core_ahah_form_element_disable_validation($form[$child]);
-  }
-  // --END code borrowed from ahah_helper module
 }
