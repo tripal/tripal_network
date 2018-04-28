@@ -28,7 +28,7 @@ function tripal_network_search_form($form, &$form_state) {
   $dnum_edges    = '';
   $dnum_edges_op = '';
 
-  if (array_key_exists('network_search_criteria', $_SESSION)) {
+  if (isset($_SESSION) and array_key_exists('network_search_criteria', $_SESSION)) {
     $dmodule       = $_SESSION['network_search_criteria']['module'];
     $dgenes        = $_SESSION['network_search_criteria']['genes'];
     $dannotation   = $_SESSION['network_search_criteria']['annotation'];
