@@ -550,6 +550,9 @@ function tripal_network_search_page_results() {
   if (!is_numeric($overlaps)) {
     $overlaps = 0;
   }
+  if (!$overlaps) {
+    $overlaps = 0;
+  }
 
   $order = '';
   if (array_key_exists('order', $_GET)) {
@@ -713,7 +716,7 @@ function tripal_network_search_page_results() {
          $args[':accession'] = $val;
        }
        // also look for this term as a keyword
-       $where .= "lower(FCVT_CVT.name) like lower('%%:cvtname%%') OR ";
+       $where .= "lower(FCVT_CVT.name) like lower(concat('%', :cvtname, '%')) OR ";
        $args[':cvtname'] = $val;
      }
      $where = substr($where, 0, -3); // remove trailing 'OR ';
@@ -831,23 +834,32 @@ function tripal_network_search_page_results() {
 
     // format the list of matching nodes (remove duplicates);
     $matching_features  = 'N/A';
-/*
-    if($module->matching_features){
+
+    if (property_exists($module, 'matching_features') and $module->matching_features) {
       $matching_features = preg_replace("/[{}]/",'', $module->matching_features);
       $matches = preg_split('/,/', $matching_features);
-      $matching_features = '<div id="networkmod-search-match-list">' . implode(', ', array_unique($matches)) . '</div>';
+      $matching_terms = theme_item_list(array(
+        'items' => array_unique($matches),
+        'title' => '',
+        'type' => 'ul',
+        'attributes' => array('class' => array('networkmod-search-match-list')),
+      )); 
     }
-*/
+
 
     // format the list of matching terms (remove duplicates);
     $matching_terms  = 'N/A';
-/*
-    if($module->matching_terms){
+    if (property_exists($module, 'matching_terms') and $module->matching_terms) {
       $matching_terms = preg_replace("/[{}]/", '', $module->matching_terms);
       $matches = preg_split('/(^"|","|"$)/', $matching_terms);
-      $matching_terms = '<div id="networkmod-search-match-list"><ul><li>' . implode('</li><li>', array_unique($matches)) . '</li></ul></div>';
+      $matching_terms = theme_item_list(array(
+        'items' => array_unique($matches),
+        'title' => '',
+        'type' => 'ul',
+        'attributes' => array('class' => array('networkmod-search-match-list')),
+      )); 
     }
-*/
+
 
     // format the list of matching traits, count the instances of each
     // trait and then (remove duplicates):
@@ -863,6 +875,9 @@ function tripal_network_search_page_results() {
         // t[1] = genetic feature name
         // t[2] = trait name
         if (!array_key_exists($t[2], $trait_counts)) {
+          $trait_counts[$t[2]] = array();
+        }
+        if (!array_key_exists($t[0], $trait_counts[$t[2]])) {
           $trait_counts[$t[2]][$t[0]] = 0;
         }
         $trait_counts[$t[2]][$t[0]]++;
@@ -876,8 +891,13 @@ function tripal_network_search_page_results() {
         foreach ($ttypes as $ttype => $num) {
           // if we are filtering on genetic feature type then ignore
           // those types that aren't in the filter
-          if (count($types) > 0 and !array_key_exists($ttype, $types)) {
-            continue;
+          if (count($types) > 0) {
+            if (count($types) == 1 and in_array('Any', $types)) {
+              // Don't skip we're looking for anything.
+            } 
+            else if(!array_key_exists($ttype, $types)) {
+              continue;
+            }
           }
           if ($num >= $overlaps) {
             $matching_traits .=  "<li>$ttype: $tname ($num)</li>";
@@ -887,8 +907,8 @@ function tripal_network_search_page_results() {
       if ($matching_traits) {
         $matching_traits = "<div id=\"networkmod-search-match-list\"><ul>$matching_traits</ul></div>";
       }
-    }
 
+    }
     // put the fields togther for the row of the table
     $rows[] = array(
       $network_name,
