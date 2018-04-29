@@ -35,6 +35,20 @@ function tripal_network_bundle_fields_info($entity_type, $bundle) {
       ),
     );
   }
+
+  if ($table_name == 'network') {
+    $field_name = 'local__network_module';
+    $field_type = 'local__network_module';
+    $info[$field_name] = array(
+      'field_name' => $field_name,
+      'type' => $field_type,
+      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'locked' => FALSE,
+      'storage' => array(
+        'type' => 'field_chado_storage',
+      ),
+    );
+  }
   
   return $info;
 }
@@ -98,5 +112,39 @@ function tripal_network_bundle_instances_info($entity_type, $bundle) {
       ),
     );
   }
-   return $info;
+
+  if ($table_name == 'network') {
+    $field_name = 'local__network_module';
+    $is_required = FALSE;
+    $table_column = 'network_id';
+    $info[$field_name] =  array(
+      'field_name' => $field_name,
+      'entity_type' => $entity_type,
+      'bundle' => $bundle->name,
+      'label' => 'Network Modules',
+      'description' => 'Modules identified in this network.',
+      'required' => $is_required,
+      'settings' => array(
+        'auto_attach' => TRUE,
+        'chado_table' => $table_name,
+        'chado_column' => $table_column,
+        'base_table' => $table_name,
+      ),
+      'widget' => array(
+        'type' => 'local__network_module_widget',
+        'settings' => array(
+          'display_label' => 1,
+        ),
+      ),
+      'display' => array(
+        'default' => array(
+          'label' => 'inline',
+          'type' => 'local__network_module_formatter',
+          'settings' => array(),
+        ),
+      ),
+    );
+  }
+
+  return $info;
 }
