@@ -62,6 +62,12 @@ class ncit__network extends ChadoField {
     $organism_term = tripal_get_chado_semweb_term('network', 'organism_id');
     $type_term = tripal_get_chado_semweb_term('network', 'type_id');
     
+    // Get the terms for the organism record.
+    $genus_term = tripal_get_chado_semweb_term('organism', 'genus');
+    $species_term = tripal_get_chado_semweb_term('organism', 'species');
+    $infraspecific_name_term = tripal_get_chado_semweb_term('organism', 'infraspecific_name');
+    $infraspecific_type_term = tripal_get_chado_semweb_term('organism', 'type_id');
+        
     // Set some defaults for the empty record.
     $entity->{$field_name}['und'][0] = array(
       'value' => array(),
@@ -95,12 +101,28 @@ class ncit__network extends ChadoField {
       
       $i = 0;
       foreach ($networks as $network) {
+        $organism = $network->organism_id;
+        
         $entity->{$field_name}['und'][$i]['value'] = array(
           $uname_term => $network->uniquename,
           $name_term => $network->name,
-          $organism_term => '',
+          $organism_term => array(
+            $genus_term = $organism->genus,
+            $species_term = $organism->species,
+          ),
           $type_term => $network->type_id->name,
-        );      
+        );
+        
+        if (property_exists($organism, 'infraspecific_name')) {
+          $entity->{$field_name}['und'][$i]['value'][$organism_term][$infraspecific_name_term] = $organism->infraspecific_name;
+          $entity->{$field_name}['und'][$i]['value'][$organism_term][$infraspecific_type_term] = $organism->type_id;
+        }
+        
+        if (property_exists($organism, 'entity_id')) {
+          $entity->{$field_name}['und'][$i]['value'][$organism_term]['entity'] = 'TripalEntity:' . $organism->entity_id;
+        }
+        
+        
         $entity->{$field_name}['und'][$i][$linker_field] = $linker_value;
   
         // Is there a published entity for this network?
