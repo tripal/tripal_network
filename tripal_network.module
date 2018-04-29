@@ -8,6 +8,7 @@ if ($library and $library['installed']) {
 }
 
 require_once "includes/tripal_network.schema.inc";
+require_once "includes/tripal_network.fields.inc";
 
 /**
  * Implements hook_permission().

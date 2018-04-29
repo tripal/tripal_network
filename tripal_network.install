@@ -75,6 +75,27 @@ function tripal_network_add_terms() {
   ));
   
   $term = tripal_insert_cvterm(array(
+    'id' => 'NCIT:C75907',
+    'name' => 'Graph Node',
+    'cv_name' => 'NCIT',
+    'definition' => 'One of the points that define a graph.',
+  ));
+  $term = tripal_insert_cvterm(array(
+    'id' => 'NCIT:C75923',
+    'name' => 'Graph Edge',
+    'cv_name' => 'NCIT',
+    'definition' => 'A connection between nodes in a graph.',
+  ));
+  $term = tripal_insert_cvterm(array(
+    'id' => 'local:Network Module',
+    'name' => 'Network Module',
+    'cv_name' => 'local',
+    'definition' => 'Groups, clusters or communities of highly connected nodes within a network (or graph).',
+  ));
+  
+  
+  // Network Types
+  $term = tripal_insert_cvterm(array(
     'id' => 'MI:2231',
     'name' => 'coexpression',
     'cv_name' => 'NCIT',
