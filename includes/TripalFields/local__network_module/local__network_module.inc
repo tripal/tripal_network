@@ -58,7 +58,7 @@ class local__network_module extends ChadoField {
 
     // Get the terms for each of the keys for the 'values' property.
     $name_term = tripal_get_chado_semweb_term('networkmod', 'name');
-    $type_term = tripal_get_chado_semweb_term('network', 'type_id');
+    $type_term = tripal_get_chado_semweb_term('networkmod', 'type_id');
             
     // Set some defaults for the empty record.
     $entity->{$field_name}['und'][0] = array(
@@ -66,23 +66,23 @@ class local__network_module extends ChadoField {
     );
     
     // Find the modules for the given network
-    $options = array();
-    $records = chado_generate_var('networkmod', array('nework_id' => $record->network_id), $options);
+    $options = array(
+      'order_by' => array('name' => 'ASC'),
+    );
+    $networkmod = chado_generate_var('networkmod', array('network_id' => $record->network_id), $options);
     $modules = array();
-    if (is_array($records)) {
-      $modules = $records;
+    if (is_array($networkmod)) {
+      $modules = $networkmod;
     }
     else {
-      $modules[] = $records;
+      $modules[] = $networkmod;
     }
-
     
     // Iterate through the networks and create an entry for each one.
     if ($modules and count($modules) > 0) {
       
       $i = 0;
       foreach ($modules as $module) {
-        
         $entity->{$field_name}['und'][$i]['value'] = array(
           $name_term => $module->name,
           $type_term => $module->type_id->name,

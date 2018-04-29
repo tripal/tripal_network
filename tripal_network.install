@@ -548,6 +548,11 @@ function tripal_network_add_networkmod_table(&$schema) {
         'length' => 255,
         'not null' => TRUE,
       ),
+      'type_id' => array(
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
     ),
     'primary key' => array('networkmod_id'),
     'indexes' => array(
@@ -569,6 +574,12 @@ function tripal_network_add_networkmod_table(&$schema) {
         'table' => 'network',
         'columns' => array(
           'network_id' => 'network_id',
+        ),
+      ),
+      'cvterm' => array(
+        'table' => 'cvterm',
+        'columns' => array(
+          'type_id' => 'cvterm_id',
         ),
       ),
     ),
