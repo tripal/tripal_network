@@ -104,7 +104,7 @@ class ncit__network extends ChadoField {
           $networks[] = $network_analysis->network_id;
         }
       }
-      else {
+      else if ($network_analyses) {
         $networks[] = $network_analyses->network_id;
       }
     }
