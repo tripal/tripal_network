@@ -140,6 +140,7 @@ function tripal_network_setup_semweb() {
   
   $name = tripal_get_cvterm(array('id' => 'schema:name'));
   tripal_associate_chado_semweb_term('network', 'name', $name);
+  tripal_associate_chado_semweb_term('networkmod', 'name', $name);
   
   $name = tripal_get_cvterm(array('id' => 'schema:name'));
   tripal_associate_chado_semweb_term('network', 'name', $name);
@@ -149,6 +150,11 @@ function tripal_network_setup_semweb() {
   
   $type = tripal_get_cvterm(array('id' => 'schema:additionalType'));
   tripal_associate_chado_semweb_term('network', 'type_id', $type);
+  tripal_associate_chado_semweb_term('networkmod', 'type_id', $type);
+  
+  $network = tripal_get_cvterm(array('id' => 'NCIT:C61377'));
+  tripal_associate_chado_semweb_term('networkmod', 'network_id', $network);
+  
 }
 /**
  * 
