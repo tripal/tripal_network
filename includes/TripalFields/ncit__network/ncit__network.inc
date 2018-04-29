@@ -69,22 +69,25 @@ class ncit__network extends ChadoField {
     
     // Find the networks for the given table.
     if ($field_table == 'organism') {
-      $organism = $record->organism_id;
+      $organism = $record;
       $linker_field = 'chado-network__organism_id';
       $linker_value = $organism->organism_id;
-      $networks = chado_generate_var('network', array('organism_id' => $organism->organism_id));
+      $options = array(
+        'order_by' => array('name' => 'ASC'),        
+      );
+      $networks = chado_generate_var('network', array('organism_id' => $organism->organism_id), $options);
     }
     if ($field_table == 'analysis') {
-      $analysis = $record->analysis_id;
+      $analysis = $record;
       $linker_field = 'chado-network_analysis__analysis_id';
       $linker_value = $analysis->analysis_id;
       $network_analyses = chado_generate_var('network_analysis', array('analysis_id' => $analysis->analysis_id));
-      $options = array(
-        'return_array' => TRUE, 
-        'order_by' => array('name', 'ASC'),        
-      );
-      $network_analyses = chado_expand_var($network_analysis, 'table', 'network_analysis', $options);
-      $networks = $network_analysis->networks;
+      if (is_array($network_analyses->network_id)) {
+        $networks = $network_analyses->network_id;
+      }
+      else {
+        $networks = array($network_analyses->network_id);
+      }
     }
     
     // Iterate through the networks and create an entry for each one.
@@ -104,6 +107,7 @@ class ncit__network extends ChadoField {
         if (property_exists($network, 'entity_id')) {
           $entity->{$field_name}['und'][$i]['value']['entity'] = 'TripalEntity:' . $network->entity_id;
         }
+        $i++;
       }
     }
   }
