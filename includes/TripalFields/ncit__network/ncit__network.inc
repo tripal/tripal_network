@@ -74,6 +74,7 @@ class ncit__network extends ChadoField {
     );
     
     // Find the networks for the given table.
+    $networks = array();
     if ($field_table == 'organism') {
       $organism = $record;
       $linker_field = 'chado-network__organism_id';
@@ -87,12 +88,24 @@ class ncit__network extends ChadoField {
       $analysis = $record;
       $linker_field = 'chado-network_analysis__analysis_id';
       $linker_value = $analysis->analysis_id;
-      $network_analyses = chado_generate_var('network_analysis', array('analysis_id' => $analysis->analysis_id));
-      if (is_array($network_analyses->network_id)) {
-        $networks = $network_analyses->network_id;
+      $options = array(
+        'include_fk' => array(
+          'network_id' => array(
+            'type_id' => TRUE,
+            'organism_id' => array(
+              'type_id' => TRUE,
+            ),
+          )
+        ),
+      );
+      $network_analyses = chado_generate_var('network_analysis', array('analysis_id' => $analysis->analysis_id), $options);
+      if (is_array($network_analyses)) {
+        foreach ($network_analyses as $network_analysis) {
+          $networks[] = $network_analysis->network_id;
+        }
       }
       else {
-        $networks = array($network_analyses->network_id);
+        $networks[] = $network_analyses->network_id;
       }
     }
     
@@ -107,15 +120,20 @@ class ncit__network extends ChadoField {
           $uname_term => $network->uniquename,
           $name_term => $network->name,
           $organism_term => array(
-            $genus_term = $organism->genus,
-            $species_term = $organism->species,
+            $genus_term => $organism->genus,
+            $species_term => $organism->species,
           ),
           $type_term => $network->type_id->name,
         );
         
         if (property_exists($organism, 'infraspecific_name')) {
           $entity->{$field_name}['und'][$i]['value'][$organism_term][$infraspecific_name_term] = $organism->infraspecific_name;
-          $entity->{$field_name}['und'][$i]['value'][$organism_term][$infraspecific_type_term] = $organism->type_id;
+          if ($organism->type_id) {
+            $entity->{$field_name}['und'][$i]['value'][$organism_term][$infraspecific_type_term] = $organism->type_id->name;
+          }
+          else {
+            $entity->{$field_name}['und'][$i]['value'][$organism_term][$infraspecific_type_term] = '';
+          }
         }
         
         if (property_exists($organism, 'entity_id')) {

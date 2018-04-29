@@ -23,6 +23,7 @@ class ncit__network_formatter extends ChadoFieldFormatter {
     else {
       $headers = array('Identifier', 'Name', 'Network Type', 'Organism');
     }
+
     foreach ($items as $delta => $item) {
       if (empty($item['value'])) {
         continue;
@@ -39,13 +40,34 @@ class ncit__network_formatter extends ChadoFieldFormatter {
         $eid = preg_replace('/TripalEntity:/', '', $item['value']['entity']);
         $uname = l($uname, 'bio_data/' . $eid);
       }
+
       $row =  array(
         $uname,
         $item['value'][$name_term],
         $item['value'][$type_term],
       );
-      if ($field_table == 'organism') {
-        $row[] = $item['value'][$organism_term];
+      if ($field_table != 'organism') {
+        $genus_term = tripal_get_chado_semweb_term('organism', 'genus');
+        $species_term = tripal_get_chado_semweb_term('organism', 'species');
+        $infraspecific_name_term = tripal_get_chado_semweb_term('organism', 'infraspecific_name');
+        $infraspecific_type_term = tripal_get_chado_semweb_term('organism', 'type_id');
+    
+        $organism = $item['value'][$organism_term];
+        $organism_name = '<i>' . $organism[$genus_term] . ' ' . $organism[$species_term]. '</i>';
+        if (array_key_exists('infraspecific_type_term', $organism) and 
+            $organism['infraspecific_type_term']) {
+          $organism_name .= ' ' . $organism[infraspecific_type_term];
+        }
+        if (array_key_exists('infraspecific_name_term', $organism) and 
+            $organism['infraspecific_name_term']) {
+          $organism_name .= ' ' . $organism[infraspecific_name_term];
+        }
+        if (array_key_exists('entity', $organism)) {
+          $eid = preg_replace('/TripalEntity:/', '',  $organism['entity']);
+          $organism_name = l($organism_name, 'bio_data/' . $eid, array('html' => TRUE));
+        }
+        
+        $row[] = $organism_name;
       }
       $rows[] = $row;
     }
@@ -72,7 +94,7 @@ class ncit__network_formatter extends ChadoFieldFormatter {
         'class' => array('tripal-data-table'),
       ),
       'sticky' => FALSE,
-      'caption' => '',
+      'caption' => 'There are ' .  $total_records . ' total network(s)',
       'colgroups' => array(),
       'empty' => t('There are no networks'),
     ));
