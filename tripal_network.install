@@ -92,6 +92,26 @@ function tripal_network_add_terms() {
     'cv_name' => 'local',
     'definition' => 'Groups, clusters or communities of highly connected nodes within a network (or graph).',
   ));
+
+  // Analysis  Types
+  $term = tripal_insert_cvterm(array(
+    'id' => 'OBI:0200126',
+    'name' => 'network graph construction',
+    'cv_name' => 'obi',
+    'definition' => 'A network analysis in which an input data set describing objects and relationships between objects is transformed into an output representation of these objects as nodes and the relationships as edges of a network graph.',  
+  ));
+  $term = tripal_insert_cvterm(array(
+    'id' => 'OBI:0200040',
+    'name' => 'modular decomposition',
+    'cv_name' => 'obi',
+    'definition' => 'Molecular decomposition is the partition of a network into distinct subgraphs for the purpose of identifying functional clusters. The network data is run through any of several existing algorithms designed to partition a network into distinct subgraphs for the purpose of isolating groups of functionally linked biological elements such as proteins.', 
+  ));
+  $term = tripal_insert_cvterm(array(
+    'id' => 'operation:3766',
+    'name' => 'Weighted correlation network analysis',
+    'cv_name' => 'EDAM',
+    'definition' => 'WGCNA, Weighted gene co-expression network analysis',
+  ));
   
   
   // Network Types

@@ -86,6 +86,14 @@ class ncit__network_formatter extends ChadoFieldFormatter {
     ));
     $pager = $this->ajaxifyPager($pager, $entity);
     $page_items = array_chunk($rows, $items_per_page);    
+
+    $caption = '';
+    if ($total_records == 1) {
+        $caption = 'There is ' . count($rows) . ' network.';
+    }
+    else {
+      $caption = 'There are ' . count($rows) . ' networks.';
+    }
     
     $content = theme_table(array(
       'header' => $headers,
@@ -94,7 +102,7 @@ class ncit__network_formatter extends ChadoFieldFormatter {
         'class' => array('tripal-data-table'),
       ),
       'sticky' => FALSE,
-      'caption' => 'There are ' .  $total_records . ' total network(s)',
+      'caption' => $caption,
       'colgroups' => array(),
       'empty' => t('There are no networks'),
     ));

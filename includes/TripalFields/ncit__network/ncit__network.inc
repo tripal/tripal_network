@@ -82,7 +82,13 @@ class ncit__network extends ChadoField {
       $options = array(
         'order_by' => array('name' => 'ASC'),        
       );
-      $networks = chado_generate_var('network', array('organism_id' => $organism->organism_id), $options);
+      $network = chado_generate_var('network', array('organism_id' => $organism->organism_id), $options);
+      if (!is_array($network)) {
+        $networks[] = $network;
+      }
+      else {
+        $networks = $network;
+      }
     }
     if ($field_table == 'analysis') {
       $analysis = $record;
@@ -141,8 +147,6 @@ class ncit__network extends ChadoField {
         }
         
         
-        $entity->{$field_name}['und'][$i][$linker_field] = $linker_value;
-  
         // Is there a published entity for this network?
         if (property_exists($network, 'entity_id')) {
           $entity->{$field_name}['und'][$i]['value']['entity'] = 'TripalEntity:' . $network->entity_id;
