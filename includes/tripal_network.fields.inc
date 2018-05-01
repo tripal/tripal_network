@@ -49,6 +49,23 @@ function tripal_network_bundle_fields_info($entity_type, $bundle) {
       ),
     );
   }
+
+
+  // If this is the Network content type (NCIT:C61377) then
+  // add the viewer field.
+  if ($bundle->term->accession = 'C61377' and $table_name == 'network') {
+    $field_name = 'sio__network_diagram';
+    $field_type = 'sio__network_diagram';
+    $info[$field_name] = array(
+      'field_name' => $field_name,
+      'type' => $field_type,
+      'cardinality' => 1,
+      'locked' => FALSE,
+      'storage' => array(
+        'type' => 'tripal_no_storage',
+      ),
+    );
+  }
   
   return $info;
 }
@@ -140,6 +157,39 @@ function tripal_network_bundle_instances_info($entity_type, $bundle) {
         'default' => array(
           'label' => 'inline',
           'type' => 'local__network_module_formatter',
+          'settings' => array(),
+        ),
+      ),
+    );
+  }
+
+  if ($bundle->term->accession = 'C61377' and $table_name == 'network') {
+    $field_name = 'sio__network_diagram';
+    $is_required = FALSE;
+    $table_column = 'network_id';
+    $info[$field_name] =  array(
+      'field_name' => $field_name,
+      'entity_type' => $entity_type,
+      'bundle' => $bundle->name,
+      'label' => 'Network Viewer',
+      'description' => 'View the network',
+      'required' => $is_required,
+      'settings' => array(
+        'auto_attach' => TRUE,
+        'chado_table' => $table_name,
+        'chado_column' => $table_column,
+        'base_table' => $table_name,
+      ),
+      'widget' => array(
+        'type' => 'sio__network_diagram_widget',
+        'settings' => array(
+          'display_label' => 1,
+        ),
+      ),
+      'display' => array(
+        'default' => array(
+          'label' => 'inline',
+          'type' => 'sio__network_diagram_formatter',
           'settings' => array(),
         ),
       ),

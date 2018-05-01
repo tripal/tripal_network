@@ -246,6 +246,8 @@
   $.fn.retrieveNetwork = function(filters) {
     // The data needed to retreive the network is provided to this function
     // by the tripal_network module of Drupal via the data function. 
+    var network_id = filters['network_id'];
+    var module_id = filters['module_id'];
     var species = filters['species'];
     var genes = filters['genes'];
     var props = filters['properties'];
@@ -256,7 +258,7 @@
       url: baseurl + '/networks/retrieve',
       type: "GET",
       dataType: 'json',
-      data: {'species': species, 'genes': genes, 'properties': props, 'filter_cond': filter_cond},
+      data: {'network_id': network_id, 'module_id': module_id, 'species': species, 'genes': genes, 'properties': props, 'filter_cond': filter_cond},
       success: function(json) {
         Network_Data = json;
         loadNetwork(Network_Data);
@@ -338,13 +340,14 @@
     }
 
 
+    /*
     var reset = document.getElementById("reset-btn");
     reset.addEventListener("click", function(e) {
       Sigma_Instance.graph.nodes().forEach(function (n) {
         n.active=false;
       });
       locate.center(conf.zoomDef);
-    });
+    }); */
 
     function locateNode (e) {
     };   

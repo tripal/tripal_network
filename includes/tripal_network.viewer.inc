@@ -9,13 +9,74 @@ function tripal_network_viewer_page() {
 
 /**
  *
- * @param $form
- * @param $form_state
- * @return multitype:
  */
-function tripal_network_viewer_filter_form($form, &$form_state) {
+function tripal_network_viewer_form($form, &$form_state, $network_id = NULL) {
+
+  $sql = "
+    SELECT * FROM {networkmod} NM 
+    WHERE NM.network_id = :network_id
+    ORDER BY NM.name
+  ";
+  $modules = [
+    0 => '-- Select --',
+  ];
+  $results = chado_query($sql, [':network_id' => $network_id]); 
+  while ($record = $results->fetchObject()) {
+    $modules[$record->networkmod_id] = $record->name;
+  }
+
+  $form['network_id'] = [
+    '#type' => 'value', 
+    '#value' => $network_id,
+  ];
+  $form['module_id'] = [
+    '#type' => 'select',
+    '#title' => 'Module', 
+    '#options' => $modules,
+    '#description' => t('select a module to adjust the network view to show only that module.'),
+    '#ajax' => array(
+      'callback' => 'tripal_network_viewer_form_ajax_callback',
+      'wrapper'  => 'tripal-network-viewer-form',
+      'effect'   => 'fade',
+      'method'   => 'replace',
+    ),
+  ];
+
+  $form['graph_viewer'] = [
+    '#type' => 'markup',
+    '#markup' => '<div id="graph-container" style="height: 400px"></div>',
+  ];
+
+  return $form;
+}
+
+/**
+ *
+ */
+function tripal_network_viewer_form_ajax_callback($form, $form_state) {
+  $network_id = $form_state['values']['network_id'];
+  $module_id = $form_state['values']['module_id'];
+
+  $data = [
+    'network_id' => $network_id,
+  ];
+  if ($module_id) {
+    $data['module_id'] = $module_id;
+  }
+
+  // Tell Drupal to update the network
+  tripal_network_add_ajax_command(ajax_command_invoke(NULL, "retrieveNetwork", array($data)));
+
+  return 'hi';
+  return $form;
+}
+
+/**
+ *
+ */
+function tripal_network_viewer_filter_neo4j_form($form, &$form_state) {
   $form = array();
-  drupal_debug($form_state);
+
   tripal_neo4j_connect("bolt", "bolt://neo4j:testing123@localhost:7687");
 
   // Get the species from the session.
@@ -206,7 +267,7 @@ function tripal_network_viewer_filter_form($form, &$form_state) {
 /**
  * Validate function for the tripal_network_viewer_filter_form form.
  */
-function tripal_network_viewer_filter_form_validate($form, &$form_state) {
+function tripal_network_viewer_filter_neo4j_form_validate($form, &$form_state) {
   // If the remove filter button was clicked then we need to remove the
   // last filter from the form element and move the [X] button down to the
   // next element.
@@ -231,7 +292,7 @@ function tripal_network_viewer_filter_form_validate($form, &$form_state) {
 /**
  * Ajax function which returns the form via ajax
  */
-function tripal_network_viewer_filter_form_ajax_callback($form, $form_state) {
+function tripal_network_viewer_filter_neo4j_form_ajax_callback($form, $form_state) {
   $species = $form_state['values']['species'];
 
   // Get the genes, if specified.
@@ -287,12 +348,107 @@ function tripal_network_viewer_filter_form_ajax_callback($form, $form_state) {
   return $form;
 }
 
+
 /**
  *
  * @param $species
  * @param $module
  */
 function tripal_network_viewer_ajax_retrieve() {
+
+  // Initialize our network data array.
+  $network_data = array(
+    'nodes' => array(),
+    'edges' => array(),
+  );
+
+  // Get the fitering variables requested by the user.
+  $network_id = $_GET['network_id'];
+  $module_id = $_GET['module_id'];
+  $species = $_GET['species'];
+  $genes = $_GET['genes'];
+  $prop_filters = $_GET['properties'];
+  $filter_cond = $_GET['filter_cond'];
+
+  // Make sure we have required filters.
+  if (!$network_id) {
+    drupal_json_output($network_data);
+    return;
+  }
+
+  // Get the list of edges and rows that match the query.
+  $nodes = array();
+  $edges = array();
+  $params = array();
+
+  // Get the edges from the network
+  $select = "
+    SELECT 
+      F1.feature_id as node1_id, F1.name as node1, 
+      F2.feature_id as node2_id, F2.name as node2, 
+      NE.networkedge_id, NE.weight
+   "; 
+  $from = "
+    FROM {networkedge} NE
+      INNER JOIN {feature} F1 on F1.feature_id = NE.node1
+      INNER JOIN {feature} F2 on F2.feature_id = NE.node2
+  ";
+  $where = "
+    WHERE NE.network_id = :network_id
+  ";
+  $order = "
+    ORDER BY NE.weight DESC
+  ";
+  $limit = "
+    LIMIT 1000 OFFSET 0
+  ";
+
+  $sql = $select . $from . $where . $order . $limit;
+
+  // Execute the query and return the parsed results.
+  $results = chado_query($sql, [':network_id' => $network_id]);
+  while ($record = $results->fetchObject()) {
+    $nodes[$record->node1_id] = array(
+      'id' => $record->node1_id,
+      'label' => $record->node1,
+      'x' => mt_rand(),
+      'y' => mt_rand(),
+      'size' => mt_rand(1, 3) / 1000,
+      'color' => "gray",
+    );
+    $nodes[$record->node2_id] = array(
+      'id' => $record->node2_id,
+      'label' => $record->node2,
+      'x' => mt_rand(),
+      'y' => mt_rand(),
+      'size' => mt_rand(1, 3) / 1000,
+      'color' => "gray",
+    );
+    $edges[$record->networkedge_id] = array(
+      'id' => $record->networkedge_id,
+      'source' => $record->node1_id, 
+      'target' => $record->node2_id,
+      'size' => mt_rand(),
+      'type' => 'straight',
+      'color' => '#CCCCC',
+      'hover_color' => '#A0A0A0',
+      'sc' => $record->weight,
+    );
+  }
+  $network_data = array(
+    'nodes' => array_values($nodes),
+    'edges' => array_values($edges),
+  );
+
+  drupal_json_output($network_data);
+}
+
+/**
+ *
+ * @param $species
+ * @param $module
+ */
+function tripal_network_viewer_neo4j_ajax_retrieve() {
 
   // Initialize our network data array.
   $network_data = array(
@@ -430,7 +586,7 @@ function tripal_network_viewer_ajax_retrieve() {
  */
 
 
-function tripal_network_viewer_ajax_function() {
+function tripal_network_viewer_neo4j_ajax_function() {
   $nodes = $_POST['nodes'];
   $genus = $_POST['genus'];
   $species = $_POST['species'];
