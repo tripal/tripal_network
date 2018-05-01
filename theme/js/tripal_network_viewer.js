@@ -47,7 +47,7 @@
       //sigma.layouts.startForceLink({linLogMode:true});
       //Sigma_Instance.stopForceLink();
       //$('#graph').remove(); 
-      //$('#graph-container').html('<div id="graph"></div>');
+      //$('#tripal-network-viewer-graph-container').html('<div id="graph"></div>');
  
       Sigma_Instance.graph.clear();
       Sigma_Instance.refresh();
@@ -58,7 +58,7 @@
     Sigma_Instance = new sigma({
       graph: network_data,
       renderer: {
-        container: document.getElementById('graph-container'),
+        container: document.getElementById('tripal-network-viewer-graph-container'),
         type: 'canvas'
       },
       settings: {
@@ -128,7 +128,7 @@
     
     // Add an onClick event to each node.
     Sigma_Instance.bind('clickNode', function(e) {
-      // Currently, this event does nothing... just here for future use.
+      $.fn.retrieveNode(e.data.node['id']);
     });
 
 
@@ -248,17 +248,14 @@
     // by the tripal_network module of Drupal via the data function. 
     var network_id = filters['network_id'];
     var module_id = filters['module_id'];
-    var species = filters['species'];
-    var genes = filters['genes'];
-    var props = filters['properties'];
-    var filter_cond = filters['filter_cond'];
+    var trait_id = filters['trait_id'];
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
       url: baseurl + '/networks/retrieve',
       type: "GET",
       dataType: 'json',
-      data: {'network_id': network_id, 'module_id': module_id, 'species': species, 'genes': genes, 'properties': props, 'filter_cond': filter_cond},
+      data: {'network_id': network_id, 'module_id': module_id, 'trait_id': trait_id },
       success: function(json) {
         Network_Data = json;
         loadNetwork(Network_Data);
@@ -268,6 +265,24 @@
       }
     }) 
   };
+
+  /**
+   * Retreives information about a node.
+   */
+  $.fn.retrieveNode = function(node_id) {
+    $.ajax({
+      url: baseurl + '/networks/retrieve/node',
+      type: 'GET',
+      dataType: 'json',
+      data: {'node_id': node_id},
+      success: function(json) {
+        $('#tripal-network-viewer-data-panel').html(json['html']);
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+      } 
+    });
+  }
 
   /**
    * Adds a drag listener to a SigmaJS object.

@@ -11,7 +11,13 @@ function tripal_network_viewer_page() {
  *
  */
 function tripal_network_viewer_form($form, &$form_state, $network_id = NULL) {
+ 
+  $module_id = 0;
+  if (array_key_exists('values', $form_state)) { 
+    $module_id = $form_state['values']['module_id'];
+  }
 
+  // Get the list of modules
   $sql = "
     SELECT * FROM {networkmod} NM 
     WHERE NM.network_id = :network_id
@@ -42,10 +48,50 @@ function tripal_network_viewer_form($form, &$form_state, $network_id = NULL) {
     ),
   ];
 
+/*
+  $sql = "
+    SELECT NMT.trait_dbxref_id, NMT.trait_name, NMT.feature_type
+    FROM {networkmod_traits} NMT
+    WHERE network_id = :network_id
+    ORDER BY NMT.feature_type, NMT.trait_name
+  ";
+  $traits = [
+    0 => '-- Select --',
+  ];
+  $results = chado_query($sql, [':network_id' => $network_id]);
+  while ($record = $results->fetchObject()) {
+    $traits[$record->feature_type][$record->trait_dbxref_id] = $record->trait_name;
+  }
+  $form['trait_id'] = [
+    '#type' => 'select',
+    '#title' => 'Trait', 
+    '#options' => $traits,
+    '#description' => t('select a trait to adjust the network view to show only edges putatively associated with the trait.'),
+    '#ajax' => array(
+      'callback' => 'tripal_network_viewer_form_ajax_callback',
+      'wrapper'  => 'tripal-network-viewer-form',
+      'effect'   => 'fade',
+      'method'   => 'replace',
+    ),
+    '#multiple' => FALSE,
+  ];
+*/
+  $form['data_panel'] = [
+    '#type' => 'markup',
+    '#markup' => '<div id="tripal-network-viewer-data-panel">Data Panel</div>',
+    '#prefix' => '<div id="tripal-network-viewer">',
+  ];
   $form['graph_viewer'] = [
     '#type' => 'markup',
-    '#markup' => '<div id="graph-container" style="height: 400px"></div>',
+    '#markup' => '<div id="tripal-network-viewer-graph-container"></div>',
+    '#suffix' => '</div>',
   ];
+
+  
+  // Make sure this path is always included in the form. This normally
+  // happens but for some reason when the form is added via the 
+  // sio__network_diagram field it doesn't happen.
+  form_load_include($form_state, 'inc', 'tripal_network', 'includes/tripal_network.viewer');
 
   return $form;
 }
@@ -56,6 +102,7 @@ function tripal_network_viewer_form($form, &$form_state, $network_id = NULL) {
 function tripal_network_viewer_form_ajax_callback($form, $form_state) {
   $network_id = $form_state['values']['network_id'];
   $module_id = $form_state['values']['module_id'];
+  $trait_id = $form_state['values']['trait_id'];
 
   $data = [
     'network_id' => $network_id,
@@ -63,11 +110,13 @@ function tripal_network_viewer_form_ajax_callback($form, $form_state) {
   if ($module_id) {
     $data['module_id'] = $module_id;
   }
+  if ($trait_id) {
+    $data['trait_id'] = $trait_id;
+  }
 
   // Tell Drupal to update the network
   tripal_network_add_ajax_command(ajax_command_invoke(NULL, "retrieveNetwork", array($data)));
 
-  return 'hi';
   return $form;
 }
 
@@ -348,6 +397,66 @@ function tripal_network_viewer_filter_neo4j_form_ajax_callback($form, $form_stat
   return $form;
 }
 
+/**
+ * Retreives details about a node when selected in the viewer.
+ */
+function tripal_network_viewer_ajax_node_retrieve() {
+
+  $node_id = $_GET['node_id'];
+  $feature = chado_generate_var('feature', ['feature_id' => $node_id]);
+
+  $headers = [];
+  $rows = [];
+  $rows[] = [
+    [ 
+      'data' => 'Name',
+      'header' => TRUE,
+      'width' => '20%',
+    ],
+    $feature->name
+  ];
+  
+  $rows[] = [
+    [ 
+      'data' => 'Unique Name',
+      'header' => TRUE,
+      'width' => '20%',
+    ],
+    $feature->uniquename
+  ]; 
+
+  $rows[] = [
+    [ 
+      'data' => 'Type',
+      'header' => TRUE,
+    ],
+    $feature->type_id->name,
+  ]; 
+
+  $table = array(
+    'header' => $headers,
+    'rows' => $rows,
+    'attributes' => array(
+      'class' => 'tripal-data-table'
+    ),
+    'sticky' => FALSE,
+    'caption' => '',
+    'colgroups' => array(),
+    'empty' => '',
+  );
+
+  $content = [
+    '#type' => 'item',
+    '#title' => 'Node Details',
+    '#markup' => theme_table($table),
+  ];
+
+  $node_data = [
+    'html' => drupal_render($content),
+  ];
+
+  drupal_json_output($node_data);
+}
 
 /**
  *
@@ -364,11 +473,8 @@ function tripal_network_viewer_ajax_retrieve() {
 
   // Get the fitering variables requested by the user.
   $network_id = $_GET['network_id'];
-  $module_id = $_GET['module_id'];
-  $species = $_GET['species'];
-  $genes = $_GET['genes'];
-  $prop_filters = $_GET['properties'];
-  $filter_cond = $_GET['filter_cond'];
+  $module_id = array_key_exists('module_id', $_GET) ? $_GET['module_id'] : '';
+  $trait_id = array_key_exists('trait_id', $_GET) ? $_GET['trait_id'] : '';
 
   // Make sure we have required filters.
   if (!$network_id) {
@@ -377,9 +483,11 @@ function tripal_network_viewer_ajax_retrieve() {
   }
 
   // Get the list of edges and rows that match the query.
-  $nodes = array();
-  $edges = array();
-  $params = array();
+  $nodes = [];
+  $edges = [];
+  $params = [
+    ':network_id' => $network_id
+  ];
 
   // Get the edges from the network
   $select = "
@@ -403,10 +511,21 @@ function tripal_network_viewer_ajax_retrieve() {
     LIMIT 1000 OFFSET 0
   ";
 
+  if ($module_id) {
+    $from .= " INNER JOIN {networkmod_edge} NME ON NE.networkedge_id = NME.networkedge_id ";
+    $where .= " AND NME.networkmod_id = :networkmod_id ";
+    $params[':networkmod_id'] = $module_id;
+  }
+
+  if ($trait_id) {
+    $from .= " INNER JOIN {networkmod_exp_traits} NMET ON NE.network_id = NMET.network_id ";
+    $where .= "  AND NMET.trait_dbxref_id = :trait_id ";
+  }
+
   $sql = $select . $from . $where . $order . $limit;
 
   // Execute the query and return the parsed results.
-  $results = chado_query($sql, [':network_id' => $network_id]);
+  $results = chado_query($sql, $params);
   while ($record = $results->fetchObject()) {
     $nodes[$record->node1_id] = array(
       'id' => $record->node1_id,
