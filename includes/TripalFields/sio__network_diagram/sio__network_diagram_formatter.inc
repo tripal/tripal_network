@@ -42,18 +42,40 @@ class sio__network_diagram_formatter extends ChadoFieldFormatter {
     drupal_add_js($js_path . '/tripal_network_viewer.js');
 
 
-    // Call the JS function retrieveNetwork to initially load the network
-    $data = [
-      'network_id' => $record->network_id
-    ];
-    drupal_add_js("(function(\$) {\$.fn.retrieveNetwork({'network_id': $record->network_id }); })(jQuery);", 'inline');
 
-    // Add in the viewer which is in a form
-    module_load_include('inc', 'tripal_network', 'includes/tripal_network.viewer');
-    $filter_form = drupal_get_form('tripal_network_viewer_form', $record->network_id);
-    $element[0] = array(
-      '#type' => 'markup',
-      '#markup' => drupal_render($filter_form),
-    );
+    // If this field is attached to an entity that is associated with the
+    // network table then add the viewer for that type of record.
+    if ($field_table == 'network') {
+
+      // Call the JS function retrieveNetwork to initially load the network. This JS
+      // call is made by Drupal's Behaviors after it responds to this GET.
+      drupal_add_js("(function(\$) {\$.fn.retrieveNetwork({'network_id': $record->network_id }); })(jQuery);", 'inline');
+
+      // Now add the form for filtering the network view.
+      module_load_include('inc', 'tripal_network', 'includes/tripal_network.viewer');
+      $filter_form = drupal_get_form('tripal_network_viewer_form', $record->network_id);
+      $element[0] = array(
+        '#type' => 'markup',
+        '#markup' => drupal_render($filter_form),
+      );
+    }
+    // If the field is attached to an entity that is associated with the
+    // feature table (i.e. a node page) then add the appropriate viewer.
+    if ($field_table == 'feature') {
+
+      // Call the JS function retrieveNetwork to initially load the network. This JS
+      // call is made by Drupal's Behaviors after it responds to this GET.
+      $network_id = $items[0]['network_id'];
+      $node_id = $record->feature_id;
+      drupal_add_js("(function(\$) {\$.fn.retrieveNetwork({'network_id': $network_id, 'node_id': $node_id }); })(jQuery);", 'inline');
+
+      // Now add the form for filtering the network view.
+      module_load_include('inc', 'tripal_network', 'includes/tripal_network.viewer');
+      $filter_form = drupal_get_form('tripal_network_viewer_form', $network_id, $node_id);
+      $element[0] = array(
+        '#type' => 'markup',
+        '#markup' => drupal_render($filter_form),
+      );
+    }
   }
 }

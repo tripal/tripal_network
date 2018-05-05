@@ -249,13 +249,14 @@
     var network_id = filters['network_id'];
     var module_id = filters['module_id'];
     var trait_id = filters['trait_id'];
+    var node_id = filters['node_id'];
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
       url: baseurl + '/networks/retrieve',
       type: "GET",
       dataType: 'json',
-      data: {'network_id': network_id, 'module_id': module_id, 'trait_id': trait_id },
+      data: {'network_id': network_id, 'module_id': module_id, 'trait_id': trait_id, 'node_id': node_id },
       success: function(json) {
         Network_Data = json;
         loadNetwork(Network_Data);

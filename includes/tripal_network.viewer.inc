@@ -10,7 +10,7 @@ function tripal_network_viewer_page() {
 /**
  *
  */
-function tripal_network_viewer_form($form, &$form_state, $network_id = NULL) {
+function tripal_network_viewer_form($form, &$form_state, $network_id = NULL, $node_id = NULL) {
  
   $module_id = 0;
   if (array_key_exists('values', $form_state)) { 
@@ -18,15 +18,28 @@ function tripal_network_viewer_form($form, &$form_state, $network_id = NULL) {
   }
 
   // Get the list of modules
-  $sql = "
-    SELECT * FROM {networkmod} NM 
-    WHERE NM.network_id = :network_id
-    ORDER BY NM.name
-  ";
+  $sql = '';
+  $args = [':network_id' => $network_id];
+  if ($node_id) {
+    $sql = "
+      SELECT * FROM {networkmod} NM 
+        INNER JOIN {networkmod_node} NMN on NM.networkmod_id = NMN.networkmod_id
+      WHERE NM.network_id = :network_id AND NMN.node = :node_id
+      ORDER BY NM.name
+    ";
+    $args[':node_id'] = $node_id;
+  }
+  else {
+    $sql = "
+      SELECT * FROM {networkmod} NM 
+      WHERE NM.network_id = :network_id
+      ORDER BY NM.name
+    ";
+  }
   $modules = [
     0 => '-- Select --',
   ];
-  $results = chado_query($sql, [':network_id' => $network_id]); 
+  $results = chado_query($sql, $args);
   while ($record = $results->fetchObject()) {
     $modules[$record->networkmod_id] = $record->name;
   }
@@ -34,6 +47,10 @@ function tripal_network_viewer_form($form, &$form_state, $network_id = NULL) {
   $form['network_id'] = [
     '#type' => 'value', 
     '#value' => $network_id,
+  ];
+  $form['node_id'] = [
+    '#type' => 'value', 
+    '#value' => $node_id,
   ];
   $form['module_id'] = [
     '#type' => 'select',
@@ -101,12 +118,16 @@ function tripal_network_viewer_form($form, &$form_state, $network_id = NULL) {
  */
 function tripal_network_viewer_form_ajax_callback($form, $form_state) {
   $network_id = $form_state['values']['network_id'];
+  $node_id = $form_state['values']['node_id'];
   $module_id = $form_state['values']['module_id'];
   $trait_id = $form_state['values']['trait_id'];
 
   $data = [
     'network_id' => $network_id,
   ];
+  if ($node_id) {
+    $data['node_id'] = $node_id;
+  }
   if ($module_id) {
     $data['module_id'] = $module_id;
   }
@@ -475,6 +496,7 @@ function tripal_network_viewer_ajax_retrieve() {
   $network_id = $_GET['network_id'];
   $module_id = array_key_exists('module_id', $_GET) ? $_GET['module_id'] : '';
   $trait_id = array_key_exists('trait_id', $_GET) ? $_GET['trait_id'] : '';
+  $node_id = array_key_exists('node_id', $_GET) ? $_GET['node_id'] : '';
 
   // Make sure we have required filters.
   if (!$network_id) {
@@ -520,6 +542,11 @@ function tripal_network_viewer_ajax_retrieve() {
   if ($trait_id) {
     $from .= " INNER JOIN {networkmod_exp_traits} NMET ON NE.network_id = NMET.network_id ";
     $where .= "  AND NMET.trait_dbxref_id = :trait_id ";
+  }
+ 
+  if ($node_id) {
+    $where .= " AND (F1.feature_id = :node_id OR F2.feature_id = :node_id) ";
+    $params[':node_id'] = $node_id;
   }
 
   $sql = $select . $from . $where . $order . $limit;

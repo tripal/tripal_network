@@ -46,13 +46,29 @@ class sio__network_diagram extends ChadoField {
     $url_type = tripal_get_chado_semweb_term('db', 'url');
 
     // Set some defaults for the empty record.
-    $entity->{$field_name}['und'][0] = array(
-      'value' => [
-        $url_type => url('fix_me'),
-      ]
-    );
-    
+    $entity->{$field_name}['und'][0]['value'] = [];
+
+    $i = 0;
+    if ($field_table == 'network' ) {
+      $entity->{$field_name}['und'][$i]['value'][$url_type] = url('fix_me');
+      $entity->{$field_name}['und'][$i]['network_id'] = $record->network_id;
+    }
+    if ($field_table == 'feature') {
+      $sql = "
+         SELECT NM.network_id
+         FROM {networkmod_node} NMN
+           INNER JOIN {networkmod} NM ON NM.networkmod_id = NMN.networkmod_id
+         WHERE NMN.node = :node 
+      ";
+      $results = chado_query($sql, [':node' => $record->feature_id]);
+      while($result = $results->fetchObject()) {
+        $entity->{$field_name}['und'][$i]['value'][$url_type] = url('fix_me');
+        $entity->{$field_name}['und'][$i]['network_id'] = $result->network_id;
+        $i++;
+      }
+    }
   }
+
   /**
    * @see TripalField::elementInfo()
    */
