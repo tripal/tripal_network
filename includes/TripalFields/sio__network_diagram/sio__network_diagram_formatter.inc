@@ -12,6 +12,9 @@ class sio__network_diagram_formatter extends ChadoFieldFormatter {
    * @see TripalFieldFormatter::view()
    */
   public function view(&$element, $entity_type, $entity, $langcode, $items, $display) {
+    if (count($items) == 0) {
+      return;
+    }
   
     $field_table = $this->instance['settings']['chado_table'];
     $record = $entity->chado_record;
@@ -65,17 +68,19 @@ class sio__network_diagram_formatter extends ChadoFieldFormatter {
 
       // Call the JS function retrieveNetwork to initially load the network. This JS
       // call is made by Drupal's Behaviors after it responds to this GET.
-      $network_id = $items[0]['network_id'];
-      $node_id = $record->feature_id;
-      drupal_add_js("(function(\$) {\$.fn.retrieveNetwork({'network_id': $network_id, 'node_id': $node_id }); })(jQuery);", 'inline');
+      if (array_key_exists('network_id', $items[0])) {
+        $network_id = $items[0]['network_id'];
+        $node_id = $record->feature_id;
+        drupal_add_js("(function(\$) {\$.fn.retrieveNetwork({'network_id': $network_id, 'node_id': $node_id }); })(jQuery);", 'inline');
 
-      // Now add the form for filtering the network view.
-      module_load_include('inc', 'tripal_network', 'includes/tripal_network.viewer');
-      $filter_form = drupal_get_form('tripal_network_viewer_form', $network_id, $node_id);
-      $element[0] = array(
-        '#type' => 'markup',
-        '#markup' => drupal_render($filter_form),
-      );
+        // Now add the form for filtering the network view.
+        module_load_include('inc', 'tripal_network', 'includes/tripal_network.viewer');
+        $filter_form = drupal_get_form('tripal_network_viewer_form', $network_id, $node_id);
+        $element[0] = array(
+          '#type' => 'markup',
+          '#markup' => drupal_render($filter_form),
+        );
+      }
     }
   }
 }
