@@ -10,12 +10,12 @@ class local__network_module extends ChadoField {
 
   // Provide a list of instance specific settings. These can be access within
   // the instanceSettingsForm.  When the instanceSettingsForm is submitted
-  // then Drupal with automatically change these settings for the instnace.
+  // then Drupal will automatically change these settings for the instnace.
   // It is recommended to put settings at the instance level whenever possible.
   // If you override this variable in a child class be sure to replicate the
   // term_name, term_vocab, term_accession and term_fixed keys as these are
   // required for all TripalFields.
-  public static $default_instance_settings  = array(
+  public static $default_instance_settings  = [
     // The short name for the vocabulary (e.g. shcema, SO, GO, PATO, etc.).
     'term_vocabulary' => 'local',
     // The name of the term.
@@ -26,7 +26,7 @@ class local__network_module extends ChadoField {
     // type. This will create form elements when editing the field instance
     // to allow the site admin to change the term settings above.
     'term_fixed' => FALSE,
-  );
+  ];
 
   // The default widget for this field.
   public static $default_widget = 'local__network_module_widget';
@@ -40,7 +40,7 @@ class local__network_module extends ChadoField {
    */
   public function validate($entity_type, $entity, $langcode, $items, &$errors) {
 
-    
+
   }
 
   /**
@@ -59,12 +59,12 @@ class local__network_module extends ChadoField {
     // Get the terms for each of the keys for the 'values' property.
     $name_term = tripal_get_chado_semweb_term('networkmod', 'name');
     $type_term = tripal_get_chado_semweb_term('networkmod', 'type_id');
-            
+
     // Set some defaults for the empty record.
     $entity->{$field_name}['und'][0] = array(
       'value' => array(),
     );
-    
+
     // Find the modules for the given network
     $options = array(
       'order_by' => array('name' => 'ASC'),
@@ -77,10 +77,10 @@ class local__network_module extends ChadoField {
     else {
       $modules[] = $networkmod;
     }
-    
+
     // Iterate through the networks and create an entry for each one.
     if ($modules and count($modules) > 0) {
-      
+
       $i = 0;
       foreach ($modules as $module) {
         $entity->{$field_name}['und'][$i]['value'] = array(
@@ -101,7 +101,7 @@ class local__network_module extends ChadoField {
     // Get the terms for each of the keys for the 'values' property.
     $name_term = tripal_get_chado_semweb_term('networkmod', 'name');
     $type_term = tripal_get_chado_semweb_term('network', 'type_id');
-    
+
     return array(
       $field_term => array(
         'operations' => array('eq', 'contains', 'starts'),
@@ -140,13 +140,13 @@ class local__network_module extends ChadoField {
    * @see ChadoField::query()
    */
   public function query($query, $condition) {
-   
+
   }
 
   /**
    * @see ChadoField::queryOrder()
    */
   public function queryOrder($query, $order) {
-   
+
   }
 }

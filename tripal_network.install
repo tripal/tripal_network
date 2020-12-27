@@ -1,13 +1,13 @@
 <?php
 
 /**
- * 
+ *
  */
 function tripal_network_install() {
 
   // Add the new Chado tables.
   $custom_tables = array();
-  
+
   tripal_network_add_network_table($custom_tables);
   tripal_network_add_networkprop_table($custom_tables);
   tripal_network_add_networknode_table($custom_tables);
@@ -26,21 +26,24 @@ function tripal_network_install() {
   tripal_network_add_network_analysis_table($custom_tables);
   tripal_network_add_network_analysisprop_table($custom_tables);
   tripal_network_add_network_eimage_table($custom_tables);
-  
+
   foreach ($custom_tables as $name => $schema){
     chado_create_custom_table($name, $schema, TRUE, NULL, FALSE);
-  } 
-    
+  }
+
+
+  tripal_network_add_EDAM_obo();
+
   tripal_network_add_terms();
   tripal_network_setup_semweb();
   tripal_network_add_content_types();
-  
+
   //tripal_network_add_mviews();
 
 }
 
 /**
- * 
+ *
  */
 function tripal_network_add_terms() {
   tripal_insert_db(array(
@@ -50,30 +53,33 @@ function tripal_network_add_terms() {
     'urlprefix' => 'http://purl.obolibrary.org/obo/{db}_{accession}',
   ));
   tripal_insert_cv('NCIT','The NCIt OBO Edition project aims to increase integration of the NCIt with OBO Library ontologies. NCIt is a reference terminology that includes broad coverage of the cancer domain, including cancer related diseases, findings and abnormalities. NCIt OBO Edition releases should be considered experimental.');
-  
+
   tripal_insert_db(array(
-    'name' => 'MI',
-    'description' => 'Molecular interactions',
-    'url' => 'http://www.psidev.info/groups/molecular-interactions',
+    'name' => 'XCO',
+    'description' => 'Experimental condition ontology',
+    'url' => 'http://purl.obolibrary.org/obo/xco.owl',
     'urlprefix' => 'http://purl.obolibrary.org/obo/{db}_{accession}',
   ));
-  tripal_insert_cv('MI','A structured controlled vocabulary for the annotation of experiments concerned with protein-protein interactions.');
-  
-  
+  tripal_insert_cv('XCO','Conditions under which physiological and morphological measurements are made both in the clinic and in studies involving humans or model organisms.');
+
+
+  tripal_insert_db(array(
+    'name' => 'INO',
+    'description' => 'INO: Interaction Network Ontology',
+    'url' => 'https://github.com/INO-ontology/ino',
+    'urlprefix' => 'http://purl.obolibrary.org/obo/{db}_{accession}',
+  ));
+  tripal_insert_cv('INO','The Interaction Network Ontology (INO) is an ontology in the domain of interactions and interaction networks. INO represents general and species-neutral types of interactions and interaction networks, and their related elements and relations. INO is a community-driven ontology, aligns with BFO, and is developed by following the OBO Foundry principles.');
+
+
   $term = tripal_insert_cvterm(array(
     'id' => 'NCIT:C61377',
     'name' => 'Network',
     'cv_name' => 'NCIT',
     'definition' => 'An interconnected system of things or people.',
   ));
-  
-  $term = tripal_insert_cvterm(array(
-    'id' => 'SIO:000931',
-    'name' => 'network diagram',
-    'cv_name' => 'SIO',
-    'definition' => 'A network diagram consists of a set of vertices connected by edges.',
-  ));
-  
+
+  // Network Parts
   $term = tripal_insert_cvterm(array(
     'id' => 'NCIT:C75907',
     'name' => 'Graph Node',
@@ -87,77 +93,125 @@ function tripal_network_add_terms() {
     'definition' => 'A connection between nodes in a graph.',
   ));
   $term = tripal_insert_cvterm(array(
-    'id' => 'local:Network Module',
-    'name' => 'Network Module',
-    'cv_name' => 'local',
-    'definition' => 'Groups, clusters or communities of highly connected nodes within a network (or graph).',
+    'id' => 'NCIT:C43418',
+    'name' => 'Cluster',
+    'cv_name' => 'NCIT',
+    'definition' => 'A grouping of a number of similar things.',
   ));
-
-  // Analysis  Types
   $term = tripal_insert_cvterm(array(
     'id' => 'OBI:0200126',
     'name' => 'network graph construction',
     'cv_name' => 'obi',
-    'definition' => 'A network analysis in which an input data set describing objects and relationships between objects is transformed into an output representation of these objects as nodes and the relationships as edges of a network graph.',  
+    'definition' => 'A network analysis in which an input data set describing objects and relationships between objects is transformed into an output representation of these objects as nodes and the relationships as edges of a network graph.',
   ));
+
+  // Analysis  Types
   $term = tripal_insert_cvterm(array(
-    'id' => 'OBI:0200040',
-    'name' => 'modular decomposition',
-    'cv_name' => 'obi',
-    'definition' => 'Molecular decomposition is the partition of a network into distinct subgraphs for the purpose of identifying functional clusters. The network data is run through any of several existing algorithms designed to partition a network into distinct subgraphs for the purpose of isolating groups of functionally linked biological elements such as proteins.', 
-  ));
-  $term = tripal_insert_cvterm(array(
-    'id' => 'operation:3766',
-    'name' => 'Weighted correlation network analysis',
-    'cv_name' => 'EDAM',
-    'definition' => 'WGCNA, Weighted gene co-expression network analysis',
-  ));
-  
-  
-  // Network Types
-  $term = tripal_insert_cvterm(array(
-    'id' => 'MI:2231',
-    'name' => 'coexpression',
+    'id' => 'NCIT:C63918',
+    'name' => 'Cluster Analysis',
     'cv_name' => 'NCIT',
-    'definition' => 'This approach infers interacting pairs of proteins looking at expression data coming from transcript expression datasets. Co-expressed pairs of genes are ranked and predicted to be interacting proteins as well.',
+    'definition' => 'Methods for grouping objects into subsets such that those within each cluster are more closely related to one another than objects assigned to different clusters. [ NCI ]',
   ));
-  
-  $term = tripal_insert_cvterm(array(
-    'id' => 'NCIT:C18469',
-    'name' => 'Protein-Protein Interaction',
+
+  //
+  // Add terms for KINC GraphML properties.
+  //
+  $term = tripal_insert_cvterm([
+    'id' => 'SWO:0000425',
+    'name' => 'Similarity score',
+    'cv_name' => 'SWO',
+    'definition' => 'Similarity score',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C44185',
+    'name' => 'P-Value',
     'cv_name' => 'NCIT',
-    'definition' => 'Temporary, non-covalent binding between protein molecules. Protein-protein interactions occur as a result of intermolecular physical forces and spatial complementation between domains or motifs. This interaction can be either homotypic or heterotypic and effect protein structure, conformation, and function.',
-  ));
+    'definition' => 'A measure of the probability that a result happened by chance. The lower the p-value, the more likely it is that the result was caused by phenomenon of interest. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C85542',
+    'name' => 'R Squared',
+    'cv_name' => 'NCIT',
+    'definition' => 'The goodness of fit statistic for the terminal elimination phase. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'XCO:0000000',
+    'name' => 'experimental condition',
+    'cv_name' => 'XCO',
+    'definition' => 'A state of being, an external or environmental factor or a treatment observed or administered prior to or concurrent with an investigative procedure such as an assessment of a morphological or physiological state or property in a single individual or sample or in a group of individuals or samples, especially a state, factor or treatment which has the potential to influence the outcome of such an assessment. [ Multiple_Dictionaries:http://www.thefreedictionary.com/ http://www.ncbi.nlm.nih.gov/pubmed/22654893 ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C48904',
+    'name' => 'Rank',
+    'cv_name' => 'NCIT',
+    'definition' => 'A relative status as compared to others within a group. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:KINC_sample_string',
+    'name' => 'KINC Sample String',
+    'cv_name' => 'local',
+    'definition' => 'A sequence of digits representing the contribution that each sample has made to a KINC derived cluster that forms an edge in the network.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'INO:0000002',
+    'name' => 'interaction',
+    'cv_name' => 'INO',
+    'definition' => 'Interaction is a processual entity that has two or more participants (i.e., interactors) that have an effect upon one another.',
+  ]);
+
+  // Set default property terms
+  variable_set('tripal_network_graphml_mapper', [
+    'name' => 'schema:name',
+    'Similarity_Score' => 'SWO:0000425',
+    'Interaction' =>  'INO:0000002',
+    'Cluster_Index' => 'SKIP',
+    'Cluster_Size' => 'SKIP',
+    'Samples' => 'local:KINC_sample_string',
+    'Test_Name' => 'XCO:0000000',
+    'p_value' => 'NCIT:C44185',
+    'r_squared' => 'NCIT:C85542',
+    'rank' => 'NCIT:C48904'
+  ]);
+
 }
 
 /**
- * 
+ *
+ */
+function tripal_network_add_EDAM_obo() {
+  // Add the EDAM ontology
+  $obo_id = tripal_insert_obo('EDAM', 'http://edamontology.org/EDAM.obo');
+  drupal_set_message('NOTICE: Added the EDAM ontology. Please navigate to Tripal >> Data Loaders >> Chado Vocabularies >> OBO Vocabulary Loader and submit a job to import the EDAM vocabulary.');
+}
+
+/**
+ *
  */
 function tripal_network_setup_semweb() {
   // Add controlled vocabulary terms to the new tables.
   $identifier = tripal_get_cvterm(array('id' => 'data:0842'));
   tripal_associate_chado_semweb_term('network', 'uniquename', $identifier);
-  
+
   $name = tripal_get_cvterm(array('id' => 'schema:name'));
   tripal_associate_chado_semweb_term('network', 'name', $name);
   tripal_associate_chado_semweb_term('networkmod', 'name', $name);
-  
+
   $name = tripal_get_cvterm(array('id' => 'schema:name'));
   tripal_associate_chado_semweb_term('network', 'name', $name);
-  
+
   $organism = tripal_get_cvterm(array('id' => 'OBI:0100026'));
   tripal_associate_chado_semweb_term('network', 'organism_id', $organism);
-  
+
   $type = tripal_get_cvterm(array('id' => 'schema:additionalType'));
   tripal_associate_chado_semweb_term('network', 'type_id', $type);
   tripal_associate_chado_semweb_term('networkmod', 'type_id', $type);
-  
+
   $network = tripal_get_cvterm(array('id' => 'NCIT:C61377'));
   tripal_associate_chado_semweb_term('networkmod', 'network_id', $network);
-  
+
 }
 /**
- * 
+ *
  * @throws Exception
  */
 function tripal_network_add_content_types() {
@@ -184,10 +238,10 @@ function tripal_network_add_content_types() {
 }
 
 /**
- * 
+ *
  */
 function tripal_network_add_network_table(&$schema) {
-  
+
   $schema['network'] = array(
     'table' => 'network',
     'fields' => array(
@@ -265,7 +319,7 @@ function tripal_network_add_network_table(&$schema) {
  *
  */
 function tripal_network_add_networkprop_table(&$schema) {
-  
+
   $schema['networkprop'] = array(
     'table' => 'networkprop',
     'fields' => array(
@@ -332,7 +386,7 @@ function tripal_network_add_networkprop_table(&$schema) {
  *
  */
 function tripal_network_add_networknode_table(&$schema) {
-  
+
   $schema['networknode'] = array(
     'table' => 'networknode',
     'fields' => array(
@@ -528,7 +582,7 @@ function tripal_network_add_networkedgeprop_table(&$schema) {
  *
  */
 function tripal_network_add_networkmod_table(&$schema) {
-  
+
   $schema['networkmod'] = array(
     'table' => 'networkmod',
     'fields' => array(
@@ -589,7 +643,7 @@ function tripal_network_add_networkmod_table(&$schema) {
  *
  */
 function tripal_network_add_networkmodprop_table(&$schema) {
-    
+
   $schema['networkmodprop'] = array(
     'table' => 'networkmodprop',
     'fields' => array(
@@ -656,7 +710,7 @@ function tripal_network_add_networkmodprop_table(&$schema) {
  *
  */
 function tripal_network_add_network_node_table(&$schema) {
-    
+
   $schema['networkmod_node'] = array(
     'table' => 'networkmod_node',
     'fields' => array(
@@ -836,7 +890,7 @@ function tripal_network_add_networkmod_edge_table(&$schema) {
  *
  */
 function tripal_network_add_network_relationship_table(&$schema) {
-  
+
   $schema['network_relationship'] = array(
     'table' => 'network_relationship',
     'fields' => array(
@@ -913,7 +967,7 @@ function tripal_network_add_network_relationship_table(&$schema) {
  *
  */
 function tripal_network_add_network_cvterm_table(&$schema) {
-  
+
   $schema['networkmod_cvterm'] = array(
     'table' => 'networkmod_cvterm',
     'fields' => array(
@@ -989,7 +1043,7 @@ function tripal_network_add_network_cvterm_table(&$schema) {
       0 => 'networkmod_cvtermprop',
     ),
   );
-  
+
 }
 /**
  *
@@ -1056,13 +1110,13 @@ function tripal_network_add_network_cvtermprop_table(&$schema) {
       ),
     ),
     'referring_tables' => NULL,
-  );  
+  );
 }
 /**
  *
  */
 function tripal_network_add_network_analysis_table(&$schema) {
-  
+
   $schema['network_analysis'] = array(
     'table' => 'network_analysis',
     'fields' => array(
@@ -1242,7 +1296,7 @@ function tripal_network_add_networkmod_analysisprop_table(&$schema) {
       ),
     ),
     'referring_tables' => NULL,
-  ); 
+  );
 }
 /**
  *
@@ -1310,7 +1364,7 @@ function tripal_network_add_network_analysisprop_table(&$schema) {
     ),
     'referring_tables' => NULL,
   );
-  
+
 }
 /**
  *
@@ -1383,10 +1437,10 @@ function tripal_network_add_mviews() {
 }
 
 /**
- * 
+ *
  */
 function tripal_network_add_mview_networkmod_qtl() {
-  
+
   // this is the SQL used to populate the materialized view
   // it joins featuremap, featurepos, networkmod, phenotype, feature
   // featureloc, cvterm and dbxref and db tables.
@@ -1452,7 +1506,7 @@ function tripal_network_add_mview_networkmod_qtl() {
       trait_accession, trait_name, featureloc_id, landmark_feature_id, landmark,
       fmin, fmax, LG_feature_id, LG_name, start, stop
   ";
-  
+
   // the schema array for describing this view
   $schema = array(
     'table' => 'networkmod_qtl',
@@ -1623,18 +1677,18 @@ function tripal_network_add_mview_networkmod_qtl() {
       ),
     ),
   );
-  
+
   // add a comment to make sure this view makes sense to the site administator
   $comment = t('This view is used to easily find network modules that ' .
     'have genes that overlap with QTLs.');
-  
+
   // add the view
   tripal_add_mview('networkmod_qtl', 'tripal_network', NULL, NULL, NULL,
     $sql, NULL, $comment, $schema);
 }
 
 /**
- * 
+ *
  */
 function tripal_network_add_mview_networkmod_qtlcount() {
   $sql = "
@@ -1658,7 +1712,7 @@ function tripal_network_add_mview_networkmod_qtlcount() {
     WHERE num_qtls > 1
     ORDER BY trait_name ASC, num_qtls DESC
   ";
-  
+
   // the schema array for describing this view
   $schema = array(
     'table' => 'networkmod_qtlcount',
@@ -1763,12 +1817,12 @@ function tripal_network_add_mview_networkmod_qtlcount() {
       ),
     ),
   );
-  
+
   // add a comment to make sure this view makes sense to the site administator
   $comment = t('This view is used to easily find the number of QTLs in a set, or
     per trait, from the same experiment (map) that overlap with a module. The
     networkmod_qtl must first be populated before this one.');
-  
+
   tripal_add_mview('networkmod_qtlcount', 'tripal_network', NULL, NULL, NULL,
     $sql, NULL, $comment, $schema);
 }
@@ -1799,7 +1853,7 @@ function tripal_network_update_7100() {
     tripal_network_add_network_analysis_table($custom_tables);
     tripal_network_add_network_analysisprop_table($custom_tables);
     tripal_network_add_network_eimage_table($custom_tables);
-  
+
     foreach ($custom_tables as $name => $schema){
       chado_create_custom_table($name, $schema, TRUE, NULL, FALSE);
     }

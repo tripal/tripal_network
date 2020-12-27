@@ -20,44 +20,7 @@ require_once "includes/tripal_network.fields.inc";
  * @ingroup tripal
  */
 function tripal_network_permission() {
-  return array(
-    'install chado' => array(
-      'title' => t('Install Chado'),
-      'description' => t('Allow the user to install or upgrade a Chado database in the existing Drupal database.')
-    ),
-    'view chado_ids' => array(
-      'title' => t('View Internal IDs'),
-      'description' => t('On content pages Tripal will typically provide
-          a table of information pulled from the Chado database but the
-          primary key IDs for that data is typically not shown.  The
-          default Tripal templates can show the primary key ID inside of a
-          blue shaded table row if this permission is enabled. This can
-          be useful for site developers who might want these IDs when working
-          with the underlying database.'),
-      'restrict access' => TRUE,
-    ),
-    'administer chado mviews' => array(
-      'title' => t('Administer Chado Materialized Views'),
-      'description' => t('Allows the user to create, edit and populate materialized views in the Chado databse.'),
-    ),
-    'administer chado custom tables' => array(
-      'title' => t('Administer Chado Custom Tables'),
-      'description' => t('Allows the user to create, edit and delete custom tables in the Chado database.'),
-    ),
-    'administer db cross-references' => array(
-      'title' => t('Administer Chado Databases'),
-      'description' => t('Allows the user to create, edit and delete database records in the Chado database.')
-    ),
-    'administer controlled vocabularies' => array(
-      'title' => t('Administer Chado Controlled Vocabularies'),
-      'description' => t('Allows the user to create, edit and delete controlled vocabularies in the Chado database.')
-    ),
-    'administer chado semantic web' => array(
-      'title' => t('Administer Semantic Web and Chado Integration'),
-      'description' => t('Allows the user to assign controlled vocabulary terms to tables and table columns in Chado.')
-    ),
-    
-  );
+  return [];
 }
 
 /**
