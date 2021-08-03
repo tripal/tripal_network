@@ -140,6 +140,12 @@ class GraphMLImporter extends TripalImporter {
    */
   private $network_type_id = NULL;
 
+
+  /**
+   * Indicates if the node names match on feature.name or feature.uniquename
+   */
+  private $match_type = '';
+
   /**
    * An associative array to hold attribute keys from the GraphML header
    * section.
@@ -157,6 +163,17 @@ class GraphMLImporter extends TripalImporter {
    */
   private $nodes = [];
 
+
+  /**
+   * Maps the node IDs from the graphML to the feature names
+   */
+  private $nodeMapping = [];
+
+  /**
+   * The CVTerm ID for the node type.
+   */
+  private $node_type_id = '';
+
   /**
    * Holds the list of edges that need to be added
    */
@@ -173,6 +190,13 @@ class GraphMLImporter extends TripalImporter {
    * set when the user is running the form for loading the file.
    */
   private $quick_scan = FALSE;
+
+
+  /**
+   * The list of controlled vocabulary terms used for the attributes
+   * in the GraphML file.
+   */
+  private $terms = [];
 
   /**
    * See TripalImporter::form)
@@ -319,6 +343,26 @@ class GraphMLImporter extends TripalImporter {
     $cv = chado_select_record('cv', ['cv_id'], $values);
     $cv_id = $cv[0]->cv_id;
 
+    $form['graph_name'] = [
+      '#title' => t('Graph Name'),
+      '#required' => FALSE,
+      '#type' => 'textfield',
+      '#description' => t("The human readable name for this graph. If no name is supplied
+         then the graph will be named according to a 'name' attribute for the graph
+         or the graph ID in the GraphML file."),
+    ];
+    $form['graph_uname'] = [
+      '#title' => t('Graph Unique Name'),
+      '#required' => FALSE,
+      '#type' => 'textfield',
+      '#maxlength' => 255,
+      '#description' => t("A unique name name for this graph. It need not be human
+         readable, but it must be unique from any other existing graph. If no
+         name is supplied then the graph will be named using the graph ID in
+         the GraphML file. Note: if the network already exists it will
+         be replaced."),
+    ];
+
     $form['node_type'] = [
       '#title' => t('Default Node Type'),
       '#required' => TRUE,
@@ -328,6 +372,20 @@ class GraphMLImporter extends TripalImporter {
         The value must be a term in the Sequence Ontololgy (SO). This is only used if the loader cannot
         determine the node type from the GraphML file itself"),
       '#autocomplete_path' => "admin/tripal/storage/chado/auto_name/cvterm/$cv_id",
+    ];
+    $form['match_type'] = [
+      '#type' => 'radios',
+      '#title' => 'Name Match Type',
+      '#required' => TRUE,
+      '#options' => [
+        t('Name'),
+        t('Unique name'),
+      ],
+      '#description' => t('Feature data is stored in Chado with both a human-readable
+        name and a unique name. If the nodes in the GraphML file are uniquely identified using
+        a human readable name then select the "Name" button. If the nodes are
+        uniquely identified using the feature unique names then select the "Unique name" button.'),
+      '#default_value' => 1,
     ];
 
     $form['next_step'] = array(
@@ -407,15 +465,11 @@ class GraphMLImporter extends TripalImporter {
     $default_terms = variable_get('tripal_network_graphml_mapper');
     $delta = 0;
     foreach ($this->attr_keys as $key => $attr_info) {
-      // Skip any properties that are IDs.
-      if ($attr_info['name'] == 'id' or $key == 'id') {
-        continue;
-      }
 
       // Set a reasonable default of the term mapping.
-      $default_term = tripal_get_term_lookup_form_result($form, $form_state,'',$delta);
-      if (!$default_term and array_key_exists($attr_info['name'], $default_terms)) {
-        $term = $default_terms[$attr_info['name']];
+      $default_term = tripal_get_term_lookup_form_result($form, $form_state,'', $delta);
+      if (!$default_term and array_key_exists($key, $default_terms)) {
+        $term = $default_terms[$key];
         if (preg_match('/:/', $term)) {
           list($vocabulary, $accession) = explode(':', $term);
           $term = tripal_get_term_details($vocabulary, $accession);
@@ -425,7 +479,7 @@ class GraphMLImporter extends TripalImporter {
         }
       }
       tripal_get_term_lookup_form($form, $form_state, $default_term,
-          $attr_info['name'], '', FALSE,  '', $delta,
+          $key, '', FALSE,  '', $delta,
           'tripal_network_graphml_form_ajax_callback');
 
 
@@ -437,7 +491,7 @@ class GraphMLImporter extends TripalImporter {
       elseif (array_key_exists('skip' . $delta, $form_state['values'])) {
         $skip_property = $form_state['values']['skip' . $delta];
       }
-      elseif (array_key_exists($attr_info['name'], $default_terms) and $default_terms[$attr_info['name']] == 'SKIP') {
+      elseif (array_key_exists($key, $default_terms) and $default_terms[$key] == 'SKIP') {
         $skip_property = TRUE;
       }
       $form['term_match' . $delta]['skip' . $delta] = [
@@ -473,7 +527,6 @@ class GraphMLImporter extends TripalImporter {
       $form_state['rebuild'] = TRUE;
       $this->validateStep1($form, $form_state);
     }
-
     if ($next_step == 'step3') {
       $this->validateStep2($form, $form_state);
     }
@@ -489,7 +542,11 @@ class GraphMLImporter extends TripalImporter {
     $file_existing = NULL;
     $organism_id = $form_state['values']['organism_id'];
     $network_type = $form_state['values']['network_type'];
+    $analysis_id = $form_state['values']['analysis_id'];
     $node_type = $form_state['values']['node_type'];
+    $match_type = $form_state['values']['match_type'];
+    $graph_name = $form_state['values']['graph_name'];
+    $graph_uname = $form_state['values']['graph_uname'];
 
     // Get the form values for the file.
     $file_local = trim($form_state['values']['file_local']);
@@ -524,20 +581,48 @@ class GraphMLImporter extends TripalImporter {
     $form_state['storage']['file_upload'] = $file_upload;
     $form_state['storage']['file_upload_existing'] = $file_existing;
     $form_state['storage']['organism_id'] = $organism_id;
+    $form_state['storage']['analysis_id'] = $analysis_id;
     $form_state['storage']['network_type'] = $network_type;
     $form_state['storage']['node_type'] = $node_type;
+    $form_state['storage']['match_type'] = $match_type;
+    $form_state['storage']['graph_name'] = $graph_name;
+    $form_state['storage']['graph_uname'] = $graph_uname;
   }
 
   /**
    *
    */
   private function validateStep2($form, &$form_state) {
+    $this->extractGraphMLpertinents($form_state);
+    $delta = 0;
+    foreach ($this->attr_keys as $key => $attr_info) {
+      $selected_term = tripal_get_term_lookup_form_result($form, $form_state,'',$delta);
+      $cvterm_id = $selected_term[0]->cvterm_id;
+      $form_state['values']['graphml_key.' . $key . '.id'] = $cvterm_id;
+      $skip = $form_state['values']['skip' . $delta];
+      $form_state['values']['graphml_key.' . $key . '.skip'] = $skip;
+
+      # Remove unwanted values to keep the run arguments clean.
+      unset($form_state['values']['term_name'. $delta]);
+      unset($form_state['values']['select_button'. $delta]);
+      unset($form_state['values']['skip'. $delta]);
+      unset($form_state['values']['term-'. $cvterm_id . '-' . $delta]);
+
+      $delta++;
+    }
+    unset($form_state['values']['step3']);
+    unset($form_state['values']['next_step']);
+
     $form_state['values']['file_local'] = $form_state['storage']['file_local'];
     $form_state['values']['file_upload'] = $form_state['storage']['file_upload'];
     $form_state['values']['file_upload_existing'] = $form_state['storage']['file_upload_existing'];
     $form_state['values']['organism_id'] = $form_state['storage']['organism_id'];
+    $form_state['values']['analysis_id'] = $form_state['storage']['analysis_id'];
     $form_state['values']['network_type'] = $form_state['storage']['network_type'];
     $form_state['values']['node_type'] = $form_state['storage']['node_type'];
+    $form_state['values']['match_type'] = $form_state['storage']['match_type'];
+    $form_state['values']['graph_name'] = $form_state['storage']['graph_name'];
+    $form_state['values']['graph_uname'] = $form_state['storage']['graph_uname'];
   }
 
   /**
@@ -562,17 +647,71 @@ class GraphMLImporter extends TripalImporter {
   }
 
   /**
+   * Sets the terms array for the attributes terms.
+   */
+  private function setTerms(){
+    foreach ($this->arguments['run_args'] as $key => $value) {
+      $matches = [];
+      if (preg_match('/^graphml_key\.(.*)\.id$/', $key, $matches)) {
+        $options = [
+          'include_fk' => [
+            'cv_id' => TRUE,
+            'dbxref_id' => [
+              'db_id' => TRUE
+            ],
+          ],
+        ];
+        $term = chado_get_cvterm(['cvterm_id' => $value], $options);
+        $this->terms[strtolower($matches[1])] = $term;
+
+        // Store the  term with it's full accession so we can look
+        // it up either way.
+        $term_name = $term->dbxref_id->db_id->name . ':' . $term->dbxref_id->accession;
+        $this->terms[$term_name] = $term;
+      }
+    }
+  }
+
+  /**
+   * Swaps the keys of an array for  the CV terms.
+   */
+  private function swapTerms($item) {
+    $new_item = [];
+    foreach (array_keys($item) as $key) {
+      $term = $this->terms[$key];
+      if ($term) {
+        $new_key = $term->cv_id->name . ':' . $term->dbxref_id->accession;
+        $new_item[$new_key] = $item[$key];
+      }
+      else {
+        $new_item[$key] = $item[$key];
+      }
+    }
+    return $new_item;
+  }
+
+  /**
    * see TripalImporter::run()
    */
   public function run() {
     $arguments = $this->arguments['run_args'];
     $file_path = $this->getFilePath($arguments);
-    print_r($arguments);
 
     $this->graphML_file = $file_path;
     $this->organism_id = $arguments['organism_id'];
     $this->analysis_id = $arguments['analysis_id'];
     $this->network_type_id = $arguments['network_type'];
+
+    $type_term = chado_get_cvterm(['cv_id' => ['name' => "sequence"], 'name' => $arguments['node_type']]);
+    $this->node_type_id = $type_term->cvterm_id;
+
+    $this->match_type = 'name';
+    if ($arguments['match_type'] == 1) {
+      $this->match_type = 'uniquename';
+    }
+
+    // Set the CV terms used by attributes.
+    $this->setTerms();
 
     // Get the organism object.
     $this->organism = new ChadoRecord('organism');
@@ -586,29 +725,49 @@ class GraphMLImporter extends TripalImporter {
       // Create the cache file for storing parsed GFF entries.
       $this->openCacheFile();
 
-      $this->logMessage("Step  1 of x: Finding network size...                             ");
+      $this->logMessage("Step  1 of 10: Finding network size...                             ");
       $this->graphml = new XMLReader();
       $this->graphml->open($this->graphML_file);
       $this->parseNumElements();
       $this->graphml->close();
-      $this->logMessage("  Found !num_elements elements                                     ",
+      $this->logMessage("               Found !num_elements elements                        ",
           ['!num_elements' => number_format($this->num_elements)]);
 
       $this->graphml = new XMLReader();
       $this->graphml->open($this->graphML_file);
 
-      $this->logMessage("Step  2 of x: Caching GraphML file...                             ");
+      $this->logMessage("Step  2 of 10: Caching GraphML file...                             ");
       $this->parseGraphML();
       $this->graphml->close();
 
-      $this->logMessage("Step  3 of x: Insert network ...                                  ");
+      $this->logMessage("Step  3 of 10: Insert network ...                                  ");
       $this->insertNetwork();
 
-      $this->logMessage("Step  6 of 26: Find existing features...                          ");
+      $this->logMessage("Step  4 of 10: Find existing node features...                      ");
       $this->findFeatures();
 
-      $this->logMessage("Step  4 of x: Insert network nodes...                             ");
+      $this->logMessage("Step  5 of 10: Insert network nodes...                             ");
+      $this->logMessage("               Adding !num_nodes nodes                             ",
+          ['!num_nodes' => number_format(count($this->nodes))]);
       $this->insertNodes();
+
+      $this->logMessage("Step  6 of 10: Find network nodes IDs...                           ");
+      $this->findNodes();
+
+      $this->logMessage("Step  7 of 10: Insert node properties...                           ");
+      $this->insertNodeProps();
+
+      $this->logMessage("Step  8 of 10: Insert network edges...                             ");
+      $this->logMessage("               Adding !num_edges edges                             ",
+          ['!num_edges' => number_format(count($this->edges))]);
+      $this->insertEdges();
+
+      $this->logMessage("Step  9 of 10: Find edge IDs...                                    ");
+      $this->findEdges();
+
+      $this->logMessage("Step 10 of 10: Insert edge properties...                           ");
+      $this->insertEdgeProps();
+
     }
     // On exception, catch the error, clean up the cache file and rethrow
     catch (Exception $e) {
@@ -617,6 +776,175 @@ class GraphMLImporter extends TripalImporter {
       throw $e;
     }
     $this->closeCacheFile();
+  }
+
+  /**
+   * Check if the features exist in the database.
+   */
+  private function findFeatures() {
+    $batch_size = 1000;
+    $num_nodes = count(array_keys($this->nodes));
+    $num_batches = (int) ($num_nodes / $batch_size) + 1;
+
+    $this->setItemsHandled(0);
+    $this->setTotalItems($num_batches);
+
+    $name_column = 'name';
+    if ($this->match_type == 1) {
+      $name_column = 'uniquename';
+    }
+
+    $sql = "
+      SELECT uniquename, name, type_id, organism_id, feature_id
+      FROM {feature}
+      WHERE $name_column in (:names)";
+    $i = 0;
+    $total = 0;
+    $batch_num = 1;
+    $names = [];
+    foreach ($this->nodes as $uniquename => $info) {
+      $feature_id = $info['feature_id'];
+      $total++;
+
+      if (!$feature_id) {
+        $i++;
+        $names[] = $uniquename;
+      }
+
+      // If we've reached the size of the batch then let's do the select.
+      if ($i == $batch_size or $total == $num_nodes) {
+        if (count($names) > 0) {
+          $args = [':names' => $names];
+          $results = chado_query($sql, $args);
+          while ($f = $results->fetchObject()) {
+            if (array_key_exists($f->$name_column, $this->nodes)) {
+              $matched_findex = $this->nodes[$f->$name_column]['findex'];
+              $matched_node = $this->getCachedElement($matched_findex);
+              if ($matched_node['type_id'] == $f->type_id and $matched_node['organism_id'] == $f->organism_id) {
+                $this->nodes[$f->$name_column]['feature_id'] = $f->feature_id;
+              }
+            }
+          }
+        }
+        $this->setItemsHandled($batch_num);
+        $batch_num++;
+
+        // Now reset all of the varables for the next batch.
+        $i = 0;
+        $names = [];
+      }
+    }
+  }
+  /**
+   * Check if the features exist in the database.
+   */
+  private function findNodes() {
+    $batch_size = 1000;
+    $num_nodes = count(array_keys($this->nodes));
+    $num_batches = (int) ($num_nodes / $batch_size) + 1;
+
+    $this->setItemsHandled(0);
+    $this->setTotalItems($num_batches);
+
+    $name_column = 'name';
+    if ($this->match_type == 1) {
+      $name_column = 'uniquename';
+    }
+
+    $sql = "
+      SELECT NN.network_node_id, F.name, F.uniquename
+      FROM {network_node} NN
+        INNER JOIN {feature} F on F.feature_id = NN.feature_id
+      WHERE NN.network_id = :network_id and F.feature_id IN (:ids)";
+    $i = 0;
+    $total = 0;
+    $batch_num = 1;
+    $ids = [];
+    $network_id = $this->network->getID();
+    foreach ($this->nodes as $info) {
+      $feature_id = $info['feature_id'];
+      $total++;
+      $i++;
+      $ids[] = $feature_id;
+
+      // If we've reached the size of the batch then let's do the select.
+      if ($i == $batch_size or $total == $num_nodes) {
+        if (count($ids) > 0) {
+          $args = [':network_id' => $network_id, ':ids' => $ids];
+          $results = chado_query($sql, $args);
+          while ($n = $results->fetchObject()) {
+            if (array_key_exists($n->$name_column, $this->nodes)) {
+              $this->nodes[$n->$name_column]['network_node_id'] = $n->network_node_id;
+            }
+          }
+        }
+        $this->setItemsHandled($batch_num);
+        $batch_num++;
+
+        // Now reset all of the varables for the next batch.
+        $i = 0;
+        $ids = [];
+      }
+    }
+  }
+  /**
+   * Check if the features exist in the database.
+   */
+  private function findEdges() {
+    $batch_size = 1000;
+    $num_edges = count(array_keys($this->edges));
+    $num_batches = (int) ($num_edges / $batch_size) + 1;
+
+    $this->setItemsHandled(0);
+    $this->setTotalItems($num_batches);
+
+    $source_name_column = 'source_name';
+    $target_name_column = 'target_name';
+    if ($this->match_type == 1) {
+      $source_name_column = 'source_uniquename';
+      $target_name_column = 'target_uniquename';
+    }
+
+    $init_sql = "
+      SELECT
+        NE.network_edge_id,
+        FS.name as source_name, FS.uniquename as source_uniquename,
+        FT.name as target_name, FT.uniquename as target_uniquename
+      FROM {network_edge} NE
+        INNER JOIN {network_node} NNS ON NNS.network_node_id = NE.source_id
+        INNER JOIN {network_node} NNT ON NNT.network_node_id = NE.target_id
+        INNER JOIN {feature} FS on NNS.feature_id = FS.feature_id
+        INNER JOIN {feature} FT on NNT.feature_id = FT.feature_id
+      WHERE NE.network_id = :network_id
+      ORDER BY network_edge_id\n";
+    $network_id = $this->network->getID();
+
+    $edge_ids = array_keys($this->edges);
+
+    for ($i = 0; $i < $num_batches; $i++) {
+      $offset = $i * $batch_size;
+      $limit = min($batch_size, $num_edges - $offset);
+      $sql = $init_sql . " LIMIT $limit OFFSET $offset\n";
+      $args = [':network_id' => $network_id];
+      $results = chado_query($sql, $args);
+
+      // Iterate through the edges. They should be in the same order
+      // as the edge records that were inserted.
+      foreach (array_slice($edge_ids, $offset, $limit) as $edge_id) {
+        $e = $results->fetchObject();
+        $findex = $this->edges[$edge_id]['findex'];
+        $edge = $this->getCachedElement($findex);
+
+        // Do a simple check just to make sure the edge names match. There
+        // can be multiple edges between the same nodes
+        $edge_name = $e->$source_name_column . ' (-) ' . $e->$target_name_column;
+        if ($edge['schema:name'] != $edge_name) {
+          throw new Exception(t('Something went wrong and edges are out of order', []));
+        }
+        $this->edges[$edge_id]['network_edge_id'] = $e->network_edge_id;
+      }
+      $this->setItemsHandled($i);
+    }
   }
 
   /**
@@ -647,16 +975,6 @@ class GraphMLImporter extends TripalImporter {
   }
 
   /**
-   * A wrapper for getting a value within an element.
-   *
-   * Call this only after all attributes of the element have been retrieved.
-   */
-  private function getGraphMLValue() {
-    $this->graphml->read();
-    return $this->graphml->value;
-  }
-
-  /**
    * Begins parsing of the GraphML XML file.
    */
   private function parseGraphML() {
@@ -668,7 +986,8 @@ class GraphMLImporter extends TripalImporter {
         // If this is a 'key' tag then we are in the header section
         // that maps ids to attribute names.
         if (strcmp($this->graphml->name, 'key') == 0) {
-          $this->parseAttrKey();
+          $id = $this->graphml->getAttribute('id');
+          $this->attr_keys[$id] = $this->parseAttributes();
         }
         elseif (strcmp($this->graphml->name, 'graph') == 0) {
           $this->parseGraph();
@@ -682,15 +1001,25 @@ class GraphMLImporter extends TripalImporter {
   }
 
   /**
-   * Parses a single attribute key from the GraphML header section.
+   * Retrieves a list of attributes for the element
    */
-  private function parseAttrKey() {
-    $id = $this->graphml->getAttribute('id');
-    $this->attr_keys[$id] = [
-      'for' => $this->graphml->getAttribute('for'),
-      'name' => $this->graphml->getAttribute('attr.name'),
-      'type' => $this->graphml->getAttribute('attr.type'),
-    ];
+  private function parseAttributes(){
+
+    $attrs = [];
+    if ($this->graphml->attributeCount > 0) {
+      $this->graphml->moveToFirstAttribute();
+      do {
+        $attr_name = strtolower($this->graphml->name);
+        $attr_value = $this->graphml->value;
+        // Only add attributes that weren't requested to be skipped
+        if (array_key_exists('run_args', $this->arguments) and
+            $this->arguments['run_args']['graphml_key.' . $attr_name . '.skip'] == 1) {
+              continue;
+        }
+        $attrs[$attr_name] = $attr_value;
+      } while($this->graphml->moveToNextAttribute());
+    }
+    return $attrs;
   }
 
 
@@ -699,20 +1028,18 @@ class GraphMLImporter extends TripalImporter {
    */
   private function parseGraph() {
 
-    // First get the graph attributes and ase the id as the default network name.
-    $id = $this->graphml->getAttribute('id');
-    $edgedefault = $this->graphml->getAttribute('edgedefault');
-    if (!$edgedefault) {
-      $edgedefault = 'undirected';
+    $this->graph = $this->parseAttributes();
+
+    // Check that the defaul;t edge default directionaolity is set.
+    if (!array_key_exists('edgedefault', $this->graph)) {
+      $this->graph['edgedefault'] = 'undirected';
+    }
+    if ($this->graph['edgedefault'] != 'directed' and $this->graph['edgedefault'] != 'undirected') {
+      $this->logMessage("The edge type for this network should be 'directed' or 'undirected'. Setting as undirected. ",
+          [],TRIPAL_WARNING);
+      $this->graph['edgedefault'] = 'undirected';
     }
 
-    // Store the information about this graph.
-    $this->graph = [
-      'uniquename' => $id,
-      'name' => $id,
-      'organism_id' => $this->organism_id,
-      'type_id' => $this->network_type_id,
-    ];
 
     // If this is a quick scan then we don't need to parse the nodes and edges.
     if ($this->quick_scan) {
@@ -723,41 +1050,70 @@ class GraphMLImporter extends TripalImporter {
     while ($this->readGraphML()) {
       if ($this->graphml->nodeType == XMLReader::ELEMENT) {
 
-        if (strcmp($this->graphml->name, 'node') == 0) {
+        if (strcmp($this->graphml->name, 'data') == 0) {
+          $data = $this->parseData();
+          if ($data) {
+            $this->graph[$data['key']] = $data['value'];
+          }
+        }
+        elseif (strcmp($this->graphml->name, 'node') == 0) {
           $this->parseNode();
         }
         elseif (strcmp($this->graphml->name, 'edge') == 0) {
-          //$this->parseEdge();
+          $this->parseEdge();
         }
       }
     }
+
+    $this->graph = $this->swapTerms($this->graph);
   }
+
+  /**
+   * Parses data information the graph.
+   */
+  private function parseData(){
+    $key = $this->graphml->getAttribute('key');
+
+    // Only add attributes that weren't requested to be skipped
+    if (array_key_exists('run_args', $this->arguments) and
+        $this->arguments['run_args']['graphml_key.' . $key . '.skip'] == 1) {
+      return FALSE;
+    }
+    $this->graphml->read();
+    return ['key' => strtolower($key), 'value' => $this->graphml->value];
+  }
+
   /**
    * Parses information about a node in the graph.
    */
   private function parseNode() {
 
     // Create the node array for caching.
-    $node = [
-      'id' => $this->graphml->getAttribute('id'),
-    ];
+    $node = $this->parseAttributes();
 
     // Now iterate through data tags.
     while ($this->readGraphML()){
       if ($this->graphml->nodeType == XMLReader::ELEMENT) {
 
-         if (strcmp($this->graphml->name, 'data')==0) {
-           $key = $this->graphml->getAttribute('key');
-           $node[$key] = $this->getGraphMLValue();
+         if (strcmp($this->graphml->name, 'data') == 0) {
+           $data = $this->parseData();
+           if ($data) {
+             $node[$data['key']] = $data['value'];
+           }
          }
       }
       // If we're at the </node> element then we're done.
       elseif ($this->graphml->nodeType == XMLReader::END_ELEMENT) {
-         if (strcmp($this->graphml->name, 'node')==0) {
+         if (strcmp($this->graphml->name, 'node') == 0) {
            break;
          }
       }
     }
+    $node = $this->swapTerms($node);
+    $node['organism_id'] = $this->organism_id;
+    $node['type_id'] = $this->node_type_id;
+
+    $this->nodeMapping[$node['id']] = $node['schema:name'];
     $this->cacheNode($node);
   }
 
@@ -767,18 +1123,28 @@ class GraphMLImporter extends TripalImporter {
   private function parseEdge() {
 
     // First get the graph attributes.
-    $edge = [
-      'id' => 'e' . count(array_keys($this->edges)),
-      'source' => $this->graphml->getAttribute('source'),
-      'target' => $this->graphml->getAttribute('target'),
-    ];
+    $edge = $this->parseAttributes();
+
+    // If an ID is not present then assign one.
+    if (!array_key_exists('id', $edge)) {
+      $edge['id'] = 'e' . count(array_keys($this->edges));
+    }
+
+    // If a source and target attribute are not prseent then this
+    // file is corrupted
+    if (!array_key_exists('source', $edge) and !array_key_exists('target', $edge)) {
+      throw new Exception(t('The edge %id does not have both a "source" and "target" attribute.',
+          ['%id' => $edge['id']]));
+    }
 
     while ($this->readGraphML()){
       if ($this->graphml->nodeType == XMLReader::ELEMENT) {
 
         if (strcmp($this->graphml->name, 'data')==0) {
-          $key = $this->graphml->getAttribute('key');
-          $edge[$key] = $this->getGraphMLValue();
+          $data = $this->parseData();
+          if ($data) {
+            $edge[$data['key']] = $data['value'];
+          }
         }
       }
       // If we're at the </edge> element then we're done.
@@ -789,6 +1155,12 @@ class GraphMLImporter extends TripalImporter {
         }
       }
     }
+    $edge = $this->swapTerms($edge);
+    $source = $this->nodeMapping[$edge['source']];
+    $target = $this->nodeMapping[$edge['source']];
+    $edge['source_name'] = $source;
+    $edge['target_name'] = $target;
+    $edge['schema:name'] = $source . ' (-) ' . $target;
     $this->cacheEdge($edge);
   }
 
@@ -827,8 +1199,8 @@ class GraphMLImporter extends TripalImporter {
     // Write the serialied array for this feature to the cache file
     // and save the index into the member variable.
     fwrite($this->cache_file, serialize($node) . "\n");
-    $this->nodes[$node['id']]['findex'] = $findex;
-    $this->nodes[$node['id']]['node_id'] = NULL;
+    $this->nodes[$node['schema:name']]['findex'] = $findex;
+    $this->nodes[$node['schema:name']]['node_id'] = $node['id'];
   }
   /**
    * Caches the processed feature from a GFF3 file
@@ -862,72 +1234,77 @@ class GraphMLImporter extends TripalImporter {
   }
 
   /**
-   * Inserts the network record.
+   * Deletes all anciallary data about a feature so we can re-insert it.
    */
-  private function insertNetwork() {
-    $this->network = new ChadoRecord('network');
-    $this->network->setValues([
-      'uniquename' => $this->graph['uniquename'],
-      'name' => $this->graph['name'],
-      'organism_id' => $this->graph['organism_id'],
-      'type_id' => $this->graph['type_id'],
-    ]);
-    $this->network->insert();
+  private function deleteNetworkData($network) {
+
+    $sql1 = "DELETE from {network_edge} WHERE network_id = :network_id";
+    $sql2 = "DELETE from {network_node} WHERE network_id = :network_id";
+    $sql3 = "DELETE from {network_analysis} WHERE network_id = :network_id";
+    $sql4 = "DELETE from {networkprop} WHERE network_id = :network_id";
+    $args = [':network_id' => $network->getID()];
+    chado_query($sql1, $args);
+    chado_query($sql2, $args);
+    chado_query($sql3, $args);
+    chado_query($sql4, $args);
   }
 
   /**
-   * Check if the features exist in the database.
+   * Inserts the network record.
    */
-  private function findFeatures() {
-    $batch_size = 1000;
-    $num_nodes = count(array_keys($this->nodes));
-    $num_batches = (int) ($num_nodes / $batch_size) + 1;
+  private function insertNetwork() {
+    $uname = $this->arguments['run_args']['graph_uname'];
+    $name = $this->arguments['run_args']['graph_name'];
 
-    $this->setItemsHandled(0);
-    $this->setTotalItems($num_batches);
-
-    $sql = "SELECT uniquename, type_id, organism_id, feature_id FROM {feature} WHERE uniquename in (:uniquenames)";
-    $i = 0;
-    $total = 0;
-    $batch_num = 1;
-    $names = [];
-    foreach ($this->nodes as $id => $info) {
-      $total++;
-
-      if (!$feature_id) {
-        $i++;
-        $names[] = $uniquename;
+    if (!$uname) {
+      $uname = $this->graph['id'];
+    }
+    if (!$name) {
+      if (array_key_exists('schema:name', $this->graph)) {
+        $name = $this->graph['schema:name'];
       }
-
-      // If we've reached the size of the batch then let's do the select.
-      if ($i == $batch_size or $total == $num_features) {
-        if (count($names) > 0) {
-          $args = [':uniquenames' => $names];
-          $results = chado_query($sql, $args);
-          while ($f = $results->fetchObject()) {
-            if (array_key_exists($f->uniquename, $this->features)) {
-              $matched_findex = $this->features[$f->uniquename]['findex'];
-              $matched_feature = $this->getCachedFeature($matched_findex);
-              $matched_type_id = $this->feature_cvterm_lookup[$matched_feature['type']];
-              $matched_organism_id = $this->organism->getID();
-              if ($matched_feature['organism']) {
-                $matched_organism_id = $matched_feature['organism'];
-              }
-              if ($matched_type_id == $f->type_id and $matched_organism_id == $f->organism_id) {
-                $this->features[$f->uniquename]['feature_id'] = $f->feature_id;
-              }
-            }
-          }
-        }
-        $this->setItemsHandled($batch_num);
-        $batch_num++;
-
-        // Now reset all of the varables for the next batch.
-        $i = 0;
-        $names = [];
+      elseif (array_key_exists('name', $this->graph)) {
+        $name = $this->graph['name'];
+      }
+      else {
+        $name = $this->graph['id'];
       }
     }
+
+    // If the network already exists then udpate it. Otehrwise insert.
+    $this->network = new ChadoRecord('network');
+    $this->network->setValues(['uniquename' => $uname]);
+    if ($this->network->find()) {
+      $this->network->setValues([
+        'uniquename' => $uname,
+        'name' => $name,
+        'organism_id' => $this->organism_id,
+        'type_id' => $this->network_type_id,
+      ]);
+      $this->network->update();
+
+      // If this is an update then let's clear out the network data.
+      $this->deleteNetworkData($this->network);
+    }
+    else {
+      $this->network->setValues([
+        'uniquename' => $uname,
+        'name' => $name,
+        'organism_id' => $this->organism_id,
+        'type_id' => $this->network_type_id,
+      ]);
+      $this->network->insert();
+    }
+
+    // Add the network analysis link.
+    $network_analysis = new ChadoRecord('network_analysis');
+    $network_analysis->setValues([
+      'network_id' => $this->network->getID(),
+      'analysis_id' => $this->analysis_id,
+    ]);
+    $network_analysis->insert();
   }
+
 
   /**
    * Inserts the node records.
@@ -940,41 +1317,198 @@ class GraphMLImporter extends TripalImporter {
     $this->setItemsHandled(0);
     $this->setTotalItems($num_batches);
 
-    $init_sql = "
-      INSERT INTO {networknode}
-        (uniquename, name, type_id, organism_id, residues, md5checksum,
-         seqlen, is_analysis, is_obsolete)
-      VALUES\n";
+    $init_sql = "INSERT INTO {network_node} (network_id, feature_id) VALUES\n";
     $i = 0;
     $total = 0;
     $batch_num = 1;
     $sql = '';
     $args = [];
-    foreach ($this->features as $uniquename => $info) {
+    $network_id = $this->network->getID();
+    foreach ($this->nodes as $uniquename => $info) {
       $findex = $info['findex'];
       $feature_id = $info['feature_id'];
-      $feature = $this->getCachedFeature($findex);
+      $node = $this->getCachedElement($findex);
 
       $total++;
       $i++;
 
-      // Only do an insert if this feature doesn't already exist in the databse.
-      if (!$feature_id and !$feature['skipped']) {
-        $residues = '';
-        $type_id = $this->feature_cvterm_lookup[$feature['type']];
-        $sql .= "(:uniquename_$i, :name_$i, :type_id_$i, :organism_id_$i, :residues_$i, " .
-        " :md5checksum_$i, :seqlen_$i, FALSE, FALSE),\n";
-        $args[":uniquename_$i"] = $uniquename;
-        $args[":name_$i"] = $feature['name'];
-        $args[":type_id_$i"] = $type_id;
-        $args[":organism_id_$i"] = $feature['organism'] ? $feature['organism'] : $this->organism->getID();
-        $args[":residues_$i"] = $residues;
-        $args[":md5checksum_$i"] = $residues ? md5($residues) : '';
-        $args[":seqlen_$i"] = strlen($residues);
+      $sql .= "(:network_id_$i, :feature_id_$i),\n";
+      $args[":network_id_$i"] = $network_id;
+      $args[":feature_id_$i"] = $feature_id;
+
+      // If we've reached the size of the batch then let's do the insert.
+      if ($i == $batch_size or $total == $num_nodes) {
+        if (count($args) > 0) {
+          $sql = rtrim($sql, ",\n");
+          $sql = $init_sql . $sql;
+          chado_query($sql, $args);
+        }
+        $this->setItemsHandled($batch_num);
+        $batch_num++;
+
+        // Now reset all of the varables for the next batch.
+        $sql = '';
+        $i = 0;
+        $args = [];
+      }
+    }
+  }
+
+  /**
+   * Inserts the node records.
+   */
+  private function insertEdges() {
+    $batch_size = 1000;
+    $num_edges = count(array_keys($this->edges));
+    $num_batches = (int) ($num_edges / $batch_size) + 1;
+
+    $this->setItemsHandled(0);
+    $this->setTotalItems($num_batches);
+
+    $init_sql = "INSERT INTO {network_edge} (network_id, source_id, target_id) VALUES\n";
+    $i = 0;
+    $total = 0;
+    $batch_num = 1;
+    $sql = '';
+    $args = [];
+    $network_id = $this->network->getID();
+    foreach ($this->edges as $info) {
+      $findex = $info['findex'];
+      $edge = $this->getCachedElement($findex);
+      $source_id = $this->nodes[$edge['source_name']]['network_node_id'];
+      $target_id = $this->nodes[$edge['target_name']]['network_node_id'];
+
+      $total++;
+      $i++;
+
+      $sql .= "(:network_id_$i, :source_id_$i, :target_id_$i),\n";
+      $args[":network_id_$i"] = $network_id;
+      $args[":source_id_$i"] = $source_id;
+      $args[":target_id_$i"] = $target_id;
+
+      // If we've reached the size of the batch then let's do the insert.
+      if ($i == $batch_size or $total == $num_edges) {
+        if (count($args) > 0) {
+          $sql = rtrim($sql, ",\n");
+          $sql = $init_sql . $sql;
+          chado_query($sql, $args);
+        }
+        $this->setItemsHandled($batch_num);
+        $batch_num++;
+
+        // Now reset all of the varables for the next batch.
+        $sql = '';
+        $i = 0;
+        $args = [];
+      }
+    }
+  }
+
+  /**
+   *
+   */
+  private function insertNodeProps(){
+    $batch_size = 100;
+    $num_nodes = count(array_keys($this->nodes));
+    $num_batches = (int) ($num_nodes / $batch_size) + 1;
+
+    $this->setItemsHandled(0);
+    $this->setTotalItems($num_batches);
+
+    $init_sql = "INSERT INTO {network_nodeprop} (network_node_id, type_id, value, rank) VALUES\n";
+    $i = 0;
+    $j = 0;
+    $total = 0;
+    $batch_num = 1;
+    $sql = '';
+    $args = [];
+    foreach ($this->nodes as $info) {
+      $findex = $info['findex'];
+      $node = $this->getCachedElement($findex);
+      $total++;
+      $i++;
+      // Iterate through all of the properties of this feature.
+      foreach ($node as $key => $value) {
+        if (array_key_exists($key, $this->terms) and preg_match('/:/', $key)) {
+
+          // Donj't save the name as a property because the name is
+          // wikth the feature recrod.
+          if ($key == 'schema:name') {
+            continue;
+          }
+
+          // Build the SQL/args.
+          $term = $this->terms[$key];
+          $sql .= "(:network_node_id_$i, :type_id_$i, :value_$i, :rank_$i),\n";
+          $args[":network_node_id_$i"] = $info['network_node_id'];
+          $args[":type_id_$i"] = $term->cvterm_id;;
+          $args[":value_$i"] = $value;
+          $args[":rank_$i"] = 0;
+        }
       }
 
       // If we've reached the size of the batch then let's do the insert.
-      if ($i == $batch_size or $total == $num_features) {
+      if ($i == $batch_size or $total == $num_nodes) {
+        if (count($args) > 0) {
+          $sql = rtrim($sql, ",\n");
+          $sql = $init_sql . $sql;
+          chado_query($sql, $args);
+        }
+        $this->setItemsHandled($batch_num);
+        $batch_num++;
+
+        // Now reset all of the varables for the next batch.
+        $sql = '';
+        $i = 0;
+        $args = [];
+      }
+    }
+  }
+
+  /**
+   *
+   */
+  private function insertEdgeProps(){
+    $batch_size = 100;
+    $num_edges = count(array_keys($this->edges));
+    $num_batches = (int) ($num_edges / $batch_size) + 1;
+
+    $this->setItemsHandled(0);
+    $this->setTotalItems($num_batches);
+
+    $init_sql = "INSERT INTO {network_edgeprop} (network_edge_id, type_id, value, rank) VALUES\n";
+    $i = 0;
+    $j = 0;
+    $total = 0;
+    $batch_num = 1;
+    $sql = '';
+    $args = [];
+    foreach ($this->edges as $info) {
+      $findex = $info['findex'];
+      $edge = $this->getCachedElement($findex);
+      $total++;
+      $i++;
+
+      // Iterate through all of the properties of this feature.
+      foreach ($edge as $key => $value) {
+        if (array_key_exists($key, $this->terms) and preg_match('/:/', $key)) {
+          $j++;
+
+          // Build the SQL/args.
+          $term = $this->terms[$key];
+          if ($info['network_edge_id'] == 2) {
+            print_r([$key, $term->name]);
+          }
+          $sql .= "(:network_edge_id_$j, :type_id_$j, :value_$j, :rank_$j),\n";
+          $args[":network_edge_id_$j"] = $info['network_edge_id'];
+          $args[":type_id_$j"] = $term->cvterm_id;
+          $args[":value_$j"] = $value;
+          $args[":rank_$j"] = 0;
+        }
+      }
+
+      // If we've reached the size of the batch then let's do the insert.
+      if ($i == $batch_size or $total == $num_edges) {
         if (count($args) > 0) {
           $sql = rtrim($sql, ",\n");
           $sql = $init_sql . $sql;

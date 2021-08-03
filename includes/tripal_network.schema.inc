@@ -1,4 +1,4 @@
-<?php 
+<?php
 /**
  * Implements hook_chado_schema_v1_3_table()
  *
@@ -58,8 +58,7 @@ function tripal_network_chado_schema_v1_3_feature() {
 
   // add the 'network' table as a referring table to the organism table
   $description['referring_tables'] = array(
-    'networknode',
-    'networknode',
+    'network_node',
   );
 
   return $description;
@@ -81,8 +80,7 @@ function tripal_network_chado_schema_v1_2_feature() {
 
   // add the 'network' table as a referring table to the organism table
   $description['referring_tables'] = array(
-    'networknode',
-    'networkedge',
+    'network_node',
   );
 
   return $description;
@@ -141,13 +139,12 @@ function tripal_network_chado_schema_v1_2_analysis() {
  *
  * @ingroup tripal_schema_api
  */
-function tripal_network_chado_schema_v1_3_cvterm() {
+function tripal_network_chado_schema_v1_3_pub() {
   $description = array();
 
   // add the 'network' table as a referring table to the organism table
   $description['referring_tables'] = array(
-    'network',
-    'network_cvterm',
+    'network_pub',
   );
 
   return $description;
@@ -164,14 +161,58 @@ function tripal_network_chado_schema_v1_3_cvterm() {
  *
  * @ingroup tripal_schema_api
  */
-function tripal_network_chado_schema_v1_2_cvterm() {
+function tripal_network_chado_schema_v1_2_pub() {
   $description = array();
 
   // add the 'network' table as a referring table to the organism table
   $description['referring_tables'] = array(
-    'network',
-    'network_cvterm',
+    'network_pub',
   );
 
   return $description;
 }
+/**
+ * Implements hook_chado_schema_v1_3_table()
+ *
+ * Purpose: To add descriptions and foreign keys to default table description
+ * Note: This array will be merged with the array from all other implementations
+ *
+ * @return
+ *    Array describing the network table
+ *
+ * @ingroup tripal_schema_api
+ */
+// function tripal_network_chado_schema_v1_3_cvterm() {
+//   $description = array();
+
+//   // add the 'network' table as a referring table to the organism table
+//   $description['referring_tables'] = array(
+//     'network',
+//     'network_cvterm',
+//   );
+
+//   return $description;
+// }
+
+/**
+ * Implements hook_chado_schema_v1_2_table()
+ *
+ * Purpose: To add descriptions and foreign keys to default table description
+ * Note: This array will be merged with the array from all other implementations
+ *
+ * @return
+ *    Array describing the network table
+ *
+ * @ingroup tripal_schema_api
+ */
+// function tripal_network_chado_schema_v1_2_cvterm() {
+//   $description = array();
+
+//   // add the 'network' table as a referring table to the organism table
+//   $description['referring_tables'] = array(
+//     'network',
+//     'network_cvterm',
+//   );
+
+//   return $description;
+// }

@@ -3,7 +3,7 @@
 class sio__network_diagram_widget extends ChadoFieldWidget {
 
   // The default lable for this field.
-  public static $default_label = 'Network';
+  public static $default_label = 'Locally Connected Network';
 
   // The list of field types for which this formatter is appropriate.
   public static $field_types = array('sio__network_diagram');
@@ -16,7 +16,7 @@ class sio__network_diagram_widget extends ChadoFieldWidget {
 
     parent::form($widget, $form, $form_state, $langcode, $items, $delta, $element);
 
-    
+
   }
 
   /**
@@ -24,6 +24,6 @@ class sio__network_diagram_widget extends ChadoFieldWidget {
    */
   public function validate($element, $form, &$form_state, $langcode, $delta) {
 
-    
+
   }
 }

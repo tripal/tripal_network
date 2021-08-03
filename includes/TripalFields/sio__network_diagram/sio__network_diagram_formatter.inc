@@ -3,7 +3,7 @@
 class sio__network_diagram_formatter extends ChadoFieldFormatter {
 
   // The default lable for this field.
-  public static $default_label = 'Network Viewer';
+  public static $default_label = 'Locally Connected Network';
 
   // The list of field types for which this formatter is appropriate.
   public static $field_types = array('sio__network_diagram');
@@ -15,7 +15,7 @@ class sio__network_diagram_formatter extends ChadoFieldFormatter {
     if (count($items) == 0) {
       return;
     }
-  
+
     $field_table = $this->instance['settings']['chado_table'];
     $record = $entity->chado_record;
 
@@ -24,7 +24,7 @@ class sio__network_diagram_formatter extends ChadoFieldFormatter {
     $linkurius_path = url(libraries_get_path('linkurious.js'), array('absolute' => TRUE));
 
     drupal_add_css('file', $css_path . '/tripal_network_viewer.css');
-    drupal_add_css('file', '//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css'); 
+    drupal_add_css('file', '//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css');
     drupal_add_css('file', 'https://cdn.datatables.net/1.10.12/css/jquery.dataTables.min.css');
 
     drupal_add_js($linkurius_path . '/dist/sigma.min.js');
@@ -70,16 +70,16 @@ class sio__network_diagram_formatter extends ChadoFieldFormatter {
       // call is made by Drupal's Behaviors after it responds to this GET.
       if (array_key_exists('network_id', $items[0])) {
         $network_id = $items[0]['network_id'];
-        $node_id = $record->feature_id;
-        drupal_add_js("(function(\$) {\$.fn.retrieveNetwork({'network_id': $network_id, 'node_id': $node_id }); })(jQuery);", 'inline');
+        $feature_id = $record->feature_id;
+        drupal_add_js("(function(\$) {\$.fn.retrieveNetwork({'network_id': $network_id, 'node_id': $feature_id }); })(jQuery);", 'inline');
 
         // Now add the form for filtering the network view.
-        module_load_include('inc', 'tripal_network', 'includes/tripal_network.viewer');
-        $filter_form = drupal_get_form('tripal_network_viewer_form', $network_id, $node_id);
-        $element[0] = array(
-          '#type' => 'markup',
-          '#markup' => drupal_render($filter_form),
-        );
+         module_load_include('inc', 'tripal_network', 'includes/tripal_network.viewer');
+         $filter_form = drupal_get_form('tripal_network_viewer_form', $network_id, $feature_id);
+         $element[0] = array(
+           '#type' => 'markup',
+           '#markup' => drupal_render($filter_form),
+         );
       }
     }
   }

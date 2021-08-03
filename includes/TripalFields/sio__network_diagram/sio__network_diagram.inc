@@ -2,7 +2,7 @@
 class sio__network_diagram extends ChadoField {
 
   // The default lable for this field.
-  public static $default_label = 'Network Viewer';
+  public static $default_label = 'Local Network Viewer';
 
   // The default description for this field.
   public static $description = 'A network diagram consists of a set of vertices connected by edges.';
@@ -16,11 +16,11 @@ class sio__network_diagram extends ChadoField {
   // required for all TripalFields.
   public static $default_instance_settings  = array(
     // The short name for the vocabulary (e.g. shcema, SO, GO, PATO, etc.).
-    'term_vocabulary' => 'SIO',
+    'term_vocabulary' => 'NCIT',
     // The name of the term.
-    'term_name' => 'network diagram',
+    'term_name' => 'Network',
     // The unique ID (i.e. accession) of the term.
-    'term_accession' => '000931',
+    'term_accession' => 'C61377',
     // Set to TRUE if the site admin is allowed to change the term
     // type. This will create form elements when editing the field instance
     // to allow the site admin to change the term settings above.
@@ -55,12 +55,12 @@ class sio__network_diagram extends ChadoField {
     }
     if ($field_table == 'feature') {
       $sql = "
-         SELECT NM.network_id
-         FROM {networkmod_node} NMN
-           INNER JOIN {networkmod} NM ON NM.networkmod_id = NMN.networkmod_id
-         WHERE NMN.node = :node 
+         SELECT NN.network_id
+         FROM {network_node} NN
+           INNER JOIN {feature} F ON F.feature_id = NN.feature_id
+         WHERE F.feature_id = :feature_id
       ";
-      $results = chado_query($sql, [':node' => $record->feature_id]);
+      $results = chado_query($sql, [':feature_id' => $record->feature_id]);
       while($result = $results->fetchObject()) {
         $entity->{$field_name}['und'][$i]['value'][$url_type] = url('fix_me');
         $entity->{$field_name}['und'][$i]['network_id'] = $result->network_id;
@@ -79,7 +79,7 @@ class sio__network_diagram extends ChadoField {
     $name_term = tripal_get_chado_semweb_term('network', 'name');
     $organism_term = tripal_get_chado_semweb_term('network', 'organism_id');
     $type_term = tripal_get_chado_semweb_term('network', 'type_id');
-    
+
     return array(
       $field_term => array(
         'operations' => array('eq', 'contains', 'starts'),

@@ -1,12 +1,6 @@
 <?php
 
 
-// Support Neo4j if the library is installed.
-$library = libraries_detect('neo4j-php-client');
-if ($library and $library['installed']) {
-  require_once "api/tripal_network.neo4j.api.inc";
-}
-
 require_once "includes/tripal_network.schema.inc";
 require_once "includes/tripal_network.fields.inc";
 
@@ -38,26 +32,7 @@ function tripal_network_menu() {
    */
   $term = tripal_load_term_entity(array('vocabulary' => 'NCIT', 'accession' => 'C61377'));
   $bundle = tripal_load_bundle_entity(array('term_id' => $term->id));
-  $items['networks/search'] = array(
-    'title' => 'Network Search',
-    'description' => 'Search for network modules',
-    'page callback' => 'tripal_network_search_page',
-    'access arguments' => array('view ' . $bundle->name),
-    'file' => '/includes/tripal_network.search.inc',
-    'type' => MENU_CALLBACK,
-  );
-  // the AJAX callback for advanced search form networks
-  $items['networks/search/networks'] = array(
-    'page callback' => 'tripal_network_search_get_networks',
-    'access arguments' => array('view ' . $bundle->name),
-    'type' => MENU_CALLBACK
-  );
-  // the AJAX callback for advanced search form networks
-  $items['networks/search/traits'] = array(
-    'page callback' => 'tripal_network_search_get_traits',
-    'access arguments' => array('view ' . $bundle->name),
-    'type' => MENU_CALLBACK
-  );
+
 
   $items['networks/viewer'] = array(
     'page callback' => 'tripal_network_viewer_page',
@@ -268,14 +243,6 @@ function tripal_network_libraries_info() {
     ),
     'versions' => array(
       '1.5.1' => array(),
-    ),
-  );
-  $libraries['neo4j-php-client'] = array(
-    'name' => 'neo4j-php-client',
-    'vendor url' => 'https://github.com/graphaware/neo4j-php-client',
-    'download url' => 'https://github.com/graphaware/neo4j-php-client',
-    'files' => array(
-      'php' => array('galaxy.inc'),
     ),
   );
 
