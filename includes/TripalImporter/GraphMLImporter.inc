@@ -347,34 +347,12 @@ class GraphMLImporter extends TripalImporter {
       '#options' => $analyses,
     ];
 
-    $edam = new ChadoRecord('db');
-    $edam->setValues(['name' => 'EDAM_operation']);
-    $edam->find();
-
-    $opcv = new ChadoRecord('cv');
-    $opcv->setValues(['name' => 'EDAM']);
-    $opcv->find();
-
-    $regulatory = new ChadoRecord('cvterm');
-    $regulatory->setValues([
-      'name' => 'Gene regulatory network analysis',
-      'cv_id' => $opcv->getValue('cv_id'),
-    ]);
-    $regulatory->find();
-
-    $ppi = new ChadoRecord('cvterm');
-    $ppi->setValues([
-      'name' => 'Protein interaction network analysis',
-      'cv_id' => $opcv->getValue('cv_id'),
-    ]);
-    $ppi->find();
-
-    $coexp = new ChadoRecord('cvterm');
-    $coexp->setValues([
-      'name' => 'Weighted correlation network analysis',
-      'cv_id' => $opcv->getValue('cv_id'),
-    ]);
-    $coexp->find();
+    $wgcna = chado_get_cvterm(['id' => 'operation:3766']);
+    $ppi = chado_get_cvterm(['id' => 'operation:3094']);
+    $gcn = chado_get_cvterm(['id' => 'local:GCN']);
+    $csgcn = chado_get_cvterm(['id' => 'local:csGCN']);
+    $mcn = chado_get_cvterm(['id' => 'local:MCN']);
+    $grn = chado_get_cvterm(['id' => 'operation:2437']);
 
     $form['network_type'] = [
       '#title' => t('Network Analysis Type'),
@@ -383,9 +361,12 @@ class GraphMLImporter extends TripalImporter {
       '#required' => TRUE,
       '#options' => [
         '' => '',
-        $coexp->getID() => $coexp->getValue('name'),
-        $regulatory->getID() => $regulatory->getValue('name'),
-        $ppi->getID() => $ppi->getValue('name'),
+        $csgcn->cvterm_id => $csgcn->name . ' (csGCN)',
+        $gcn->cvterm_id => $gcn->name . ' (GCN)',
+        $grn->cvterm_id => $grn->name . ' (GRN)',
+        $mcn->cvterm_id => $mcn->name . ' (MCN)',
+        $ppi->cvterm_id => $ppi->name . ' (PPI)',
+        $wgcna->cvterm_id => $wgcna->name . ' (WGCNA)'
       ],
     ];
 

@@ -6,112 +6,103 @@
 function tripal_network_install() {
 
   // Add the new Chado tables.
-  $custom_tables = array();
+  $schema = array();
 
-  tripal_network_add_network_table($custom_tables);
-  tripal_network_add_networkprop_table($custom_tables);
-  tripal_network_add_networknode_table($custom_tables);
-  tripal_network_add_networkedge_table($custom_tables);
-  tripal_network_add_networkedgeprop_table($custom_tables);
-  tripal_network_add_networkmod_table($custom_tables);
-  tripal_network_add_networkmodprop_table($custom_tables);
-  tripal_network_add_networkmod_analysis_table($custom_tables);
-  tripal_network_add_networkmod_analysisprop_table($custom_tables);
-  tripal_network_add_networkmod_edge_table($custom_tables);
-  tripal_network_add_networkmod_traits_table($custom_tables);
-  tripal_network_add_network_node_table($custom_tables);
-  tripal_network_add_network_relationship_table($custom_tables);
-  tripal_network_add_network_cvterm_table($custom_tables);
-  tripal_network_add_network_cvtermprop_table($custom_tables);
-  tripal_network_add_network_analysis_table($custom_tables);
-  tripal_network_add_network_analysisprop_table($custom_tables);
-  tripal_network_add_network_eimage_table($custom_tables);
+  tripal_network_add_network_table($schema);
+  tripal_network_add_networkprop_table($schema);
 
-  foreach ($custom_tables as $name => $schema){
-    chado_create_custom_table($name, $schema, TRUE, NULL, FALSE);
+  tripal_network_add_network_node_table($schema);
+  tripal_network_add_network_nodeprop_table($schema);
+
+  tripal_network_add_network_edge_table($schema);
+  tripal_network_add_network_edgeprop_table($schema);
+
+  //tripal_network_add_network_relationship_table($custom_tables);
+  //tripal_network_add_network_cvterm_table($custom_tables);
+  //tripal_network_add_network_cvtermprop_table($custom_tables);
+  tripal_network_add_network_analysis_table($schema);
+  tripal_network_add_network_analysisprop_table($schema);
+
+
+  foreach ($schema as $table_name => $table_schema){
+    chado_create_custom_table($table_name, $table_schema, TRUE, NULL, FALSE);
   }
-
-
-  tripal_network_add_EDAM_obo();
 
   tripal_network_add_terms();
   tripal_network_setup_semweb();
   tripal_network_add_content_types();
-
-  //tripal_network_add_mviews();
-
 }
 
 /**
  *
  */
 function tripal_network_add_terms() {
-  tripal_insert_db(array(
+  tripal_insert_db([
     'name' => 'NCIT',
     'description' => 'NCI Thesaurus OBO Edition',
     'url' => 'https://github.com/NCI-Thesaurus/thesaurus-obo-edition',
     'urlprefix' => 'http://purl.obolibrary.org/obo/{db}_{accession}',
-  ));
+  ]);
   tripal_insert_cv('NCIT','The NCIt OBO Edition project aims to increase integration of the NCIt with OBO Library ontologies. NCIt is a reference terminology that includes broad coverage of the cancer domain, including cancer related diseases, findings and abnormalities. NCIt OBO Edition releases should be considered experimental.');
 
-  tripal_insert_db(array(
+  tripal_insert_db([
     'name' => 'XCO',
     'description' => 'Experimental condition ontology',
     'url' => 'http://purl.obolibrary.org/obo/xco.owl',
     'urlprefix' => 'http://purl.obolibrary.org/obo/{db}_{accession}',
-  ));
+  ]);
   tripal_insert_cv('XCO','Conditions under which physiological and morphological measurements are made both in the clinic and in studies involving humans or model organisms.');
 
 
-  tripal_insert_db(array(
+  tripal_insert_db([
     'name' => 'INO',
     'description' => 'INO: Interaction Network Ontology',
     'url' => 'https://github.com/INO-ontology/ino',
     'urlprefix' => 'http://purl.obolibrary.org/obo/{db}_{accession}',
-  ));
+  ]);
   tripal_insert_cv('INO','The Interaction Network Ontology (INO) is an ontology in the domain of interactions and interaction networks. INO represents general and species-neutral types of interactions and interaction networks, and their related elements and relations. INO is a community-driven ontology, aligns with BFO, and is developed by following the OBO Foundry principles.');
 
 
-  $term = tripal_insert_cvterm(array(
+  $term = tripal_insert_cvterm([
     'id' => 'NCIT:C61377',
     'name' => 'Network',
     'cv_name' => 'NCIT',
     'definition' => 'An interconnected system of things or people.',
-  ));
+  ]);
 
   // Network Parts
-  $term = tripal_insert_cvterm(array(
+  $term = tripal_insert_cvterm([
     'id' => 'NCIT:C75907',
     'name' => 'Graph Node',
     'cv_name' => 'NCIT',
     'definition' => 'One of the points that define a graph.',
-  ));
-  $term = tripal_insert_cvterm(array(
+  ]);
+  $term = tripal_insert_cvterm([
     'id' => 'NCIT:C75923',
     'name' => 'Graph Edge',
     'cv_name' => 'NCIT',
     'definition' => 'A connection between nodes in a graph.',
-  ));
-  $term = tripal_insert_cvterm(array(
+  ]);
+  $term = tripal_insert_cvterm([
     'id' => 'NCIT:C43418',
     'name' => 'Cluster',
     'cv_name' => 'NCIT',
     'definition' => 'A grouping of a number of similar things.',
-  ));
-  $term = tripal_insert_cvterm(array(
+  ]);
+  $term = tripal_insert_cvterm([
     'id' => 'OBI:0200126',
     'name' => 'network graph construction',
     'cv_name' => 'obi',
     'definition' => 'A network analysis in which an input data set describing objects and relationships between objects is transformed into an output representation of these objects as nodes and the relationships as edges of a network graph.',
-  ));
+  ]);
 
   // Analysis  Types
-  $term = tripal_insert_cvterm(array(
+  $term = tripal_insert_cvterm([
     'id' => 'NCIT:C63918',
     'name' => 'Cluster Analysis',
     'cv_name' => 'NCIT',
     'definition' => 'Methods for grouping objects into subsets such that those within each cluster are more closely related to one another than objects assigned to different clusters. [ NCI ]',
-  ));
+  ]);
 
   //
   // Add terms for KINC GraphML properties.
@@ -148,9 +139,63 @@ function tripal_network_add_terms() {
   ]);
   $term = tripal_insert_cvterm([
     'id' => 'local:KINC_sample_string',
+    'name' => 'KINC sample string',
+    'cv_name' => 'local',
+    'definition' => 'A sequence of digits representing the contribution that each sample has made to a KINC derived cluster that forms an edge in the network.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:KINC_cluster_index',
+    'name' => 'KINC cluster index',
+    'cv_name' => 'local',
+    'definition' => 'The index of the cluster identified by Gaussian Mixuture Models (GMM) when using the KINC software.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:KINC_cluster_size',
+    'name' => 'KINC cluster size',
+    'cv_name' => 'local',
+    'definition' => 'The size of the cluster identified by Gaussian Mixuture Models (GMM) when using the KINC software.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:KINC_sample_string',
     'name' => 'KINC Sample String',
     'cv_name' => 'local',
     'definition' => 'A sequence of digits representing the contribution that each sample has made to a KINC derived cluster that forms an edge in the network.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:KINC_pvalue',
+    'name' => 'KINC association p-value',
+    'cv_name' => 'local',
+    'definition' => 'The p-value obtained from the KINC software during association testing of the experimental context with the network edge.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:KINC_rsquared',
+    'name' => 'KINC association r-squared',
+    'cv_name' => 'local',
+    'definition' => 'The R squared value obtained from the KINC software from linear regression during the assocation testing of the experimental context with the network edge.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:KINC_WAnova_Max',
+    'name' => 'KINC Welch\'s one-way ANOVA maximum p-value',
+    'cv_name' => 'local',
+    'definition' => 'The maximum p-value obtained from the Welch\'s one-way ANOVA when applied to both genes in the correlated pair by the KINC software.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:KINC_WAnova_Min',
+    'name' => 'KINC Welch\'s one-way ANOVA minimum p-value',
+    'cv_name' => 'local',
+    'definition' => 'The minimum p-value obtained from the Welch\'s one-way ANOVA when applied to both genes in the correlated pair by the KINC software.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:KINC_Missing_Ttest',
+    'name' => 'KINC t-test of missigness p-value',
+    'cv_name' => 'local',
+    'definition' => 'The p-value obtained from the t-test for similar missing expression patterns when applied to both genes in the correlated pair by the KINC software.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:KINC_test_name',
+    'name' => 'KINC test name',
+    'cv_name' => 'local',
+    'definition' => 'The name of the variable (or category) used by the KINC software for testing if an edge is associated with the variable.',
   ]);
   $term = tripal_insert_cvterm([
     'id' => 'INO:0000002',
@@ -159,18 +204,66 @@ function tripal_network_add_terms() {
     'definition' => 'Interaction is a processual entity that has two or more participants (i.e., interactors) that have an effect upon one another.',
   ]);
 
+
+
+  // Network Analysis Types
+  $term = tripal_insert_cvterm([
+    'id' => 'operation:3766',
+    'name' => 'Weighted gene co-expression network analysis',
+    'cv_name' => 'EDAM',
+    'db_name' => 'operation',
+    'definition' => 'A data mining method typically used for studying biological networks based on pairwise correlations between variables.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'operation:3094',
+    'name' => 'Protein interaction network prediction',
+    'cv_name' => 'EDAM',
+    'db_name' => 'operation',
+    'definition' => 'Predict a network of protein interactions.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'operation:2437',
+    'name' => 'Gene regulatory network prediction',
+    'cv_name' => 'EDAM',
+    'db_name' => 'operation',
+    'definition' => 'Predict a network of gene regulation.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:csGCN',
+    'name' => 'Context-specific gene co-expression network',
+    'cv_name' => 'local',
+    'definition' => 'An approach for creating gene co-expression network using context.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:GCN',
+    'name' => 'Gene co-expression network.',
+    'cv_name' => 'local',
+    'definition' => 'Pairwise correlation of gene expression, thresholded, in network form.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:MCN',
+    'name' => 'Metabolite correlation network.',
+    'cv_name' => 'local',
+    'definition' => 'Pairwise correlation of metabolite abundance, thresholded, in network form.',
+  ]);
+
+
   // Set default property terms
   variable_set('tripal_network_graphml_mapper', [
     'name' => 'schema:name',
     'Similarity_Score' => 'SWO:0000425',
     'Interaction' =>  'INO:0000002',
-    'Cluster_Index' => 'SKIP',
-    'Cluster_Size' => 'SKIP',
+    'Cluster_Index' => 'local:KINC_cluster_index',
+    'Cluster_Size' => 'local:KINC_cluster_size',
     'Samples' => 'local:KINC_sample_string',
-    'Test_Name' => 'XCO:0000000',
-    'p_value' => 'NCIT:C44185',
-    'r_squared' => 'NCIT:C85542',
-    'rank' => 'NCIT:C48904'
+    'Test_Name' => 'local:KINC_test_name',
+    'p_value' => 'local:KINC_pvalue',
+    'r_squared' => 'local:KINC_rsquared',
+    'rank' => 'NCIT:C48904',
+    'WAnova_Max' => 'local:KINC_WAnova_Max',
+    'WAnova_Min'  => 'local:KINC_WAnova_Min',
+    'MissingTtest' => 'local:KINC_Missing_Ttest',
+
   ]);
 
 }
@@ -178,23 +271,11 @@ function tripal_network_add_terms() {
 /**
  *
  */
-function tripal_network_add_EDAM_obo() {
-  // Add the EDAM ontology
-  $obo_id = tripal_insert_obo('EDAM', 'http://edamontology.org/EDAM.obo');
-  drupal_set_message('NOTICE: Added the EDAM ontology. Please navigate to Tripal >> Data Loaders >> Chado Vocabularies >> OBO Vocabulary Loader and submit a job to import the EDAM vocabulary.');
-}
-
-/**
- *
- */
 function tripal_network_setup_semweb() {
+
   // Add controlled vocabulary terms to the new tables.
   $identifier = tripal_get_cvterm(array('id' => 'data:0842'));
   tripal_associate_chado_semweb_term('network', 'uniquename', $identifier);
-
-  $name = tripal_get_cvterm(array('id' => 'schema:name'));
-  tripal_associate_chado_semweb_term('network', 'name', $name);
-  tripal_associate_chado_semweb_term('networkmod', 'name', $name);
 
   $name = tripal_get_cvterm(array('id' => 'schema:name'));
   tripal_associate_chado_semweb_term('network', 'name', $name);
@@ -204,10 +285,7 @@ function tripal_network_setup_semweb() {
 
   $type = tripal_get_cvterm(array('id' => 'schema:additionalType'));
   tripal_associate_chado_semweb_term('network', 'type_id', $type);
-  tripal_associate_chado_semweb_term('networkmod', 'type_id', $type);
 
-  $network = tripal_get_cvterm(array('id' => 'NCIT:C61377'));
-  tripal_associate_chado_semweb_term('networkmod', 'network_id', $network);
 
 }
 /**
@@ -308,9 +386,8 @@ function tripal_network_add_network_table(&$schema) {
     ),
     'referring_tables' => array(
       'network_relationship',
-      'networkedge',
-      'networkmod',
-      'networknode',
+      'network_edge',
+      'network_node',
       'networkprop'
     ),
   );
@@ -385,390 +462,15 @@ function tripal_network_add_networkprop_table(&$schema) {
 /**
  *
  */
-function tripal_network_add_networknode_table(&$schema) {
-
-  $schema['networknode'] = array(
-    'table' => 'networknode',
-    'fields' => array(
-      'network_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE
-      ),
-      'node' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE
-      ),
-    ),
-    'indexes' => array(
-      'networkedge_idx1' => array(
-        0 => 'network_id',
-      ),
-      'networkedge_idx2' => array(
-        0 => 'node',
-      ),
-    ),
-    'unique keys' => array(
-      'network_c1' => array(
-        0 => 'network_id',
-        1 => 'node',
-      ),
-    ),
-    'foreign keys' => array(
-      'network' => array(
-        'table' => 'network',
-        'columns' => array(
-          'network_id' => 'network_id',
-        ),
-      ),
-      'feature' => array(
-        'table' => 'feature',
-        'columns' => array(
-          'node' => 'feature_id',
-        ),
-      ),
-    ),
-  );
-}
-/**
- *
- */
-function tripal_network_add_networkedge_table(&$schema) {
-  $schema['networkedge'] = array(
-    'table' => 'networkedge',
-    'fields' => array(
-      'networkedge_id' => array(
-        'size' => 'big',
-        'type' => 'serial',
-        'unsigned' => TRUE,
-        'not null' => TRUE
-      ),
-      'network_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE
-      ),
-      'node1' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE
-      ),
-      'node2' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE
-      ),
-      'weight' => array(
-        'type' => 'float',
-        'size' => 'big',
-      ),
-      'direction' => array(
-        'type' => 'int',
-        'size' => 'small',
-        'not null' => TRUE,
-        'default' => 0,
-        'description' => 'Set as -1 if direction is from node2 to node1.  Set as 1 if direction is from node1 to node2, Set as 0 if no direction (0 is default)'
-      ),
-    ),
-    'primary key' => array('networkedge_id'),
-    'indexes' => array(
-      'networkedge_idx1' => array(
-        0 => 'network_id',
-      ),
-      'networkedge_idx2' => array(
-        0 => 'node1',
-      ),
-      'networkedge_idx3' => array(
-        0 => 'node2',
-      ),
-      'networkedge_idx4' => array(
-        0 => 'node1',
-        1 => 'node2',
-      ),
-    ),
-    'unique keys' => array(
-      'network_c1' => array(
-        0 => 'network_id',
-        1 => 'node1',
-        2 => 'node2',
-        3 => 'direction',
-      ),
-    ),
-    'foreign keys' => array(
-      'network' => array(
-        'table' => 'network',
-        'columns' => array(
-          'network_id' => 'network_id',
-        ),
-      ),
-      'feature' => array(
-        'table' => 'feature',
-        'columns' => array(
-          'node1' => 'feature_id',
-          'node2' => 'feature_id',
-        ),
-      ),
-    ),
-  );
-}
-/**
- *
- */
-function tripal_network_add_networkedgeprop_table(&$schema) {
-  $schema['networkedgeprop'] = array(
-    'table' => 'networkedgeprop',
-    'fields' => array(
-      'networkedgeprop_id' => array(
-        'size' => 'big',
-        'type' => 'serial',
-        'not null' => TRUE,
-      ),
-      'networkedge_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'type_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'value' => array(
-        'type' => 'text',
-        'not null' => FALSE,
-      ),
-      'rank' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-    ),
-    'primary key' => array(
-      0 => 'networkedgeprop_id',
-    ),
-    'unique keys' => array(
-      'networkedgeprop_c1' => array(
-        0 => 'networkedge_id',
-        1 => 'type_id',
-        2 => 'rank',
-      ),
-    ),
-    'indexes' => array(
-      'networkprop_idx1' => array(
-        0 => 'networkedge_id',
-      ),
-      'networkprop_idx2' => array(
-        0 => 'type_id',
-      ),
-    ),
-    'foreign keys' => array(
-      'cvterm' => array(
-        'table' => 'cvterm',
-        'columns' => array(
-          'type_id' => 'cvterm_id',
-        ),
-      ),
-      'networkedge' => array(
-        'table' => 'networkedge',
-        'columns' => array(
-          'networkedge_id' => 'networkedge_id',
-        ),
-      ),
-    ),
-  );
-}
-/**
- *
- */
-function tripal_network_add_networkmod_table(&$schema) {
-
-  $schema['networkmod'] = array(
-    'table' => 'networkmod',
-    'fields' => array(
-      'networkmod_id' => array(
-        'size' => 'big',
-        'type' => 'serial',
-        'unsigned' => TRUE,
-        'not null' => TRUE
-      ),
-      'network_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE
-      ),
-      'name' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-      ),
-      'type_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-    ),
-    'primary key' => array('networkmod_id'),
-    'indexes' => array(
-      'networkmod_idx1' => array(
-        0 => 'network_id',
-      ),
-      'networkedge_idx2' => array(
-        0 => 'name',
-      ),
-    ),
-    'unique keys' => array(
-      'network_c1' => array(
-        0 => 'network_id',
-        1 => 'name',
-      ),
-    ),
-    'foreign keys' => array(
-      'network' => array(
-        'table' => 'network',
-        'columns' => array(
-          'network_id' => 'network_id',
-        ),
-      ),
-      'cvterm' => array(
-        'table' => 'cvterm',
-        'columns' => array(
-          'type_id' => 'cvterm_id',
-        ),
-      ),
-    ),
-  );
-}
-/**
- *
- */
-function tripal_network_add_networkmodprop_table(&$schema) {
-
-  $schema['networkmodprop'] = array(
-    'table' => 'networkmodprop',
-    'fields' => array(
-      'networkmodprop_id' => array(
-        'size' => 'big',
-        'type' => 'serial',
-        'not null' => TRUE,
-      ),
-      'networkmod_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'type_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'value' => array(
-        'type' => 'text',
-        'not null' => FALSE,
-      ),
-      'rank' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-    ),
-    'primary key' => array(
-      0 => 'networkmodprop_id',
-    ),
-    'unique keys' => array(
-      'networkmodprop_c1' => array(
-        0 => 'networkmod_id',
-        1 => 'type_id',
-        2 => 'rank',
-      ),
-    ),
-    'indexes' => array(
-      'networkprop_idx1' => array(
-        0 => 'networkmod_id',
-      ),
-      'networkprop_idx2' => array(
-        0 => 'type_id',
-      ),
-    ),
-    'foreign keys' => array(
-      'cvterm' => array(
-        'table' => 'cvterm',
-        'columns' => array(
-          'type_id' => 'cvterm_id',
-        ),
-      ),
-      'networkmod' => array(
-        'table' => 'networkmod',
-        'columns' => array(
-          'networkmod_id' => 'networkmod_id',
-        ),
-      ),
-    ),
-  );
-}
-/**
- *
- */
 function tripal_network_add_network_node_table(&$schema) {
 
-  $schema['networkmod_node'] = array(
-    'table' => 'networkmod_node',
+  $schema['network_node'] = array(
+    'table' => 'network_node',
     'fields' => array(
-      'networkmod_node_id' => array(
+      'network_node_id' => array(
         'size' => 'big',
         'type' => 'serial',
         'unsigned' => TRUE,
-        'not null' => TRUE
-      ),
-      'networkmod_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE
-      ),
-      'node' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE
-      ),
-    ),
-    'primary key' => array('networkmod_node_id'),
-    'indexes' => array(
-      'networkmodnode_idx1' => array(
-        0 => 'networkmod_id',
-      ),
-      'networkedge_idx2' => array(
-        0 => 'node',
-      ),
-    ),
-    'unique keys' => array(
-      'network_c1' => array(
-        0 => 'networkmod_id',
-        1 => 'node',
-      ),
-    ),
-    'foreign keys' => array(
-      'networkmod' => array(
-        'table' => 'networkmod',
-        'columns' => array(
-          'networkmod_id' => 'networkmod_id',
-        ),
-      ),
-      'feature' => array(
-        'table' => 'feature',
-        'columns' => array(
-          'node' => 'feature_id',
-        ),
-      ),
-    ),
-  );
-}
-function tripal_network_add_networkmod_traits_table(&$schema) {
-  $schema['networkmod_traits'] = array(
-    'table' => 'networkmod_traits',
-    'fields' => array(
-      'trait_dbxref_id' => array(
-        'size' => 'big',
-        'type' => 'int',
         'not null' => TRUE
       ),
       'network_id' => array(
@@ -776,37 +478,29 @@ function tripal_network_add_networkmod_traits_table(&$schema) {
         'type' => 'int',
         'not null' => TRUE
       ),
-      'organism_id' => array(
+      'feature_id' => array(
         'size' => 'big',
         'type' => 'int',
         'not null' => TRUE
-      ),
-      'trait_name' => array(
-        'type' => 'varchar',
-        'length' => 1024,
-        'not null' => TRUE
-      ),
-      'feature_type' => array(
-        'type' => 'varchar',
-        'length' => 1024,
-        'not null' => TRUE
-      ),
+      )
     ),
+    'primary key' => array('network_node_id'),
     'indexes' => array(
-      'networkmod_traits_indx1' => array(
-        0 => 'trait_dbxref_id',
-      ),
-      'networkmod_traits_indx2' => array(
+      'network_node_idx1' => array(
         0 => 'network_id',
       ),
-      'networkmod_traits_indx3' => array(
-        0 => 'organism_id',
+      'network_node_idx2' => array(
+        0 => 'feature_id',
       ),
-      'networkmod_traits_indx4' => array(
-        0 => 'trait_name',
+      'network_node_idx3' => array(
+        0 => 'network_id',
+        1 => 'feature_id',
       ),
-      'networkmod_traits_indx5' => array(
-        0 => 'feature_type',
+    ),
+    'unique keys' => array(
+      'network_node_c1' => array(
+        0 => 'network_id',
+        1 => 'feature_id',
       ),
     ),
     'foreign keys' => array(
@@ -816,76 +510,224 @@ function tripal_network_add_networkmod_traits_table(&$schema) {
           'network_id' => 'network_id',
         ),
       ),
-      'organism' => array(
-        'table' => 'organism_id',
+      'feature' => array(
+        'table' => 'feature',
         'columns' => array(
-          'organism_id' => 'organism_id',
+          'feature_id' => 'feature_id',
         ),
       ),
-      'dbxref' => array(
-        'table' => 'dbxref',
-        'columns' => array(
-          'trait_dbxref_id' => 'dbxref_id',
-        ),
-      ),
+    ),
+    'referring_tables' => array(
+      0 => 'network_nodeprop',
     ),
   );
 }
 /**
  *
  */
-function tripal_network_add_networkmod_edge_table(&$schema) {
-  $schema['networkmod_edge'] = array(
-    'table' => 'networkmod_edge',
+function tripal_network_add_network_nodeprop_table(&$schema) {
+  $schema['network_nodeprop'] = array(
+    'table' => 'network_nodeprop',
     'fields' => array(
-      'networkmod_edge_id' => array(
+      'network_nodeprop_id' => array(
         'size' => 'big',
         'type' => 'serial',
-        'unsigned' => TRUE,
-        'not null' => TRUE
+        'not null' => TRUE,
       ),
-      'networkmod_id' => array(
+      'network_node_id' => array(
         'size' => 'big',
         'type' => 'int',
-        'not null' => TRUE
+        'not null' => TRUE,
       ),
-      'networkedge_id' => array(
+      'type_id' => array(
         'size' => 'big',
         'type' => 'int',
-        'not null' => TRUE
+        'not null' => TRUE,
+      ),
+      'value' => array(
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+      'rank' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
       ),
     ),
-    'primary key' => array('networkmod_edge_id'),
-    'indexes' => array(
-      'networkmodedge_idx1' => array(
-        0 => 'networkmod_id',
-      ),
-      'networkedge_idx2' => array(
-        0 => 'networkedge_id',
-      ),
+    'primary key' => array(
+      0 => 'network_nodeprop_id',
     ),
     'unique keys' => array(
-      'network_c1' => array(
-        0 => 'networkmod_id',
-        1 => 'networkedge_id',
+      'network_nodeprop_c1' => array(
+        0 => 'network_node_id',
+        1 => 'type_id',
+        2 => 'rank',
+      ),
+    ),
+    'indexes' => array(
+      'network_nodeprop_idx1' => array(
+        0 => 'network_node_id',
+      ),
+      'network_nodeprop_idx2' => array(
+        0 => 'type_id',
       ),
     ),
     'foreign keys' => array(
-      'networkmod' => array(
-        'table' => 'networkmod',
+      'cvterm' => array(
+        'table' => 'cvterm',
         'columns' => array(
-          'networkmod_id' => 'networkmod_id',
+          'type_id' => 'cvterm_id',
         ),
       ),
-      'networkedge' => array(
-        'table' => 'networkedge',
+      'network_node' => array(
+        'table' => 'network_node',
         'columns' => array(
-          'networkedge_id' => 'networkedge_id',
+          'network_node_id' => 'network_node_id',
         ),
       ),
     ),
   );
 }
+
+/**
+ *
+ */
+function tripal_network_add_network_edge_table(&$schema) {
+  $schema['network_edge'] = array(
+    'table' => 'network_edge',
+    'fields' => array(
+      'network_edge_id' => array(
+        'size' => 'big',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'network_id' => array(
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE
+      ),
+      'source_id' => array(
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE
+      ),
+      'target_id' => array(
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE
+      ),
+    ),
+    'primary key' => array('network_edge_id'),
+    'indexes' => array(
+      'network_edge_idx1' => array(
+        0 => 'network_id',
+      ),
+      'network_edge_idx2' => array(
+        0 => 'source_id',
+      ),
+      'network_edge_idx3' => array(
+        0 => 'target_id',
+      ),
+      'network_edge_idx4' => array(
+        0 => 'source_id',
+        1 => 'target_id',
+      ),
+      'network_edge_idx5' => array(
+        0 => 'network_id',
+        1 => 'source_id',
+        2 => 'target_id',
+      ),
+    ),
+    'foreign keys' => array(
+      'network' => array(
+        'table' => 'network',
+        'columns' => array(
+          'network_id' => 'network_id',
+        ),
+      ),
+      'network_node' => array(
+        'table' => 'network_node',
+        'columns' => array(
+          'source_id' => 'network_node_id',
+          'target_id' => 'network_node_id',
+        ),
+      ),
+    ),
+    'referring_tables' => array(
+      0 => 'network_edgeprop',
+    ),
+  );
+}
+/**
+ *
+ */
+function tripal_network_add_network_edgeprop_table(&$schema) {
+  $schema['network_edgeprop'] = array(
+    'table' => 'network_edgeprop',
+    'fields' => array(
+      'network_edgeprop_id' => array(
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'network_edge_id' => array(
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'type_id' => array(
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'value' => array(
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+      'rank' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array(
+      0 => 'network_edgeprop_id',
+    ),
+    'unique keys' => array(
+      'network_edgeprop_c1' => array(
+        0 => 'network_edge_id',
+        1 => 'type_id',
+        2 => 'rank',
+      ),
+    ),
+    'indexes' => array(
+      'network_edgeprop_idx1' => array(
+        0 => 'network_edge_id',
+      ),
+      'network_edgeprop_idx2' => array(
+        0 => 'type_id',
+      ),
+    ),
+    'foreign keys' => array(
+      'cvterm' => array(
+        'table' => 'cvterm',
+        'columns' => array(
+          'type_id' => 'cvterm_id',
+        ),
+      ),
+      'network_edge' => array(
+        'table' => 'network_edge',
+        'columns' => array(
+          'network_edge_id' => 'network_edge_id',
+        ),
+      ),
+    ),
+  );
+}
+
+
+
 /**
  *
  */
@@ -968,15 +810,15 @@ function tripal_network_add_network_relationship_table(&$schema) {
  */
 function tripal_network_add_network_cvterm_table(&$schema) {
 
-  $schema['networkmod_cvterm'] = array(
-    'table' => 'networkmod_cvterm',
+  $schema['network_cvterm'] = array(
+    'table' => 'network_cvterm',
     'fields' => array(
-      'networkmod_cvterm_id' => array(
+      'network_cvterm_id' => array(
         'size' => 'big',
         'type' => 'serial',
         'not null' => TRUE,
       ),
-      'networkmod_id' => array(
+      'network_id' => array(
         'size' => 'big',
         'type' => 'int',
         'not null' => TRUE,
@@ -1004,20 +846,20 @@ function tripal_network_add_network_cvterm_table(&$schema) {
       ),
     ),
     'primary key' => array(
-      0 => 'networkmod_cvterm_id',
+      0 => 'network_cvterm_id',
     ),
     'unique keys' => array(
-      'networkmod_cvterm_c1' => array(
-        0 => 'networkmod_id',
+      'network_cvterm_c1' => array(
+        0 => 'network_id',
         1 => 'cvterm_id',
         2 => 'analysis_id',
         3 => 'rank',
       ),
     ),
     'indexes' => array(
-      'networkmod_cvterm_idx1' => array('networkmod_id'),
-      'networkmod_cvterm_idx2' => array('cvterm_id'),
-      'networkmod_cvterm_idx3' => array('analysis_id'),
+      'network_cvterm_idx1' => array('network_id'),
+      'network_cvterm_idx2' => array('cvterm_id'),
+      'network_cvterm_idx3' => array('analysis_id'),
     ),
     'foreign keys' => array(
       'cvterm' => array(
@@ -1035,12 +877,12 @@ function tripal_network_add_network_cvterm_table(&$schema) {
       'networkmod' => array(
         'table' => 'networkmod',
         'columns' => array(
-          'networkmod_id' => 'networkmod_id',
+          'network_id' => 'network_id',
         ),
       ),
     ),
     'referring_tables' => array(
-      0 => 'networkmod_cvtermprop',
+      0 => 'network_cvtermprop',
     ),
   );
 
@@ -1109,7 +951,6 @@ function tripal_network_add_network_cvtermprop_table(&$schema) {
         ),
       ),
     ),
-    'referring_tables' => NULL,
   );
 }
 /**
@@ -1172,132 +1013,7 @@ function tripal_network_add_network_analysis_table(&$schema) {
     ),
   );
 }
-/**
- *
- */
-function tripal_network_add_networkmod_analysis_table(&$schema) {
-  $schema['networkmod_analysis'] = array(
-    'table' => 'networkmod_analysis',
-    'fields' => array(
-      'networkmod_analysis_id' => array(
-        'size' => 'big',
-        'type' => 'serial',
-        'not null' => TRUE,
-      ),
-      'networkmod_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'analysis_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-    ),
-    'primary key' => array(
-      0 => 'networkmod_analysis_id',
-    ),
-    'unique keys' => array(
-      'networkmod_analysis_c1' => array(
-        0 => 'networkmod_id',
-        1 => 'analysis_id',
-      ),
-    ),
-    'indexes' => array(
-      'networkmod_analysis_idx1' => array(
-        0 => 'networkmod_id',
-      ),
-      'networkmod_analysis_idx2' => array(
-        0 => 'analysis_id',
-      ),
-    ),
-    'foreign keys' => array(
-      'analysis' => array(
-        'table' => 'analysis',
-        'columns' => array(
-          'analysis_id' => 'analysis_id',
-        ),
-      ),
-      'networkmod' => array(
-        'table' => 'networkmod',
-        'columns' => array(
-          'networkmod_id' => 'networkmod_id',
-        ),
-      ),
-    ),
-    'referring_tables' => array(
-      0 => 'networkmod_analysisprop',
-    ),
-  );
-}
-/**
- *
- */
-function tripal_network_add_networkmod_analysisprop_table(&$schema) {
-  $schema['networkmod_analysisprop'] = array(
-    'table' => 'networkmod_analysisprop',
-    'fields' => array(
-      'networkmod_analysisprop_id' => array(
-        'size' => 'big',
-        'type' => 'serial',
-        'not null' => TRUE,
-      ),
-      'networkmod_analysis_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'type_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'value' => array(
-        'type' => 'text',
-        'not null' => FALSE,
-      ),
-      'rank' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-    ),
-    'primary key' => array(
-      0 => 'networkmod_analysisprop_id',
-    ),
-    'unique keys' => array(
-      'networkmod_analysisprop_c1' => array(
-        0 => 'networkmod_analysis_id',
-        1 => 'type_id',
-        2 => 'rank',
-      ),
-    ),
-    'indexes' => array(
-      'networkmod_analysisprop_idx1' => array(
-        0 => 'networkmod_analysis_id',
-      ),
-      'networkmod_analysisprop_idx2' => array(
-        0 => 'type_id',
-      ),
-    ),
-    'foreign keys' => array(
-      'cvterm' => array(
-        'table' => 'cvterm',
-        'columns' => array(
-          'type_id' => 'cvterm_id',
-        ),
-      ),
-      'networkmod_analysis' => array(
-        'table' => 'networkmod_analysis',
-        'columns' => array(
-          'networkmod_analysis_id' => 'networkmod_analysis_id',
-        ),
-      ),
-    ),
-    'referring_tables' => NULL,
-  );
-}
+
 /**
  *
  */
@@ -1366,505 +1082,5 @@ function tripal_network_add_network_analysisprop_table(&$schema) {
   );
 
 }
-/**
- *
- */
-function tripal_network_add_network_eimage_table(&$schema) {
-  $schema['network_eimage'] = array(
-    'table' => 'network_eimage',
-    'fields' => array(
-      'network_eimage_id' => array(
-        'size' => 'big',
-        'type' => 'serial',
-        'not null' => TRUE,
-      ),
-      'network_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'eimage_id' => array(
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'rank' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-    ),
-    'primary key' => array(
-      0 => 'network_eimage_id',
-    ),
-    'unique keys' => array(
-      'networkprop_c1' => array(
-        0 => 'network_id',
-        1 => 'eimage_id',
-        2 => 'rank',
-      ),
-    ),
-    'indexes' => array(
-      'network_eimage_idx1' => array(
-        0 => 'network_id',
-      ),
-      'network_eimage_idx2' => array(
-        0 => 'eimage_id',
-      ),
-    ),
-    'foreign keys' => array(
-      'eimage' => array(
-        'table' => 'eimage',
-        'columns' => array(
-          'eimage_id' => 'eimage_id',
-        ),
-      ),
-      'network' => array(
-        'table' => 'network',
-        'columns' => array(
-          'network_id' => 'network_id',
-        ),
-      ),
-    ),
-  );
-}
-/**
- *
- */
-function tripal_network_add_mviews() {
-  tripal_network_add_mview_networkmod_qtl();
-  tripal_network_add_mview_networkmod_qtlcount();
-}
 
-/**
- *
- */
-function tripal_network_add_mview_networkmod_qtl() {
 
-  // this is the SQL used to populate the materialized view
-  // it joins featuremap, featurepos, networkmod, phenotype, feature
-  // featureloc, cvterm and dbxref and db tables.
-  $sql = "
-    SELECT network_id, networkmod_id, featuremap_id, map_name, qtl_feature_id,
-      qtl_name, qtl_type_id, trait_db_id, trait_db_name, trait_dbxref_id,
-      trait_accession, trait_name, featureloc_id, landmark_feature_id, landmark,
-      fmin, fmax, LG_feature_id, LG_name, cast(start as float8) as start,
-      cast(stop as float8) as stop, count(*) as num_features
-    FROM (
-      SELECT
-        NM.network_id,
-        NM.networkmod_id,
-        FM.featuremap_id,
-        FM.name             AS map_name,
-        F.feature_id        AS qtl_feature_id,
-        F.name              AS qtl_name,
-        CVT.cvterm_id       AS qtl_type_id,
-        DBphen.db_id        AS trait_db_id,
-        DBphen.name         AS trait_db_name,
-        DBXphen.dbxref_id   AS trait_dbxref_id,
-        DBXphen.accession   AS trait_accession,
-        CVTphen.name        AS trait_name,
-        FL.featureloc_id,
-        Fsrc.feature_id     AS landmark_feature_id,
-        Fsrc.name           AS landmark,
-        FL.fmin             AS fmin,
-        FL.fmax             AS fmax,
-        FLg.feature_id      AS LG_feature_id,
-        FLg.name            AS LG_name,
-        (SELECT FPP.value
-         FROM featureposprop FPP
-           INNER JOIN cvterm CVTprop ON CVTprop.cvterm_id = FPP.type_id
-         WHERE CVTprop.name = 'start' and FPP.featurepos_id = FP.featurepos_id) AS start,
-        (SELECT FPP.value
-         FROM featureposprop FPP
-           INNER JOIN cvterm CVTprop ON CVTprop.cvterm_id = FPP.type_id
-         WHERE CVTprop.name = 'stop' and FPP.featurepos_id = FP.featurepos_id) AS stop
-      FROM featurepos FP
-        INNER JOIN featuremap FM           ON FP.featuremap_id = FM.featuremap_id
-        INNER JOIN feature Flg             ON FP.map_feature_id = Flg.feature_id
-        INNER JOIN cvterm CVTlg            ON CVTlg.cvterm_id = Flg.type_id
-        INNER JOIN feature F               ON F.feature_id = FP.feature_id
-        INNER JOIN cvterm CVT              ON CVT.cvterm_id = F.type_id
-        INNER JOIN feature_relationship FR ON FR.object_id = F.feature_id
-        INNER JOIN cvterm CVTrel           ON CVTrel.cvterm_id = FR.type_id and CVTrel.name = 'contained_by'
-        INNER JOIN feature Fgene           ON Fgene.feature_id = FR.subject_id
-        INNER JOIN feature_phenotype FPhen ON Fphen.feature_id = F.feature_id
-        INNER JOIN phenotype P             ON P.phenotype_id = Fphen.phenotype_id
-        INNER JOIN networkmod_node NMN     ON NMN.node = Fgene.feature_id
-        INNER JOIN networkmod NM           ON NM.networkmod_id = NMN.networkmod_id
-        INNER JOIN cvterm CVTphen          ON CVTphen.cvterm_id = P.attr_id
-        INNER JOIN dbxref DBXphen          ON CVTphen.dbxref_id = DBXphen.dbxref_id
-        INNER JOIN db DBphen               ON DBphen.db_id = DBXphen.db_id
-        INNER JOIN featureloc FL           ON FL.feature_id = F.feature_id
-        INNER JOIN feature Fsrc            ON Fsrc.feature_id = FL.srcfeature_id
-        INNER JOIN cvterm CVTsrc           ON CVTsrc.cvterm_id = Fsrc.type_id  and
-          (CVTsrc.name = 'chromosome' OR CVTsrc.name = 'scaffold')
-      WHERE CVT.name = 'QTL'
-    ) AS t1
-    GROUP BY network_id, networkmod_id, featuremap_id, map_name, qtl_feature_id,
-      qtl_name, qtl_type_id, trait_db_id, trait_db_name, trait_dbxref_id,
-      trait_accession, trait_name, featureloc_id, landmark_feature_id, landmark,
-      fmin, fmax, LG_feature_id, LG_name, start, stop
-  ";
-
-  // the schema array for describing this view
-  $schema = array(
-    'table' => 'networkmod_qtl',
-    'fields' => array(
-      'network_id' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'networkmod_id' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'featuremap_id' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'map_name' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE
-      ),
-      'qtl_feature_id' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'qtl_name' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE
-      ),
-      'qtl_type_id'  => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'trait_db_id'  => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'trait_db_name' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE
-      ),
-      'trait_dbxref_id'  => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'trait_accession' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE
-      ),
-      'trait_name' => array(
-        'type' => 'varchar',
-        'length' => 1024,
-        'not null' => TRUE
-      ),
-      'featureloc_id' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'landmark_feature_id' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'landmark' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE
-      ),
-      'fmin'  => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'fmax'  => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'LG_feature_id'  => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'LG_name' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE
-      ),
-      'start'  => array(
-        'type' => 'float',
-        'not null' => TRUE,
-      ),
-      'stop'  => array(
-        'type' => 'float',
-        'not null' => TRUE,
-      ),
-      'num_features' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'networkmod_qtl_id' => array(
-        'type' => 'serial',
-        'not null' => TRUE,
-      ),
-    ),
-    'primary key' => array(
-      0 => 'networkmod_qtl_id',
-    ),
-    'indexes' => array(
-      'networkmod_qtl_indx0' => array('network_id'),
-      'networkmod_qtl_indx1' => array('networkmod_id'),
-      'networkmod_qtl_indx2' => array('featuremap_id'),
-      'networkmod_qtl_indx3' => array('qtl_type_id'),
-      'networkmod_qtl_indx4' => array('trait_db_id'),
-      'networkmod_qtl_indx5' => array('trait_dbxref_id'),
-      'networkmod_qtl_indx6' => array('featureloc_id'),
-      'networkmod_qtl_indx7' => array('landmark_feature_id'),
-      'networkmod_qtl_indx8' => array('LG_feature_id'),
-      'networkmod_qtl_indx9' => array('start'),
-      'networkmod_qtl_indx10'=> array('stop'),
-      'networkmod_qtl_indx11'=> array('num_features'),
-      'networkmod_qtl_indx12'=> array('trait_name'),
-      'networkmod_qtl_indx12'=> array('trait_accession'),
-    ),
-    'foreign keys' => array(
-      'network' => array(
-        'table' => 'network',
-        'columns' => array(
-          'network_id' => 'network_id',
-        ),
-      ),
-      'networkmod' => array(
-        'table' => 'networkmod',
-        'columns' => array(
-          'networkmod_id' => 'networkmod_id',
-        ),
-      ),
-      'featuremap' => array(
-        'table' => 'featuremap',
-        'columns' => array(
-          'featuremap_id' => 'featuremap_id',
-        ),
-      ),
-      'featureloc' => array(
-        'table' => 'featureloc',
-        'columns' => array(
-          'featureloc_id' => 'featureloc_id',
-        ),
-      ),
-      'feature' => array(
-        'table' => 'feature',
-        'columns' => array(
-          'qtl_feature_id' => 'feature_id',
-          'landmark_feature_id' => 'feature_id',
-          'LG_feature_id' => 'feature_id'
-        ),
-      ),
-      'dbxref' => array(
-        'table' => 'dbxref',
-        'columns' => array(
-          'trait_dbxref_id' => 'dbxref_id',
-        ),
-      ),
-      'cvterm' => array(
-        'table' => 'cvterm',
-        'columns' => array(
-          'qtl_type_id' => 'cvterm_id',
-        ),
-      ),
-    ),
-  );
-
-  // add a comment to make sure this view makes sense to the site administator
-  $comment = t('This view is used to easily find network modules that ' .
-    'have genes that overlap with QTLs.');
-
-  // add the view
-  tripal_add_mview('networkmod_qtl', 'tripal_network', NULL, NULL, NULL,
-    $sql, NULL, $comment, $schema);
-}
-
-/**
- *
- */
-function tripal_network_add_mview_networkmod_qtlcount() {
-  $sql = "
-    SELECT *
-    FROM (
-      SELECT network_id, networkmod_id, trait_db_id, trait_db_name,
-        trait_dbxref_id, trait_accession, trait_name,
-        featuremap_id, map_name,
-        count(*) as num_qtls, sum(num_features) as total_features
-      FROM (
-          SELECT DISTINCT NMQ.network_id, NMQ.networkmod_id, NMQ.trait_db_id,
-            NMQ.trait_db_name, NMQ.trait_dbxref_id, NMQ.trait_accession,
-            NMQ.trait_name, NMQ.featuremap_id, NMQ.qtl_name, NMQ.map_name,
-            NMQ.num_features, NMQ.landmark, NMQ.fmin, NMQ.fmax
-          FROM networkmod_qtl NMQ
-            INNER JOIN db DB on DB.db_id = NMQ.trait_db_id
-      ) AS T1
-      GROUP BY network_id, networkmod_id, trait_db_id, trait_db_name,
-        trait_dbxref_id, trait_accession, trait_name, featuremap_id, map_name
-    ) AS T2
-    WHERE num_qtls > 1
-    ORDER BY trait_name ASC, num_qtls DESC
-  ";
-
-  // the schema array for describing this view
-  $schema = array(
-    'table' => 'networkmod_qtlcount',
-    'fields' => array(
-      'network_id' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'networkmod_id' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'trait_db_id'  => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'trait_db_name' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE
-      ),
-      'trait_dbxref_id'  => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'trait_accession' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE
-      ),
-      'trait_name' => array(
-        'type' => 'varchar',
-        'length' => 1024,
-        'not null' => TRUE
-      ),
-      'featuremap_id' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'map_name' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE
-      ),
-      'num_qtls' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'total_features' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-      'networkmod_qtlcount_id' => array(
-        'type' => 'serial',
-        'not null' => TRUE,
-      ),
-    ),
-    'primary key' => array(
-      0 => 'networkmod_qtlcount_id',
-    ),
-    'indexes' => array(
-      'networkmod_qtlcount_indx0' => array('network_id'),
-      'networkmod_qtlcount_indx1' => array('networkmod_id'),
-      'networkmod_qtlcount_indx2' => array('featuremap_id'),
-      'networkmod_qtlcount_indx3' => array('trait_db_id'),
-      'networkmod_qtlcount_indx4' => array('trait_dbxref_id'),
-      'networkmod_qtlcount_indx5' => array('total_features'),
-      'networkmod_qtlcount_indx6' => array('num_qtls'),
-      'networkmod_qtlcount_indx7' => array('trait_name'),
-      'networkmod_qtlcount_indx8' => array('trait_accession'),
-    ),
-    'foreign keys' => array(
-      'network' => array(
-        'table' => 'network',
-        'columns' => array(
-          'network_id' => 'network_id',
-        ),
-      ),
-      'networkmod' => array(
-        'table' => 'networkmod',
-        'columns' => array(
-          'networkmod_id' => 'networkmod_id',
-        ),
-      ),
-      'featuremap' => array(
-        'table' => 'featuremap',
-        'columns' => array(
-          'featuremap_id' => 'featuremap_id',
-        ),
-      ),
-      'db' => array(
-        'table' => 'db',
-        'columns' => array(
-          'trait_db_id' => 'db_id',
-        ),
-      ),
-      'dbxref' => array(
-        'table' => 'dbxref',
-        'columns' => array(
-          'trait_dbxref_id' => 'dbxref_id',
-        ),
-      ),
-    ),
-  );
-
-  // add a comment to make sure this view makes sense to the site administator
-  $comment = t('This view is used to easily find the number of QTLs in a set, or
-    per trait, from the same experiment (map) that overlap with a module. The
-    networkmod_qtl must first be populated before this one.');
-
-  tripal_add_mview('networkmod_qtlcount', 'tripal_network', NULL, NULL, NULL,
-    $sql, NULL, $comment, $schema);
-}
-
-/**
- * Update for GeneNetEngine.
- */
-function tripal_network_update_7100() {
-  try {
-    // Add the new Chado tables.
-    $custom_tables = array();
-
-    tripal_network_add_network_table($custom_tables);
-    tripal_network_add_networkprop_table($custom_tables);
-    tripal_network_add_networknode_table($custom_tables);
-    tripal_network_add_networkedge_table($custom_tables);
-    tripal_network_add_networkedgeprop_table($custom_tables);
-    tripal_network_add_networkmod_table($custom_tables);
-    tripal_network_add_networkmodprop_table($custom_tables);
-    tripal_network_add_networkmod_analysis_table($custom_tables);
-    tripal_network_add_networkmod_analysisprop_table($custom_tables);
-    tripal_network_add_networkmod_edge_table($custom_tables);
-    tripal_network_add_networkmod_traits_table($custom_tables);
-    tripal_network_add_network_node_table($custom_tables);
-    tripal_network_add_network_relationship_table($custom_tables);
-    tripal_network_add_network_cvterm_table($custom_tables);
-    tripal_network_add_network_cvtermprop_table($custom_tables);
-    tripal_network_add_network_analysis_table($custom_tables);
-    tripal_network_add_network_analysisprop_table($custom_tables);
-    tripal_network_add_network_eimage_table($custom_tables);
-
-    foreach ($custom_tables as $name => $schema){
-      chado_create_custom_table($name, $schema, TRUE, NULL, FALSE);
-    }
-
-    tripal_network_add_terms();
-    tripal_network_setup_semweb();
-    tripal_network_add_content_types();
-
-  }
-  catch (\PDOException $e) {
-    $error = $e->getMessage();
-    throw new DrupalUpdateException('Could not fix phase on tripal_gffcds_temp table: '. $error);
-  }
-}
