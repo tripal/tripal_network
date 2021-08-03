@@ -197,9 +197,6 @@ class GraphMLImporter extends TripalImporter {
       case 'step2':
         $form = $this->formStep2($form, $form_state);
         break;
-      case 'step3':
-        $form = $this->formStep3($form, $form_state);
-        break;
     }
 
     return $form;
@@ -256,60 +253,6 @@ class GraphMLImporter extends TripalImporter {
       '#maxlength' => 5120,
       '#description' => t('If the file is local to the Tripal server please provide the full path here.'),
     ];
-
-    $form['next_step'] = array(
-      '#type' => 'submit',
-      '#name' => 'step2',
-      '#value' => 'Next Step',
-      '#weight' => 100,
-    );
-    return $form;
-  }
-
-  /**
-   * Retreive files.
-   *
-   * Because we override the TripalImporter file management we must get the
-   * file ourselves.
-   */
-  private function extractGraphMLpertinents($form_state) {
-
-    $file_local = NULL;
-    $file_upload = NULL;
-    $file_remote = NULL;
-
-    // Get the form values for the file.
-    $file_local = trim($form_state['storage']['file_local']);
-    $file_upload = trim($form_state['storage']['file_upload']);
-    $file_existing = trim($form_state['storage']['file_upload_existing']);
-
-    if ($file_existing) {
-      $fid = $file_existing;
-      $file = file_load($fid);
-      $this->graphML_file = drupal_realpath($file->uri);
-    }
-    elseif ($file_local) {
-      $this->graphML_file = $file_local;
-    }
-    elseif ($file_upload) {
-      $fid = $file_upload;
-      $file = file_load($fid);
-      $this->graphML_file = drupal_realpath($file->uri);
-    }
-
-    // Open the GraphML file for a quick look at the header keys.
-    $this->graphml = new XMLReader();
-    $this->graphml->open($this->graphML_file);
-    $this->quick_scan = TRUE;
-    $this->parseGraphML();
-    $this->graphml->close();
-
-  }
-
-  /**
-   *
-   */
-  private function formStep2($form, &$form_state) {
 
     // get the list of organisms
     $sql = "SELECT * FROM {organism} ORDER BY genus, species";
@@ -387,22 +330,78 @@ class GraphMLImporter extends TripalImporter {
       '#autocomplete_path' => "admin/tripal/storage/chado/auto_name/cvterm/$cv_id",
     ];
 
+    $form['next_step'] = array(
+      '#type' => 'submit',
+      '#name' => 'step2',
+      '#value' => 'Next Step',
+      '#weight' => 100,
+    );
+    return $form;
+  }
+
+  /**
+   * Retreive files.
+   *
+   * Because we override the TripalImporter file management we must get the
+   * file ourselves.
+   */
+  private function extractGraphMLpertinents($form_state) {
+
+    $file_local = NULL;
+    $file_upload = NULL;
+    $file_remote = NULL;
+
+    // Get the form values for the file.
+    $file_local = trim($form_state['storage']['file_local']);
+    $file_upload = trim($form_state['storage']['file_upload']);
+    $file_existing = trim($form_state['storage']['file_upload_existing']);
+
+    if ($file_existing) {
+      $fid = $file_existing;
+      $file = file_load($fid);
+      $this->graphML_file = drupal_realpath($file->uri);
+    }
+    elseif ($file_local) {
+      $this->graphML_file = $file_local;
+    }
+    elseif ($file_upload) {
+      $fid = $file_upload;
+      $file = file_load($fid);
+      $this->graphML_file = drupal_realpath($file->uri);
+    }
+
+    // Open the GraphML file for a quick look at the header keys.
+    $this->graphml = new XMLReader();
+    $this->graphml->open($this->graphML_file);
+    $this->quick_scan = TRUE;
+    $this->parseGraphML();
+    $this->graphml->close();
+
+  }
+
+  /**
+   *
+   */
+  private function formStep2($form, &$form_state) {
+
+
+
     $this->extractGraphMLpertinents($form_state);
     $form['gml_attributes'] = [
-      '#type' => 'fieldset',
+      '#type' => 'item',
       '#title' => 'Match Properties to Terms',
-      '#collapsible' => TRUE,
-      '#description' => t('Below is a list of properties that were found in the GraphML file. Tripal requires that
+      '#markup' => t('Below is a list of properties that were found in the GraphML file. Tripal requires that
          all properties are associated with controlled vocabulary terms. Please take a moment to map each of
          these properties to appropriate terms.  If an appropriate term is not present you can add one
          !here.  You can find appropriate terms at the !EBI. To follow best practice, only add a term to the
          "local" vocabulary if you cannot find one in an existing controlled vocabulary. If you leave
          the fields blank then the property will be automatically added to the "local" vocabulary.
          however, this is not best practice.',
-          [
-            '!here' => l('here', 'http://localhost/admin/tripal/loaders/chado_vocabs/chado_cv/cvterm/add', ['attributes' => ['target' => '_blank']]),
-            '!EBI' => l('EBI Ontology Lookup Service' ,'https://www.ebi.ac.uk/ols/index', ['attributes' => ['target' => '_blank']])
-          ]),
+         [
+           '!here' => l('here', 'http://localhost/admin/tripal/loaders/chado_vocabs/chado_cv/cvterm/add', ['attributes' => ['target' => '_blank']]),
+           '!EBI' => l('EBI Ontology Lookup Service' ,'https://www.ebi.ac.uk/ols/index', ['attributes' => ['target' => '_blank']])
+         ]),
+      '#weight' => -100,
     ];
 
     $default_terms = variable_get('tripal_network_graphml_mapper');
@@ -425,7 +424,7 @@ class GraphMLImporter extends TripalImporter {
           }
         }
       }
-      tripal_get_term_lookup_form($form['gml_attributes'], $form_state, $default_term,
+      tripal_get_term_lookup_form($form, $form_state, $default_term,
           $attr_info['name'], '', FALSE,  '', $delta,
           'tripal_network_graphml_form_ajax_callback');
 
@@ -441,7 +440,7 @@ class GraphMLImporter extends TripalImporter {
       elseif (array_key_exists($attr_info['name'], $default_terms) and $default_terms[$attr_info['name']] == 'SKIP') {
         $skip_property = TRUE;
       }
-      $form['gml_attributes']['term_match' . $delta]['skip' . $delta] = [
+      $form['term_match' . $delta]['skip' . $delta] = [
         '#type' => 'checkbox',
         '#title' => 'Skip this property during import',
         '#default_value' => $skip_property,
@@ -463,7 +462,6 @@ class GraphMLImporter extends TripalImporter {
    * See TripalImporter::formValidate()
    */
   public function formValidate($form, &$form_state) {
-    $form_state['rebuild'] = TRUE;
 
     // If the submit was clicked, iterate the stage.
     $next_step = 'step1';
@@ -472,6 +470,7 @@ class GraphMLImporter extends TripalImporter {
     }
 
     if ($next_step == 'step2') {
+      $form_state['rebuild'] = TRUE;
       $this->validateStep1($form, $form_state);
     }
 
@@ -488,6 +487,9 @@ class GraphMLImporter extends TripalImporter {
     $file_local = NULL;
     $file_upload = NULL;
     $file_existing = NULL;
+    $organism_id = $form_state['values']['organism_id'];
+    $network_type = $form_state['values']['network_type'];
+    $node_type = $form_state['values']['node_type'];
 
     // Get the form values for the file.
     $file_local = trim($form_state['values']['file_local']);
@@ -513,21 +515,49 @@ class GraphMLImporter extends TripalImporter {
       form_set_error('file_local', t("You must provide a file."));
     }
 
+    if (!$network_type) {
+      form_set_error('network_type', t("You must provide a network type."));
+    }
+
     // Put the values from this step of the form into storage.
     $form_state['storage']['file_local'] = $file_local;
     $form_state['storage']['file_upload'] = $file_upload;
     $form_state['storage']['file_upload_existing'] = $file_existing;
+    $form_state['storage']['organism_id'] = $organism_id;
+    $form_state['storage']['network_type'] = $network_type;
+    $form_state['storage']['node_type'] = $node_type;
   }
 
   /**
    *
    */
   private function validateStep2($form, &$form_state) {
-    $organism_id = $form_state['values']['organism_id'];
-    $network_type = $form_state['values']['network_type'];
+    $form_state['values']['file_local'] = $form_state['storage']['file_local'];
+    $form_state['values']['file_upload'] = $form_state['storage']['file_upload'];
+    $form_state['values']['file_upload_existing'] = $form_state['storage']['file_upload_existing'];
+    $form_state['values']['organism_id'] = $form_state['storage']['organism_id'];
+    $form_state['values']['network_type'] = $form_state['storage']['network_type'];
+    $form_state['values']['node_type'] = $form_state['storage']['node_type'];
+  }
 
-    if (!$network_type) {
-      form_set_error('network_type', t("You must provide a network type."));
+  /**
+   * Returns the path of the input file.
+   *
+   * @param $arguments
+   *   The importer input arguments.
+   */
+  private function getFilePath($arguments) {
+
+    if (array_key_exists('file_upload_existing', $arguments)) {
+      $file = file_load($arguments['file_upload_existing']);
+      return drupal_realpath($file->uri);
+    }
+    if (array_key_exists('file_upload', $arguments)) {
+      $file = file_load($arguments['file_upload']);
+      return  drupal_realpath($file->uri);
+    }
+    if (array_key_exists('file_local', $arguments)) {
+      return $arguments['file_local'];
     }
   }
 
@@ -536,7 +566,8 @@ class GraphMLImporter extends TripalImporter {
    */
   public function run() {
     $arguments = $this->arguments['run_args'];
-    $file_path = $this->arguments['files'][0]['file_path'];
+    $file_path = $this->getFilePath($arguments);
+    print_r($arguments);
 
     $this->graphML_file = $file_path;
     $this->organism_id = $arguments['organism_id'];
