@@ -1,66 +1,6 @@
 (function($) {
    
-   var layout = {
-        autosize: true,
-        height: 480,
-        scene: {
-            aspectratio: {
-                x: 1,
-                y: 1,
-                z: 1
-            },
-            camera: {
-                center: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                eye: {
-                    x: 1.25,
-                    y: 1.25,
-                    z: 1.25
-                },
-                up: {
-                    x: 0,
-                    y: 0,
-                    z: 1
-                }
-            },
-            xaxis: {
-                type: 'linear',
-                zeroline: false,
-                showbackground: false,
-                showline: false,
-                zeroline: false,
-                showgrid: false,
-                showticklabels: false,
-                title: '',
-                showspikes: false
-            },
-            yaxis: {
-                type: 'linear',
-                zeroline: false,
-                showline: false,
-                zeroline: false,
-                showgrid: false,
-                showticklabels: false,
-                title: '',
-                showspikes: false
-            },
-            zaxis: {
-                type: 'linear',
-                zeroline: false,
-                showline: false,
-                zeroline: false,
-                showgrid: false,
-                showticklabels: true,
-                showspikes: false
-            }
-        },
-        title: '3d point clustering',
-        width: 477
-    };
-   
+  
   // All code within this Drupal.behavior.tripal_network array is 
   // executed everytime a page load occurs or when an ajax call returns.
   Drupal.behaviors.tripal_network = {
@@ -86,27 +26,28 @@
    * Drupal can only call JQuery functions which is why we're adding this
    * function to the $.fn variable.
    * 
-   * @param filters
-   *   A JSON array of the filters to be used for retrieving the network
-   * @param viewer
-   *   The locater of the element that will display the network view.
+   * @param args
+   *   a JSON array with the following allowd keys:  network_id, feature_id,
+   *   and viewer. Where viewer_id is the name of the document element where
+   *   the viewer will be drawn.
    */
-  $.fn.retrieveNetwork = function(filters, viewer) {
+  $.fn.getNetworkNeighborhood = function(args) {
     // The data needed to retreive the network is provided to this function
     // by the tripal_network module of Drupal via the data function. 
-    var network_id = filters['network_id'];
-    var feature_id = filters['feature_id'];
+    var network_id = args['network_id'];
+    var feature_id = args['feature_id'];
+    var viewer_id = args['viewer_id'];
 
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
-      url: baseurl + '/networks/retrieve',
+      url: baseurl + '/networks/viewer/neighborhood/retrieve',
       type: "GET",
       dataType: 'json',
       data: {'network_id': network_id, 'feature_id': feature_id },
       success: function(json) {
-        data = json;
-        Plotly.newPlot(viewer, data, layout);
+        response = json;
+        Plotly.newPlot(viewer_id, response['data'], response['layout']);
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);

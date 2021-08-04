@@ -3,6 +3,8 @@
 
 require_once "includes/tripal_network.schema.inc";
 require_once "includes/tripal_network.fields.inc";
+require_once "api/tripal_network.api.inc";
+require_once "includes/tripal_network.viewer.inc";
 
 /**
  * Implements hook_permission().
@@ -42,8 +44,8 @@ function tripal_network_menu() {
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
   );
-  $items['networks/retrieve'] = array(
-    'page callback' => 'tripal_network_viewer_ajax_retrieve',
+  $items['networks/viewer/neighborhood/retrieve'] = array(
+    'page callback' => 'tripal_network_neighborhood_viewer_ajax_retrieve',
     'page arguments' => array(),
     'access arguments' => array('view ' . $bundle->name),
     'file' => '/includes/tripal_network.viewer.inc',

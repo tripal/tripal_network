@@ -253,6 +253,24 @@ function tripal_network_add_terms() {
     'cv_name' => 'obi',
     'definition' => 'A node quality calculation in which an input data set describing object nodes and relationship edges between object nodes is used to enumerate the number of unique relationships of an individual object node.',
   ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'SIO:000400',
+    'name' => 'x cartesian coordinate',
+    'cv_name' => 'SIO',
+    'definition' => 'An x cartesian coordinate is the coordinate of an object onto the x-axis of a cartesian coordinate system.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'SIO:000401',
+    'name' => 'y cartesian coordinate',
+    'cv_name' => 'SIO',
+    'definition' => 'An y cartesian coordinate is the coordinate of an object onto the x-axis of a cartesian coordinate system.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'SIO:000402',
+    'name' => 'z cartesian coordinate',
+    'cv_name' => 'SIO',
+    'definition' => 'An z cartesian coordinate is the coordinate of an object onto the x-axis of a cartesian coordinate system.',
+  ]);
 
 
   // Terms for fields
@@ -269,6 +287,9 @@ function tripal_network_add_terms() {
     'g_name' => 'schema:name',
     'v_name' => 'schema:name',
     'v_degree' => 'OBI:0200130',
+    'v_x' => 'SIO:000400',
+    'v_y' => 'SIO:000401',
+    'v_z' => 'SIO:000402',
     'e_Similarity_Score' => 'SWO:0000425',
     'e_Interaction' =>  'INO:0000002',
     'e_Cluster_Index' => 'local:KINC_cluster_index',

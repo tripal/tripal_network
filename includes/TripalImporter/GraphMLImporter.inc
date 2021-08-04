@@ -613,9 +613,9 @@ class GraphMLImporter extends TripalImporter {
     unset($form_state['values']['step3']);
     unset($form_state['values']['next_step']);
 
-    $form_state['values']['file_local'] = $form_state['storage']['file_local'];
-    $form_state['values']['file_upload'] = $form_state['storage']['file_upload'];
-    $form_state['values']['file_upload_existing'] = $form_state['storage']['file_upload_existing'];
+    $form_state['values']['graphml_file_local'] = $form_state['storage']['file_local'];
+    $form_state['values']['graphml_file_upload'] = $form_state['storage']['file_upload'];
+    $form_state['values']['graphml_file_upload_existing'] = $form_state['storage']['file_upload_existing'];
     $form_state['values']['organism_id'] = $form_state['storage']['organism_id'];
     $form_state['values']['analysis_id'] = $form_state['storage']['analysis_id'];
     $form_state['values']['network_type'] = $form_state['storage']['network_type'];
@@ -633,16 +633,19 @@ class GraphMLImporter extends TripalImporter {
    */
   private function getFilePath($arguments) {
 
-    if (array_key_exists('file_upload_existing', $arguments)) {
-      $file = file_load($arguments['file_upload_existing']);
+    if (array_key_exists('graphml_file_upload_existing', $arguments) and
+        $arguments['graphml_file_upload_existing']) {
+      $file = file_load($arguments['graphml_file_upload_existing']);
       return drupal_realpath($file->uri);
     }
-    if (array_key_exists('file_upload', $arguments)) {
-      $file = file_load($arguments['file_upload']);
+    if (array_key_exists('grapml_file_upload', $arguments) and
+        $arguments['grapml_file_upload']) {
+      $file = file_load($arguments['grapml_file_upload']);
       return  drupal_realpath($file->uri);
     }
-    if (array_key_exists('file_local', $arguments)) {
-      return $arguments['file_local'];
+    if (array_key_exists('graphml_file_local', $arguments) and
+        $arguments['graphml_file_local']) {
+      return $arguments['graphml_file_local'];
     }
   }
 
@@ -1426,23 +1429,26 @@ class GraphMLImporter extends TripalImporter {
       $node = $this->getCachedElement($findex);
       $total++;
       $i++;
+
       // Iterate through all of the properties of this feature.
       foreach ($node as $key => $value) {
         if (array_key_exists($key, $this->terms) and preg_match('/:/', $key)) {
+
 
           // Donj't save the name as a property because the name is
           // wikth the feature recrod.
           if ($key == 'schema:name') {
             continue;
           }
+          $j++;
 
           // Build the SQL/args.
           $term = $this->terms[$key];
-          $sql .= "(:network_node_id_$i, :type_id_$i, :value_$i, :rank_$i),\n";
-          $args[":network_node_id_$i"] = $info['network_node_id'];
-          $args[":type_id_$i"] = $term->cvterm_id;;
-          $args[":value_$i"] = $value;
-          $args[":rank_$i"] = 0;
+          $sql .= "(:network_node_id_$j, :type_id_$j, :value_$j, :rank_$j),\n";
+          $args[":network_node_id_$j"] = $info['network_node_id'];
+          $args[":type_id_$j"] = $term->cvterm_id;;
+          $args[":value_$j"] = $value;
+          $args[":rank_$j"] = 0;
         }
       }
 
