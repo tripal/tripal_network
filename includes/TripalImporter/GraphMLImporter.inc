@@ -662,7 +662,7 @@ class GraphMLImporter extends TripalImporter {
           ],
         ];
         $term = chado_get_cvterm(['cvterm_id' => $value], $options);
-        $this->terms[strtolower($matches[1])] = $term;
+        $this->terms[$matches[1]] = $term;
 
         // Store the  term with it's full accession so we can look
         // it up either way.
@@ -680,7 +680,7 @@ class GraphMLImporter extends TripalImporter {
     foreach (array_keys($item) as $key) {
       $term = $this->terms[$key];
       if ($term) {
-        $new_key = $term->cv_id->name . ':' . $term->dbxref_id->accession;
+        $new_key = $term->dbxref_id->db_id->name . ':' . $term->dbxref_id->accession;
         $new_item[$new_key] = $item[$key];
       }
       else {
@@ -1009,7 +1009,7 @@ class GraphMLImporter extends TripalImporter {
     if ($this->graphml->attributeCount > 0) {
       $this->graphml->moveToFirstAttribute();
       do {
-        $attr_name = strtolower($this->graphml->name);
+        $attr_name = $this->graphml->name;
         $attr_value = $this->graphml->value;
         // Only add attributes that weren't requested to be skipped
         if (array_key_exists('run_args', $this->arguments) and
@@ -1080,7 +1080,7 @@ class GraphMLImporter extends TripalImporter {
       return FALSE;
     }
     $this->graphml->read();
-    return ['key' => strtolower($key), 'value' => $this->graphml->value];
+    return ['key' => $key, 'value' => $this->graphml->value];
   }
 
   /**
@@ -1112,7 +1112,6 @@ class GraphMLImporter extends TripalImporter {
     $node = $this->swapTerms($node);
     $node['organism_id'] = $this->organism_id;
     $node['type_id'] = $this->node_type_id;
-
     $this->nodeMapping[$node['id']] = $node['schema:name'];
     $this->cacheNode($node);
   }
@@ -1157,7 +1156,7 @@ class GraphMLImporter extends TripalImporter {
     }
     $edge = $this->swapTerms($edge);
     $source = $this->nodeMapping[$edge['source']];
-    $target = $this->nodeMapping[$edge['source']];
+    $target = $this->nodeMapping[$edge['target']];
     $edge['source_name'] = $source;
     $edge['target_name'] = $target;
     $edge['schema:name'] = $source . ' (-) ' . $target;
@@ -1496,9 +1495,6 @@ class GraphMLImporter extends TripalImporter {
 
           // Build the SQL/args.
           $term = $this->terms[$key];
-          if ($info['network_edge_id'] == 2) {
-            print_r([$key, $term->name]);
-          }
           $sql .= "(:network_edge_id_$j, :type_id_$j, :value_$j, :rank_$j),\n";
           $args[":network_edge_id_$j"] = $info['network_edge_id'];
           $args[":type_id_$j"] = $term->cvterm_id;

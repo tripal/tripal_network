@@ -247,6 +247,12 @@ function tripal_network_add_terms() {
     'cv_name' => 'local',
     'definition' => 'Pairwise correlation of metabolite abundance, thresholded, in network form.',
   ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'OBI:0200130',
+    'name' => 'node degree calculation',
+    'cv_name' => 'obi',
+    'definition' => 'A node quality calculation in which an input data set describing object nodes and relationship edges between object nodes is used to enumerate the number of unique relationships of an individual object node.',
+  ]);
 
 
   // Terms for fields
@@ -262,6 +268,7 @@ function tripal_network_add_terms() {
   variable_set('tripal_network_graphml_mapper', [
     'g_name' => 'schema:name',
     'v_name' => 'schema:name',
+    'v_degree' => 'OBI:0200130',
     'e_Similarity_Score' => 'SWO:0000425',
     'e_Interaction' =>  'INO:0000002',
     'e_Cluster_Index' => 'local:KINC_cluster_index',

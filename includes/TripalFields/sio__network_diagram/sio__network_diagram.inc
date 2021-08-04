@@ -2,7 +2,7 @@
 class sio__network_diagram extends ChadoField {
 
   // The default lable for this field.
-  public static $default_label = 'Local Network Viewer';
+  public static $default_label = 'Network View';
 
   // The default description for this field.
   public static $description = 'A network diagram consists of a set of vertices connected by edges.';
