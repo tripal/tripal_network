@@ -22,6 +22,7 @@ function tripal_network_bundle_fields_info($entity_type, $bundle) {
 
   $schema = chado_get_schema($table_name);
 
+  $info = [];
   if ($table_name == 'organism' or $table_name == 'analysis') {
     $field_name = 'ncit__network';
     $field_type = 'ncit__network';
@@ -91,6 +92,7 @@ function tripal_network_bundle_instances_info($entity_type, $bundle) {
 
   $schema = chado_get_schema($table_name);
 
+  $info = [];
   if ($table_name == 'organism' or $table_name == 'analysis') {
     $field_name = 'ncit__network';
     $is_required = FALSE;

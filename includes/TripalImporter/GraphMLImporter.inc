@@ -653,17 +653,18 @@ class GraphMLImporter extends TripalImporter {
    * Sets the terms array for the attributes terms.
    */
   private function setTerms(){
+    $options = [
+      'include_fk' => [
+        'cv_id' => TRUE,
+        'dbxref_id' => [
+          'db_id' => TRUE
+        ],
+      ],
+    ];
+
     foreach ($this->arguments['run_args'] as $key => $value) {
       $matches = [];
       if (preg_match('/^graphml_key\.(.*)\.id$/', $key, $matches)) {
-        $options = [
-          'include_fk' => [
-            'cv_id' => TRUE,
-            'dbxref_id' => [
-              'db_id' => TRUE
-            ],
-          ],
-        ];
         $term = chado_get_cvterm(['cvterm_id' => $value], $options);
         $this->terms[$matches[1]] = $term;
 
@@ -673,6 +674,15 @@ class GraphMLImporter extends TripalImporter {
         $this->terms[$term_name] = $term;
       }
     }
+
+    // Add some terms added by this loader
+    $term = chado_get_cvterm(['id' => 'local:node_count']);
+    $term_name = $term->dbxref_id->db_id->name . ':' . $term->dbxref_id->accession;
+    $this->terms[$term_name] = $term;
+
+    $term = chado_get_cvterm(['id' => 'local:edge_count']);
+    $term_name = $term->dbxref_id->db_id->name . ':' . $term->dbxref_id->accession;
+    $this->terms[$term_name] = $term;
   }
 
   /**
@@ -1069,6 +1079,8 @@ class GraphMLImporter extends TripalImporter {
     }
 
     $this->graph = $this->swapTerms($this->graph);
+    $this->graph['local:node_count'] = count($this->nodes);
+    $this->graph['local:edge_count'] = count($this->edges);
   }
 
   /**
@@ -1240,15 +1252,17 @@ class GraphMLImporter extends TripalImporter {
    */
   private function deleteNetworkData($network) {
 
-    $sql1 = "DELETE from {network_edge} WHERE network_id = :network_id";
-    $sql2 = "DELETE from {network_node} WHERE network_id = :network_id";
-    $sql3 = "DELETE from {network_analysis} WHERE network_id = :network_id";
-    $sql4 = "DELETE from {networkprop} WHERE network_id = :network_id";
+    $sql = "DELETE from {network_edge} WHERE network_id = :network_id";
     $args = [':network_id' => $network->getID()];
-    chado_query($sql1, $args);
-    chado_query($sql2, $args);
-    chado_query($sql3, $args);
-    chado_query($sql4, $args);
+    chado_query($sql, $args);
+    $sql = "DELETE from {network_node} WHERE network_id = :network_id";
+    chado_query($sql, $args);
+    $sql = "DELETE from {network_analysis} WHERE network_id = :network_id";
+    chado_query($sql, $args);
+    $sql = "DELETE from {network_cvterm} WHERE network_id = :network_id";
+    chado_query($sql, $args);
+    $sql = "DELETE from {networkprop} WHERE network_id = :network_id";
+    chado_query($sql, $args);
   }
 
   /**
@@ -1305,6 +1319,55 @@ class GraphMLImporter extends TripalImporter {
       'analysis_id' => $this->analysis_id,
     ]);
     $network_analysis->insert();
+
+    // Add the network properties
+    $init_sql = "INSERT INTO {networkprop} (network_id, type_id, value, rank) VALUES\n";
+    $j = 0;
+    $args = [];
+    foreach ($this->graph as $key => $value) {
+      if (array_key_exists($key, $this->terms) and preg_match('/:/', $key)) {
+        // Donj't save the name as a property because the name is
+        // wikth the feature recrod.
+        if ($key == 'schema:name') {
+          continue;
+        }
+        $j++;
+
+        // Build the SQL/args.
+        $term = $this->terms[$key];
+        if ($term) {
+          $sql .= "(:network_id_$j, :type_id_$j, :value_$j, :rank_$j),\n";
+          $args[":network_id_$j"] = $this->network->getID();
+          $args[":type_id_$j"] = $term->cvterm_id;
+          $args[":value_$j"] = $value;
+          $args[":rank_$j"] = 0;
+        }
+      }
+    }
+    if (count($args) > 0) {
+      $sql = rtrim($sql, ",\n");
+      $sql = $init_sql . $sql;
+      chado_query($sql, $args);
+    }
+
+    // Add the network cvterms.
+    $j = 0;
+    $args = [];
+    $init_sql = "INSERT INTO {network_cvterm} (network_id, cvterm_id) VALUES ";
+    $sql = '';
+
+    // We'll always add the direction:
+    $term = chado_get_cvterm(['id' => 'OBCS:0000198']);
+    if ($this->graph['edgedefault'] == 'directed') {
+      $term = chado_get_cvterm(['id' => 'OBCS:0000212']);
+    }
+    $sql .= "(:network_id_$j, :type_id_$j),\n";
+    $args[":network_id_$j"] = $this->network->getID();
+    $args[":type_id_$j"] = $term->cvterm_id;
+    $sql = rtrim($sql, ",\n");
+    $sql = $init_sql . $sql;
+    chado_query($sql, $args);
+
   }
 
 

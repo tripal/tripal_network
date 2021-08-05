@@ -5,6 +5,7 @@ require_once "includes/tripal_network.schema.inc";
 require_once "includes/tripal_network.fields.inc";
 require_once "api/tripal_network.api.inc";
 require_once "includes/tripal_network.viewer.inc";
+require_once "includes/tripal_network.entity.inc";
 
 /**
  * Implements hook_permission().

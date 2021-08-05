@@ -11,7 +11,7 @@ function tripal_network_neighborhood_viewer_layout($feature_id){
   // Set the Plotly layout sepcifications.
   $layout = [
     'autosize' => TRUE,
-    'height' => 400,
+    'height' => 500,
     'width' => 500,
     'paper_bgcolor' => "#FFFFFF",
     'showlegend' => TRUE,
