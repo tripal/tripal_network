@@ -1,23 +1,13 @@
 <?php
 
-/**
- *
- */
-function tripal_network_viewer_page($network_id = NULL) {
-  return theme('tripal_network_viewer', ['network_id' => $network_id]);
-}
-
-function tripal_network_viewer_layout(){
+function tripal_network_neighborhood_viewer_layout($feature_id){
   // Set the Plotly layout sepcifications.
   $layout = [
     'autosize' => TRUE,
-    'paper_bgcolor' => "#000000",
+    'height' => 500,
+    'width' => 500,
+    'paper_bgcolor' => "#FFFFFF",
     'showlegend' => TRUE,
-    'legend' => [
-      'font' => [
-        'color' => "#FFFFFF",
-      ],
-    ],
     'scene' => [
       'aspectmode' => 'manual',
       'aspectratio' => [
@@ -43,10 +33,9 @@ function tripal_network_viewer_layout(){
         'showline' => FALSE,
         'zeroline' => FALSE,
         'showgrid' => FALSE,
-        'showticklabels' => TRUE,
+        'showticklabels' => FALSE,
         'title' => '',
-        'showspikes' => FALSE,
-        'color'=> "#FFFFFF"
+        'showspikes' => FALSE
       ],
       'yaxis' => [
         'type' => 'linear',
@@ -54,10 +43,9 @@ function tripal_network_viewer_layout(){
         'showline' => FALSE,
         'zeroline' => FALSE,
         'showgrid' => FALSE,
-        'showticklabels' => TRUE,
+        'showticklabels' => FALSE,
         'title' => '',
-        'showspikes' => FALSE,
-        'color'=> "#FFFFFF"
+        'showspikes' => FALSE
       ],
       'zaxis' => [
         'type' => 'linear',
@@ -67,20 +55,23 @@ function tripal_network_viewer_layout(){
         'showgrid' => FALSE,
         'showticklabels' => TRUE,
         'showspikes' => FALSE,
-        'title' => 'Similarity Score',
-        'color'=> "#FFFFFF"
+        'title' => 'Similarity Score'
       ]
     ],
-    'title' => '',
+    'title' => 'Connected Neighbors',
   ];
   return $layout;
 }
 
-function tripal_network_viewer_ajax_retrieve() {
+/**
+ *
+ */
+function tripal_network_neighborhood_viewer_ajax_retrieve() {
   // Get the fitering variables requested by the user.
   $network_id = $_GET['network_id'];
+  $feature_id = $_GET['feature_id'];
 
-  $layout = tripal_network_viewer_layout();
+  $layout = tripal_network_neighborhood_viewer_layout($feature_id);
 
   $edges_trace = [
     'mode' => 'lines',
@@ -149,10 +140,15 @@ function tripal_network_viewer_ajax_retrieve() {
       INNER JOIN {feature} FS on FS.feature_id = NNS.feature_id
       INNER JOIN {feature} FT on FT.feature_id = NNT.feature_id
   ";
-  $where = " WHERE NE.network_id = :network_id ";
-  $order = " ";
-  $limit = " ";
+  $where = "WHERE NE.network_id = :network_id";
+  $order = "";
+  $limit = "LIMIT 1000 OFFSET 0";
 
+
+  if ($feature_id) {
+    $where .= " AND (FS.feature_id = :feature_id OR FT.feature_id = :feature_id) ";
+    $params[':feature_id'] = $feature_id;
+  }
 
   $sql = $select . $from . $where . $order . $limit;
 
@@ -274,56 +270,64 @@ function tripal_network_viewer_ajax_retrieve() {
   drupal_json_output(['data' => [$edges_trace, $nodes_trace], 'layout' => $layout]);
 }
 
-function tripal_network_viewer_form($form, &$form_state, $network_id = NULL) {
 
-  // Get the list of modules
-  $sql = '';
-  $args = [];
-  $sql = "
-    SELECT * FROM {network} N
-      INNER JOIN {organism} O on O.organism_id = N.organism_id
-    ORDER BY N.name
-  ";
-  $networks = [
-    0 => '-- Select --',
-  ];
-  $results = chado_query($sql, $args);
-  while ($record = $results->fetchObject()) {
-    $networks[$record->genus . ' ' . $record->species][$record->network_id] = $record->name;
-  }
+function tripal_network_neighborhood_viewer_form($form, &$form_state,
+    $feature_id = NULL, $network_id = NULL) {
 
-  $form['network_id'] = [
-    '#type' => 'select',
-    '#title' => 'Network',
-    '#options' => $networks,
-    '#default_value' => $network_id,
-    '#description' => t('Select the network to view connections for this feature.'),
-    '#ajax' => array(
-      'callback' => 'tripal_network_viewer_form_ajax_callback',
-      'wrapper'  => 'tripal-network-viewer-form',
-      'effect'   => 'fade',
-      'method'   => 'replace',
-    ),
-    '#prefix' => '<div id="tripal-network-viewer-form">',
-    '#suffix' => '</div>',
-  ];
-  return $form;
+      // Get the list of modules
+      $sql = '';
+      $args = [':feature_id' => $feature_id];
+      $sql = "
+        SELECT * FROM {network} N
+          INNER JOIN {network_node} NN on NN.network_id = N.network_id
+        WHERE NN.feature_id = :feature_id
+        ORDER BY N.name
+      ";
+      $networks = [
+        0 => '-- Select --',
+      ];
+      $results = chado_query($sql, $args);
+      while ($record = $results->fetchObject()) {
+        $networks[$record->network_id] = $record->name;
+      }
+
+      $form['feature_id'] = [
+        '#type' => 'value',
+        '#value' => $feature_id,
+        '#prefix' => '<div id="tripal-network-neighborhood-viewer-form">',
+      ];
+      $form['network_id'] = [
+        '#type' => 'select',
+        '#title' => 'Network',
+        '#options' => $networks,
+        '#default_value' => $network_id,
+        '#description' => t('Select the network to view connections for this feature.'),
+        '#ajax' => array(
+          'callback' => 'tripal_network_neighborhood_viewer_form_ajax_callback',
+          'wrapper'  => 'tripal-network-neighborhood-viewer-form',
+          'effect'   => 'fade',
+          'method'   => 'replace',
+        ),
+        '#suffix' => '</div>',
+      ];
+      return $form;
 }
 
 /**
  *
  */
-function tripal_network_viewer_form_ajax_callback($form, $form_state) {
+function tripal_network_neighborhood_viewer_form_ajax_callback($form, $form_state) {
   $network_id = $form_state['values']['network_id'];
   $feature_id = $form_state['values']['feature_id'];
 
   $args = [
+    'feature_id' => $feature_id,
     'network_id' => $network_id,
-    'viewer_id' => 'tripal-network-viewer'
+    'viewer_id' => 'tripal-network-neighborhood-viewer'
   ];
 
   // Tell Drupal to update the network
-  tripal_network_add_ajax_command(ajax_command_invoke(NULL, "getNetwork", [$args]));
+  tripal_network_add_ajax_command(ajax_command_invoke(NULL, "getNetworkNeighborhood", [$args]));
 
   return $form;
 }

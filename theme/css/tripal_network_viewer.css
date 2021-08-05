@@ -1,238 +1,58 @@
 body {
-  background-color: #FFFFFF;
+  margin: 10px !important;
+  background-color: black; 
+  color: white !important;
+}
+h1 {
+	color: white !important;
+}
+.content {
+  margin-top: 0px !important;
 }
 
-#graph-container {
-	z-index: -10;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  position: absolute;
-}
-
-
-/*CSS for the background filter and location selector */
-
-#bg-color-picker {
- height: 60px;
-}
-.bg-color-picker {
-  width: 20px;
-  height: 20px;
-  border: 1px solid #888888;
-  float: left;
-  margin: 3px;
-}
-
-#select-form {
-  clear: both;
-}
-#info_basic {
-  position:absolute;
-  top:90%;
-  left:90%;
-  font-family:Roboto;
-}
-#locator {
- position:absolute;
- top:70%;
- left:90%;
-}
-
-.form-item {
-  margin-top: 10px;
-}
-.form-item label {
-  margin-right: 10px;
-}
-
-/* CSS for the Sigma JS display */
-.sigma-tooltip {
-  max-width: 240px;
-  max-height: 280px;
-  background-color: rgba(255, 255, 255,0.8);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  border-radius: 6px;
-}
-.sigma-tooltip-header {
-  font-variant: small-caps;
-  font-size: 120%;
-  color: #437356;
-  border-bottom: 1px solid #aac789;
-  padding: 10px;
-}
-
-.sigma-tooltip-body {
-  padding: 10px;
-}
-
-.sigma-tooltip-body th {
-  color: #999;
-  text-align: left;
-}
-
-.sigma-tooltip-footer {
-  padding: 10px;
-  border-top: 1px solid #aac789;
-}
-
-.sigma-tooltip > .arrow {
-  border-width: 10px;
-  position: absolute;
-  display: block;
-  width: 0;
-  height: 0;
-  border-color: transparent;
-  border-style: solid;
-}
-
-.sigma-tooltip.top {
-  margin-top: -12px;
-}
-.sigma-tooltip.top > .arrow {
-  left: 50%;
-  bottom: -10px;
-  margin-left: -10px;
-  border-top-color: rgb(249, 247, 237);
-  border-bottom-width: 0;
-}
-
-.sigma-tooltip.bottom {
-  margin-top: 12px;
-}
-.sigma-tooltip.bottom > .arrow {
-  left: 50%;
-  top: -10px;
-  margin-left: -10px;
-  border-bottom-color: rgb(249, 247, 237);
-  border-top-width: 0;
-}
-
-.sigma-tooltip.left {
-  margin-left: -12px;
-}
-.sigma-tooltip.left > .arrow {
-  top: 50%;
-  right: -10px;
-  margin-top: -10px;
-  border-left-color: rgb(249, 247, 237);
-  border-right-width: 0;
-}
-
-.sigma-tooltip.right {
-  margin-left: 12px;
-}
-.sigma-tooltip.right > .arrow {
-  top: 50%;
-  left: -10px;
-  margin-top: -10px;
-  border-right-color: rgb(249, 247, 237);
-  border-left-width: 0;
-}
-
-#control-pane {
-  top: 10px;
-  /*bottom: 10px;*/
-  right: 10px;
-  position: absolute;
-  width: 220px;
-  background-color: rgba(255,255,255,0.7);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  position:absolute;
-  top:15%;
-  left:1%;
-  font-family:Roboto;
-  font-weight:100;
-}
-#control-pane > div {
-  margin: 10px;
-  overflow-x: auto;
-}
-.line {
-  clear: both;
-  display: block;
-  width: 100%;
-  margin: 0;
-  padding: 12px 0 0 0;
-  border-bottom: 1px solid #aac789;
-  background: transparent;
-}
-h2, h3, h4 {
+#tripal-network-viewer-app {
   padding: 0px;
-  margin-top: 0px;
-  margin-bottom: 0px;
-  font-variant: small-caps;
-}
-.green {
-  color: #437356;
-}
-h2.underline {
-  color: #437356;
-  background: rgba(255,255,255,0.8);
-  margin: 0;
-  border-radius: 2px;
-  padding: 8px 12px;
-  font-weight: 100;
-}
-.hidden {
-  display: none;
-  visibility: hidden;
-}
-
-input[type=range] {
-  width: 220px;
-  font-size:12px;
-}
-#layout-notification {
-  display: block;
-  position: absolute;
-  top: 75%;
-  left: 1em;
-  visibility: hidden;
-  font-weight: 200;
-  font-family:Roboto;
-  color:black;
-
-}
-#layout-notification {
-  border: 16px solid #f3f3f3;
-  border-radius: 50%;
-  border-top: 16px solid #3498db;
-  width: 120px;
-  height: 120px;
-  -webkit-animation: spin 2s linear infinite;
-  animation: spin 2s linear infinite;
-}
-
-@-webkit-keyframes spin {
-  0% { -webkit-transform: rotate(0deg); }
-  100% { -webkit-transform: rotate(360deg); }
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  margin: 0px;
 }
 
 
-#tripal-network-viewer-prop-filters-table {
-  border: none;
-}
-#tripal-network-viewer-prop-filters-table td {
-  padding-top: 3px;
-  padding-bottom: 3px;
-}
-
-#tripal-network-viewer-prop-filters-table .form-item {
-  margin-top: 0px;
-}
-
-#tripal-network-viewer-accordion {
-  float: right;
-  width: 425px;
+#tripal-network-viewer-sidebar {
+  position: fixed; 
+  left: 10px;
+  top: 150px;
+  padding: 0px 10px 0px 0px;
+  margin: 0px;
+  width: 400px;
+  height: 80vh;
+  overflow-y: auto;
+  scrollbar-color: dark;
+  background-color: black; 
 }
 
-#tripal-network-viewer-accordion .ui-widget-content{
-    background: rgba(200, 200, 200, 0.8);}
+#tripal-network-viewer-display {
+  position: fixed; 
+  left: 420px;
+  top: 10px;
+}
+
+#tripal-network-viewer {
+  height: 100vh;
+}
+
+.tripal-network-viewer-sidebar-box {
+  float: left;
+  width: 100%;
+  color: black;
+  padding: 0px;
+  margin-bottom: 10px;
+  background-color: #CCCCCC;
+  border-radius: 5px;
+}
+
+.tripal-network-viewer-sidebar-box-header {
+  background-color: #555555;
+  color: white;
+  margin: 0px;
+  padding: 10px;
+  border-radius: 5px;
 }
