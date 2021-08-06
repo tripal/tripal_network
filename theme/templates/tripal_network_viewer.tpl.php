@@ -32,8 +32,8 @@ $edge_details = drupal_render($edge_details);
      <?php print $network_form ?>
      <div id="tripal-network-viewer-display-details" class="tripal-network-viewer-sidebar-box">
         <div class="tripal-network-viewer-sidebar-box-header">
-        	<img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/icons8-toggle-on-48.png">
-        	<img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/icons8-toggle-off-48.png">
+        	<img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
+        	<img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
         	<h2>Display</h2>
         </div>
         <div class="tripal-network-viewer-sidebar-box-content">
@@ -42,8 +42,8 @@ $edge_details = drupal_render($edge_details);
      </div>
      <div id="tripal-network-viewer-network-details" class="tripal-network-viewer-sidebar-box">
         <div class="tripal-network-viewer-sidebar-box-header">
-          <img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/icons8-toggle-on-48.png">
-          <img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/icons8-toggle-off-48.png">
+          <img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
+          <img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
            	<h2>Network</h2>
       	</div>
         <div class="tripal-network-viewer-sidebar-box-content">
@@ -51,8 +51,8 @@ $edge_details = drupal_render($edge_details);
      </div>
      <div id="tripal-network-viewer-node-details" class="tripal-network-viewer-sidebar-box">
         <div class="tripal-network-viewer-sidebar-box-header">
-          <img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/icons8-toggle-on-48.png">
-          <img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/icons8-toggle-off-48.png">
+          <img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
+          <img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
         	<h2>Node</h2>
         </div>
         <div class="tripal-network-viewer-sidebar-box-content">
@@ -61,8 +61,8 @@ $edge_details = drupal_render($edge_details);
      </div>
      <div id="tripal-network-viewer-edge-details" class="tripal-network-viewer-sidebar-box">
         <div class="tripal-network-viewer-sidebar-box-header">
-          <img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/icons8-toggle-on-48.png">
-          <img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/icons8-toggle-off-48.png">
+          <img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
+          <img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
         	<h2>Edge</h2>
       </div>
         <div class="tripal-network-viewer-sidebar-box-content">

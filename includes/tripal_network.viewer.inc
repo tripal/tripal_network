@@ -262,6 +262,14 @@ function tripal_network_viewer_node_details_form($form, &$form_state, $node_id =
   $form['details'] = [
     '#type' => 'markup',
     '#markup' => $details,
+    '#prefix' => '<div id="tripal-network-viewer-node-details-details">',
+    '#suffix' => '</div>',
+  ];
+  $form['link'] = [
+    '#type' => 'markup',
+    '#markup' => '<div id="tripal-network-viewer-node-link">' .
+      l("View full node page", 'bio_data/'. $entity->id, ['attributes' => ['target' => '_blank']]) .
+      '</div>',
     '#suffix' => '</div>',
   ];
 
@@ -294,9 +302,63 @@ function tripal_network_viewer_ajax_get_edge_details() {
  */
 function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id = NULL) {
 
-  $edge_name = 'Click an edge to view its details';
-  if ($edge_id) {
 
+  if (array_key_exists('values', $form_state)) {
+    $edge_id = array_key_exists('edge_id', $form_state['values']) ? $form_state['values']['edge_id'] : $edge_id;
+  }
+
+  $edge_name = 'Click an edge to view its details';
+
+  if ($edge_id) {
+    $sql = "
+      SELECT FS.name as source, FT.name as target
+      FROM {network_edge} NE
+        INNER JOIN {network_node} NNS on NNS.network_node_id = NE.source_id
+        INNER JOIN {network_node} NNT on NNT.network_node_id = NE.target_id
+        INNER JOIN {feature} FS on FS.feature_id = NNS.feature_id
+        INNER JOIN {feature} FT on FT.feature_id = NNT.feature_id
+     WHERE NE.network_edge_id = :network_edge_id
+    ";
+    $args[':network_edge_id'] = $edge_id;
+    $results = chado_query($sql, $args);
+    $edge = $results->fetchObject();
+    $edge_name = '<h3>Edge: ' . $edge->source . ' (-) ' . $edge->target . '</h3>';
+
+    $sql = "
+      SELECT CVT.name, NEP.value, DBX.accession, DB.name as db_name
+      FROM {network_edgeprop} NEP
+        INNER JOIN {cvterm} CVT ON CVT.cvterm_id = NEP.type_id
+        INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
+        INNER JOIN {db} DB on DB.db_id = DBX.db_id
+      WHERE NEP.network_edge_id = :network_edge_id
+    ";
+    $args[':network_edge_id'] = $edge_id;
+    $results = chado_query($sql, $args);
+
+    $rows = [];
+    while ($prop = $results->fetchObject()) {
+      if ($prop->db_name . ':' . $prop->accession == 'local:KINC_sample_string') {
+        continue;
+      }
+      $rows[] = [
+        [
+          'data' => ucfirst($prop->name),
+          'header' => TRUE,
+        ],
+        $prop->value,
+      ];
+    }
+    $headers = ['Attribute', 'Value'];
+    $summary_table = [
+      'header' => $headers,
+      'rows' => $rows,
+      'attributes' => [],
+      'caption' => '',
+      'sticky' => TRUE,
+      'colgroups' => [],
+      'empty' => 'No attributes for this edge',
+    ];
+    $details = theme_table($summary_table);
   }
 
   $form['feature_id'] = [
@@ -306,6 +368,12 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
   $form['feature_name'] = [
     '#type' => 'markup',
     '#markup' => $edge_name,
+  ];
+  $form['details'] = [
+    '#type' => 'markup',
+    '#markup' => $details,
+    '#prefix' => '<div id="tripal-network-viewer-edge-details-details">',
+    '#suffix' => '</div>',
   ];
   return $form;
 }

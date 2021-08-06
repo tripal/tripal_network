@@ -44,6 +44,7 @@
       success: function(response) {
         $('#tripal-network-viewer-node-details form').replaceWith(response);
         Drupal.attachBehaviors();
+        $(".tripal-network-viewer-sidebar-box-content").hide();
         $("#tripal-network-viewer-node-details .tripal-network-viewer-sidebar-box-content").show();
       },
       error: function(xhr, textStatus, thrownError) {
@@ -56,6 +57,24 @@
    *
    */
   $.fn.updateEdgeDetails = function(args) {
+     var edge_id = args['edge_id'];
+     $.ajax({
+      // The baseurl is a variable set by Tripal that indicates the
+      // "base" of the URL for this site.
+      url: baseurl + '/networks/viewer/details/edge',
+      type: "GET",
+      dataType: 'html',
+      data: {'edge_id': edge_id},
+      success: function(response) {
+        $('#tripal-network-viewer-edge-details form').replaceWith(response);
+        Drupal.attachBehaviors();
+        $(".tripal-network-viewer-sidebar-box-content").hide();
+        $("#tripal-network-viewer-edge-details .tripal-network-viewer-sidebar-box-content").show();
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+      }
+    }) 
   }
   
   
@@ -144,7 +163,7 @@
             $.fn.updateNodeDetails({'node_id': data['points'][0]['id']})
           }
            if (data['points'][0]['data']['mode'] == 'lines') {        
-            $.fn.updateEdgeDetails({'node_id': data['points'][0]['id']})
+            $.fn.updateEdgeDetails({'edge_id': data['points'][0]['id']})
           }
         });
         
