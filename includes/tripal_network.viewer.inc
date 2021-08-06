@@ -103,6 +103,26 @@ function tripal_network_viewer_ajax_get_display_form() {
 /**
  *
  */
+function tripal_network_viewer_ajax_get_network_details_form() {
+  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
+
+  $form = drupal_get_form('tripal_network_viewer_network_details_form', $network_id);
+  $form = drupal_render($form);
+
+  $settings = FALSE;
+  $javascript = drupal_add_js(NULL, NULL);
+  if(isset($javascript['settings'], $javascript['settings']['data'])) {
+    $settings = '<script type="text/javascript">jQuery.extend(Drupal.settings, ';
+    $settings .= drupal_json_encode(call_user_func_array('array_merge_recursive', $javascript['settings']['data']));
+    $settings .=  ');</script>';
+  }
+  print $form . $settings;
+  die;
+}
+
+/**
+ *
+ */
 function tripal_network_viewer_ajax_get_node_details() {
   $node_id = array_key_exists('node_id', $_GET) ? $_GET['node_id'] : NULL;
 
@@ -361,11 +381,11 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
     $details = theme_table($summary_table);
   }
 
-  $form['feature_id'] = [
+  $form['edge_id'] = [
     '#type' => 'value',
     '#value' => $edge_id,
   ];
-  $form['feature_name'] = [
+  $form['edge_name'] = [
     '#type' => 'markup',
     '#markup' => $edge_name,
   ];
@@ -373,6 +393,71 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
     '#type' => 'markup',
     '#markup' => $details,
     '#prefix' => '<div id="tripal-network-viewer-edge-details-details">',
+    '#suffix' => '</div>',
+  ];
+  return $form;
+}
+
+/**
+ *
+ */
+function tripal_network_viewer_network_details_form($form, &$form_state, $network_id = NULL) {
+
+
+  if (array_key_exists('values', $form_state)) {
+    $network_id = array_key_exists('network_id', $form_state['values']) ? $form_state['values']['network_id'] : $network_id;
+  }
+
+  $network_name = 'Select a network to view its details';
+
+  if ($network_id) {
+    $network_name = 'Network Attributes';
+    $sql = "
+      SELECT CVT.name, NP.value, DBX.accession, DB.name as db_name
+      FROM {networkprop} NP
+        INNER JOIN {cvterm} CVT ON CVT.cvterm_id = NP.type_id
+        INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
+        INNER JOIN {db} DB on DB.db_id = DBX.db_id
+      WHERE NP.network_id = :network_id
+    ";
+    $args[':network_id'] = $network_id;
+    $results = chado_query($sql, $args);
+
+    $rows = [];
+    while ($prop = $results->fetchObject()) {
+      $rows[] = [
+        [
+          'data' => ucfirst($prop->name),
+          'header' => TRUE,
+        ],
+        $prop->value,
+      ];
+    }
+    $headers = ['Attribute', 'Value'];
+    $summary_table = [
+      'header' => $headers,
+      'rows' => $rows,
+      'attributes' => [],
+      'caption' => '',
+      'sticky' => TRUE,
+      'colgroups' => [],
+      'empty' => 'No attributes for this edge',
+    ];
+    $details = theme_table($summary_table);
+  }
+
+  $form['network_id'] = [
+    '#type' => 'value',
+    '#value' => $network_id,
+  ];
+  $form['network_name'] = [
+    '#type' => 'markup',
+    '#markup' => $network_name,
+  ];
+  $form['details'] = [
+    '#type' => 'markup',
+    '#markup' => $details,
+    '#prefix' => '<div id="tripal-network-viewer-network-details-details">',
     '#suffix' => '</div>',
   ];
   return $form;

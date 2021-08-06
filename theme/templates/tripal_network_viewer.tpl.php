@@ -18,6 +18,9 @@ $network_form = drupal_render($network_form);
 $display_form = drupal_get_form('tripal_network_viewer_display_form', $network_id);
 $display_form = drupal_render($display_form);
 
+$network_details = drupal_get_form('tripal_network_viewer_network_details_form', $network_id);
+$network_details = drupal_render($network_details);
+
 $node_details = drupal_get_form('tripal_network_viewer_node_details_form');
 $node_details = drupal_render($node_details);
 
@@ -47,6 +50,7 @@ $edge_details = drupal_render($edge_details);
            	<h2>Network</h2>
       	</div>
         <div class="tripal-network-viewer-sidebar-box-content">
+        <?php print $network_details ?>
         </div>
      </div>
      <div id="tripal-network-viewer-node-details" class="tripal-network-viewer-sidebar-box">

@@ -16,18 +16,38 @@
       var parent = $(this).parent().parent().attr('id');
       $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-on").hide();
       $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-off").show();
-      $("#" + parent + " .tripal-network-viewer-sidebar-box-content").show();
-      $("#" + parent + " .tripal-network-viewer-sidebar-box-content").show();
+      $("#" + parent + " .tripal-network-viewer-sidebar-box-content").hide();
     })
     
     $(".tripal-network-viewer-sidebar-box-header-toggle-off").click(function() {
       var parent = $(this).parent().parent().attr('id');
       $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-on").show();
       $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-off").hide();
-      $("#" + parent + " .tripal-network-viewer-sidebar-box-content").hide();
+      $("#" + parent + " .tripal-network-viewer-sidebar-box-content").show();
     })
   
   });
+  
+  /**
+   * Hides all of the sidebar box contents and sets the toggle.
+   */
+  $.fn.hideAllBoxes = function() {
+    $(".tripal-network-viewer-sidebar-box-header-toggle-on").hide();
+    $(".tripal-network-viewer-sidebar-box-header-toggle-off").show();
+    $(".tripal-network-viewer-sidebar-box-content").hide();
+  }
+  
+  /**
+   * Shows the specified sidebar box and sets the toggle.
+   */
+  $.fn.showBox = function(box, hide_others = true) {
+    if (hide_others) {
+      $.fn.hideAllBoxes();
+    }
+    $(box + " .tripal-network-viewer-sidebar-box-content").show();
+    $(box + " .tripal-network-viewer-sidebar-box-header-toggle-on").show();
+    $(box + " .tripal-network-viewer-sidebar-box-header-toggle-off").hide();
+  }
   
   /**
    *
@@ -44,8 +64,7 @@
       success: function(response) {
         $('#tripal-network-viewer-node-details form').replaceWith(response);
         Drupal.attachBehaviors();
-        $(".tripal-network-viewer-sidebar-box-content").hide();
-        $("#tripal-network-viewer-node-details .tripal-network-viewer-sidebar-box-content").show();
+        $.fn.showBox('#tripal-network-viewer-node-details');
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
@@ -68,8 +87,7 @@
       success: function(response) {
         $('#tripal-network-viewer-edge-details form').replaceWith(response);
         Drupal.attachBehaviors();
-        $(".tripal-network-viewer-sidebar-box-content").hide();
-        $("#tripal-network-viewer-edge-details .tripal-network-viewer-sidebar-box-content").show();
+        $.fn.showBox('#tripal-network-viewer-edge-details');
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
@@ -105,7 +123,31 @@
         alert(thrownError);
       }
     }) 
-  };
+   };
+   /**
+   *
+   */
+  $.fn.updateNetworkDetailsForm = function(args) {
+    var network_id = args['network_id'];
+    
+    $.ajax({
+      // The baseurl is a variable set by Tripal that indicates the
+      // "base" of the URL for this site.
+      url: baseurl + '/networks/viewer/form/network-details',
+      type: "GET",
+      dataType: 'html',
+      data: {
+         'network_id': network_id, 
+      },
+      success: function(response) {
+        $('#tripal-network-viewer-network-details form').replaceWith(response);
+        Drupal.attachBehaviors();
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+      }
+    }) 
+   };
    
    /**
    * Retrieves the network using filtering criteria.
@@ -173,6 +215,11 @@
           'network_id': network_id, 
           'layer_by': layer_by, 
           'display_by': display_by
+        });
+        
+        // Update the network details
+        $.fn.updateNetworkDetailsForm({
+          'network_id': network_id, 
         });
 
         // Turn off the spinner.

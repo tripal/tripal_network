@@ -103,11 +103,11 @@ h3 {
 .tripal-network-viewer-sidebar-box-header-toggle-on {
   float: right;
   padding-right: 10px;
+  display: none;
 }
 .tripal-network-viewer-sidebar-box-header-toggle-off {
   float: right;
   padding-right: 10px;
-  display: none;
 }
 
 .tripal-network-viewer-sidebar-box-content {
