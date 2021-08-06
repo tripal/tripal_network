@@ -116,3 +116,20 @@ h3 {
   border-radius: 10px;
   display: none;
 }
+
+#tripal-network-viewer-footer {
+  position: absolute;
+  bottom: 10px;
+  left: 0px;
+  z-index: 200;
+  width: 100vw;
+  background-color: white;
+}
+.tripal-network-viewer-footer-item {
+  margin-top: 10px;
+  margin-right: 50px;
+  float: right;
+}
+.tripal-network-viewer-footer-item img {
+  height: 40px;
+}

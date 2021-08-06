@@ -1,4 +1,6 @@
 <?php
+$site_name = variable_get('site_name');
+$network_id = $variables['network_id'];
 
 $theme_path = url(drupal_get_path('module', 'tripal_network') . '/theme', array('absolute' => TRUE));
 $js_path = url(drupal_get_path('module', 'tripal_network') . '/theme/js', array('absolute' => TRUE));
@@ -31,7 +33,7 @@ $edge_details = drupal_render($edge_details);
 <div id="tripal-network-viewer-app">
    <div id="tripal-network-viewer-loading"><img src="<?php print $theme_path?>/images/loading.gif"></div>
    <div id="tripal-network-viewer-sidebar">
-     <h1>Tripal Network Viewer</h1>
+     <h1><?php print $site_name ?> Tripal Network Viewer</h1>
      <?php print $network_form ?>
      <div id="tripal-network-viewer-display-details" class="tripal-network-viewer-sidebar-box">
         <div class="tripal-network-viewer-sidebar-box-header">
@@ -75,4 +77,14 @@ $edge_details = drupal_render($edge_details);
      </div>
    </div>
    <div id="tripal-network-viewer-display"><div id="tripal-network-viewer"></div></div>
+   <div id="tripal-network-viewer-footer">
+      <div class="tripal-network-viewer-footer-item">
+        <img src="<?php print $theme_path?>/images/powered_by_tripal_small.png"><br>
+        Powered by <?php print l('Tripal', 'https://tripal.info')?>
+      </div>
+      <div class="tripal-network-viewer-footer-item">
+        <img src="<?php print $theme_path?>/images/inspired_by_KINC_small.png"><br>
+         Inspired by <?php print l('KINC', 'https://kinc.readthedocs.io/')?>
+      </div>
+   </div>
 </div>
