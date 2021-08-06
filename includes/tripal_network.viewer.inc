@@ -97,6 +97,17 @@ function tripal_network_viewer_ajax_get_display_form() {
     $settings .=  ');</script>';
   }
   return $form . $settings;
+}
+
+/**
+ *
+ */
+function tripal_network_viewer_ajax_get_node_details() {
+  $node_id = array_key_exists('node_id', $_GET) ? $_GET['node_id'] : NULL;
+
+  if ($node_id) {
+  }
+  print $node_id;
   die;
 }
 
@@ -121,6 +132,7 @@ function tripal_network_viewer_ajax_retrieve() {
       'opacity' => 0.9,
     ],
     'name' => 'Edge',
+    'ids' => [],
     'hovertemplate'=> "%{text}",
     'x' => [],
     'y' => [],
@@ -291,6 +303,9 @@ function tripal_network_viewer_ajax_retrieve() {
     $edges_trace['x'][] = NULL;
     $edges_trace['y'][] = NULL;
     $edges_trace['z'][] = NULL;
+    $edges_trace['ids'][] = $edge->network_edge_id;
+    $edges_trace['ids'][] = $edge->network_edge_id;
+    $edges_trace['ids'][] = $edge->network_edge_id;
     $edges_trace['text'][] = $edge->node1 . ' (-) ' . $edge->node2;
     $edges_trace['text'][] = $edge->node1 . ' (-) ' . $edge->node2;
     $edges_trace['text'][] = $edge->node1 . ' (-) ' . $edge->node2;
@@ -469,3 +484,5 @@ function tripal_network_viewer_display_form_ajax_callback($form, $form_state) {
 
   return $form;
 }
+
+

@@ -29,6 +29,31 @@
   
   });
   
+  $.fn.updateNodeDetails = function(args) {
+     var node_id = args['node_id'];
+     $.ajax({
+      // The baseurl is a variable set by Tripal that indicates the
+      // "base" of the URL for this site.
+      url: baseurl + '/networks/viewer/details/node',
+      type: "GET",
+      dataType: 'html',
+      data: {
+         'node_id': node_id, 
+      },
+      success: function(response) {
+        $('#tripal-network-viewer-node-details').replaceWith(response);
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+      }
+    }) 
+  }
+  
+  
+  $.fn.updateEdgeDetails = function(args) {
+  }
+  
+  
   /**
    *
    */
@@ -97,13 +122,41 @@
       },
       success: function(json) {
         response = json;
-        Plotly.newPlot(viewer_id, response['data'], response['layout']);
-        $('#tripal-network-viewer-loading').hide();
-        $.fn.updateDisplayForm({
-         'network_id': network_id, 
-         'layer_by': layer_by, 
-         'display_by': display_by
+        
+        // Create the new plot.
+        settings = {
+          'displaylogo': false, 
+          'toImageButtonOptions' : {
+             'filename': 'tripal_network_view',
+             'format': 'svg',
+             'scale' : 10
+           }
+        };
+        Plotly.newPlot(viewer_id, response['data'], response['layout'], settings);
+        
+        // Add event handlers. We don't use Jquery because it's not fully
+        // compatible with Plotly.
+        var myPlot = document.getElementById(viewer_id)
+        myPlot.on('plotly_click', function(data){  
+          if (data['points'][0]['data']['mode'] == 'markers') {        
+            $.fn.updateNodeDetails({'node_id': data['points'][0]['id']})
+          }
+           if (data['points'][0]['data']['mode'] == 'lines') {        
+            $.fn.updateEdgeDetails({'node_id': data['points'][0]['id']})
+          }
         });
+        
+        // Update the Display form so that it has appropriate items for this
+        // network.
+        $.fn.updateDisplayForm({
+          'network_id': network_id, 
+          'layer_by': layer_by, 
+          'display_by': display_by
+        });
+
+        // Turn off the spinner.
+        $('#tripal-network-viewer-loading').hide();
+
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
