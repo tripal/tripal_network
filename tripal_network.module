@@ -62,6 +62,14 @@ function tripal_network_menu() {
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
   ];
+  $items['networks/viewer/displayform'] = [
+    'page callback' => 'tripal_network_viewer_ajax_get_display_form',
+    'page arguments' => [],
+    'access arguments' => ['view ' . $bundle->name],
+    'file' => '/includes/tripal_network.viewer.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'type' => MENU_CALLBACK,
+  ];
   $items['networks/viewer/neighborhood/retrieve'] = [
     'page callback' => 'tripal_network_neighborhood_viewer_ajax_retrieve',
     'page arguments' => [],

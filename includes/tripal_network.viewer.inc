@@ -4,6 +4,8 @@
  *
  */
 function tripal_network_viewer_page($network_id = NULL) {
+  drupal_add_library('system', 'drupal.ajax');
+  drupal_add_library('system', 'drupal.form');
   return theme('tripal_network_viewer', ['network_id' => $network_id]);
 }
 
@@ -11,11 +13,11 @@ function tripal_network_viewer_layout(){
   // Set the Plotly layout sepcifications.
   $layout = [
     'autosize' => TRUE,
-    'paper_bgcolor' => "#000000",
+    'paper_bgcolor' => "#FFFFFF",
     'showlegend' => TRUE,
     'legend' => [
       'font' => [
-        'color' => "#FFFFFF",
+        'color' => "#000000",
       ],
     ],
     'scene' => [
@@ -43,10 +45,10 @@ function tripal_network_viewer_layout(){
         'showline' => FALSE,
         'zeroline' => FALSE,
         'showgrid' => FALSE,
-        'showticklabels' => TRUE,
+        'showticklabels' => FALSE,
         'title' => '',
         'showspikes' => FALSE,
-        'color'=> "#FFFFFF"
+        'color'=> "#000000"
       ],
       'yaxis' => [
         'type' => 'linear',
@@ -54,10 +56,10 @@ function tripal_network_viewer_layout(){
         'showline' => FALSE,
         'zeroline' => FALSE,
         'showgrid' => FALSE,
-        'showticklabels' => TRUE,
+        'showticklabels' => FALSE,
         'title' => '',
         'showspikes' => FALSE,
-        'color'=> "#FFFFFF"
+        'color'=> "#000000"
       ],
       'zaxis' => [
         'type' => 'linear',
@@ -68,7 +70,7 @@ function tripal_network_viewer_layout(){
         'showticklabels' => TRUE,
         'showspikes' => FALSE,
         'title' => 'Similarity Score',
-        'color'=> "#FFFFFF"
+        'color'=> "#000000"
       ]
     ],
     'title' => '',
@@ -76,9 +78,37 @@ function tripal_network_viewer_layout(){
   return $layout;
 }
 
+/**
+ *
+ */
+function tripal_network_viewer_ajax_get_display_form() {
+  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
+  $layer_by = array_key_exists('layer_by', $_GET) ? $_GET['layer_by'] : NULL;
+  $color_by = array_key_exists('color_by', $_GET) ? $_GET['color_by'] : NULL;
+
+  $form = drupal_get_form('tripal_network_viewer_display_form', $network_id, $layer_by, $color_by);
+  $form = drupal_render($form);
+
+  $settings = FALSE;
+  $javascript = drupal_add_js(NULL, NULL);
+  if(isset($javascript['settings'], $javascript['settings']['data'])) {
+    $settings = '<script type="text/javascript">jQuery.extend(Drupal.settings, ';
+    $settings .= drupal_json_encode(call_user_func_array('array_merge_recursive', $javascript['settings']['data']));
+    $settings .=  ');</script>';
+  }
+  return $form . $settings;
+  die;
+}
+
+/**
+ *
+ */
 function tripal_network_viewer_ajax_retrieve() {
   // Get the fitering variables requested by the user.
-  $network_id = $_GET['network_id'];
+  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
+  $feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : NULL;
+  $layer_by = array_key_exists('layer_by', $_GET) ? $_GET['layer_by'] : NULL;
+  $color_by = array_key_exists('color_by', $_GET) ? $_GET['color_by'] : NULL;
 
   $layout = tripal_network_viewer_layout();
 
@@ -274,7 +304,10 @@ function tripal_network_viewer_ajax_retrieve() {
   drupal_json_output(['data' => [$edges_trace, $nodes_trace], 'layout' => $layout]);
 }
 
-function tripal_network_viewer_form($form, &$form_state, $network_id = NULL) {
+/**
+ *
+ */
+function tripal_network_viewer_network_form($form, &$form_state, $network_id = NULL) {
 
   // Get the list of modules
   $sql = '';
@@ -299,12 +332,12 @@ function tripal_network_viewer_form($form, &$form_state, $network_id = NULL) {
     '#default_value' => $network_id,
     '#description' => t('Select the network to view connections for this feature.'),
     '#ajax' => array(
-      'callback' => 'tripal_network_viewer_form_ajax_callback',
-      'wrapper'  => 'tripal-network-viewer-form',
+      'callback' => 'tripal_network_viewer_network_form_ajax_callback',
+      'wrapper'  => 'tripal-network-viewer-network-form',
       'effect'   => 'fade',
       'method'   => 'replace',
     ),
-    '#prefix' => '<div id="tripal-network-viewer-form">',
+    '#prefix' => '<div id="tripal-network-viewer-network-form">',
     '#suffix' => '</div>',
   ];
   return $form;
@@ -313,13 +346,122 @@ function tripal_network_viewer_form($form, &$form_state, $network_id = NULL) {
 /**
  *
  */
-function tripal_network_viewer_form_ajax_callback($form, $form_state) {
+function tripal_network_viewer_network_form_ajax_callback($form, $form_state) {
   $network_id = $form_state['values']['network_id'];
-  $feature_id = $form_state['values']['feature_id'];
 
   $args = [
     'network_id' => $network_id,
     'viewer_id' => 'tripal-network-viewer'
+  ];
+
+  // Tell Drupal to update the network
+  tripal_network_add_ajax_command(ajax_command_invoke(NULL, "getNetwork", [$args]));
+
+  return $form;
+}
+
+/**
+ *
+ */
+function tripal_network_viewer_display_form($form, &$form_state,
+    $network_id = NULL, $layer_by = NULL, $color_by = NULL) {
+
+  if (array_key_exists('values', $form_state)) {
+    $network_id = array_key_exists('network_id', $form_state['values']) ? $form_state['values']['network_id'] : $network_id;
+    $layer_by = array_key_exists('layer_by', $form_state['values']) ? $form_state['values']['layer_by'] : $layer_by;
+    $color_by = array_key_exists('color_by', $form_state['values']) ? $form_state['values']['color_by'] : $color_by;
+  }
+
+
+  $allowed_layers = [
+    // 'OBI:0200130',  // degree
+    'SWO:0000425', // similarity score
+    'local:KINC_test_name',
+    'local:KINC_pvalue',
+    'local:KINC_rsquared',
+    'NCIT:C48904', // rank
+    //'local:KINC_WAnova_Max',
+    //'local:KINC_WAnova_Min',
+    //'local:KINC_Missing_Ttest',
+  ];
+  $props = [];
+  if ($network_id) {
+
+    $sql = "
+      SELECT DISTINCT CVT.cvterm_id, CVT.name, DBX.accession, DB.name as db_name
+      FROM {network_edgeprop} NEP
+        INNER JOIN {network_edge} NE on NE.network_edge_id = NEP.network_edge_id
+        INNER JOIN {cvterm} CVT on CVT.cvterm_id = NEP.type_id
+        INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
+        INNER JOIN {db} DB on DB.db_id = DBX.db_id
+      WHERE NE.network_id = :network_id
+      ORDER BY CVT.name
+    ";
+    $args = [':network_id' => $network_id];
+    $results = chado_query($sql, $args);
+    while ($record = $results->fetchObject()) {
+      // We only support specific fields
+      if (in_array($record->db_name . ':' . $record->accession, $allowed_layers)) {
+        $props[$record->cvterm_id] = $record->name;
+      }
+    }
+  }
+
+  $form['network_id'] = [
+    '#type' => 'value',
+    '#value' =>  $network_id,
+    '#prefix' => '<div id="tripal-network-viewer-display-form">',
+  ];
+  $form['layer_by'] = [
+    '#type' => 'select',
+    '#title' => 'Layer Edges By',
+    '#options' => $props,
+    '#default_value' => $layer_by,
+    '#description' => t('Select a property to layer edges.'),
+    '#ajax' => array(
+      'callback' => 'tripal_network_viewer_display_form_ajax_callback',
+      'wrapper'  => 'tripal-network-viewer-display-form',
+      'effect'   => 'fade',
+      'method'   => 'replace',
+    ),
+  ];
+
+  $form['color_by'] = [
+    '#type' => 'select',
+    '#title' => 'Color Edges By',
+    '#options' => $props,
+    '#default_value' => $color_by,
+    '#description' => t('Select a property to color edges.'),
+    '#ajax' => array(
+      'callback' => 'tripal_network_viewer_display_form_ajax_callback',
+      'wrapper'  => 'tripal-network-viewer-display-form',
+      'effect'   => 'fade',
+      'method'   => 'replace',
+    ),
+    '#suffix' => '</div>',
+  ];
+
+  return $form;
+}
+
+/**
+ *
+ */
+function tripal_network_viewer_display_form_ajax_callback($form, $form_state) {
+
+  $network_id = NULL;
+  $layer_by = NULL;
+  $color_by = NULL;
+  if (array_key_exists('values', $form_state)) {
+    $network_id = array_key_exists('network_id', $form_state['values']) ? $form_state['values']['network_id'] : NULL;
+    $layer_by = array_key_exists('layer_by', $form_state['values']) ? $form_state['values']['layer_by'] : NULL;
+    $color_by = array_key_exists('color_by', $form_state['values']) ? $form_state['values']['color_by'] : NULL;
+  }
+
+  $args = [
+    'network_id' => $network_id,
+    'layer_by' => $layer_by,
+    'color_by' => $color_by,
   ];
 
   // Tell Drupal to update the network

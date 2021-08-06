@@ -1,6 +1,49 @@
 <?php
 
 /**
+ * Retreives properties of one or more networks.
+ *
+ * @param $ids
+ *   An array of network IDs
+ * @param  $term
+ *   The name of the term in the format: db_name:accession. For example
+ *   OBI:0200130.
+ * @return array
+ *   The list of properties for the given ids, indexed with the id.
+ */
+function tripal_network_get_networkprops($ids, $term) {
+  $props = [];
+
+  $term_split = preg_split('/:/', $term);
+  if (!$term_split) {
+    return $props;
+  }
+
+
+  $sql = "
+    SELECT NP.network_id, NP.value
+    FROM {networkprop} NP
+      INNER JOIN {cvterm} CVT on CVT.cvterm_id = NP.type_id
+      INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
+      INNER JOIN {db} DB on DB.db_id = DBX.db_id
+    WHERE
+      NP.network_id IN (:ids) AND
+      DB.name = :db_name AND
+      DBX.accession = :accession;
+  ";
+  $args = [
+    ':ids' => $ids,
+    ':db_name' => $term_split[0],
+    ':accession' => $term_split[1],
+  ];
+  $results = chado_query($sql, $args);
+  while ($property = $results->fetchObject()) {
+    $props[$property->network_id] = $property->value;
+  }
+  return $props;
+}
+
+/**
  * Retreives properties of one or more nodes.
  *
  * This function accepts either feature IDs or network node IDs.  If

@@ -12,7 +12,50 @@
   // goes in this section
   $(document).ready(function() {
    
+    $(".tripal-network-viewer-sidebar-box-header-toggle-on").click(function() {
+      var parent = $(this).parent().parent().attr('id');
+      $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-on").hide();
+      $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-off").show();
+      $("#" + parent + " .tripal-network-viewer-sidebar-box-content").show();
+      $("#" + parent + " .tripal-network-viewer-sidebar-box-content").show();
+    })
+    
+    $(".tripal-network-viewer-sidebar-box-header-toggle-off").click(function() {
+      var parent = $(this).parent().parent().attr('id');
+      $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-on").show();
+      $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-off").hide();
+      $("#" + parent + " .tripal-network-viewer-sidebar-box-content").hide();
+    })
+  
   });
+  
+  /**
+   *
+   */
+  $.fn.updateDisplayForm = function(args) {
+    var network_id = args['network_id'];
+    var layer_by = args['layer_by'];
+    var display_by = args['display_by'];
+    
+    $.ajax({
+      // The baseurl is a variable set by Tripal that indicates the
+      // "base" of the URL for this site.
+      url: baseurl + '/networks/viewer/displayform',
+      type: "GET",
+      dataType: 'html',
+      data: {
+         'network_id': network_id, 
+         'layer_by': layer_by, 
+         'display_by': display_by
+      },
+      success: function(response) {
+        $('#tripal-network-viewer-display-details form').replaceWith(response);
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+      }
+    }) 
+  };
    
    /**
    * Retrieves the network using filtering criteria.
@@ -36,6 +79,10 @@
     // by the tripal_network module of Drupal via the data function. 
     var network_id = args['network_id'];
     var viewer_id = args['viewer_id'];
+    var layer_by = args['layer_by'];
+    var display_by = args['display_by'];
+    
+    $('#tripal-network-viewer-loading').show()
 
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
@@ -43,15 +90,27 @@
       url: baseurl + '/networks/viewer/retrieve',
       type: "GET",
       dataType: 'json',
-      data: {'network_id': network_id },
+      data: {
+         'network_id': network_id, 
+         'layer_by': layer_by, 
+         'display_by': display_by
+      },
       success: function(json) {
         response = json;
         Plotly.newPlot(viewer_id, response['data'], response['layout']);
+        $('#tripal-network-viewer-loading').hide();
+        $.fn.updateDisplayForm({
+         'network_id': network_id, 
+         'layer_by': layer_by, 
+         'display_by': display_by
+        });
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
       }
-    }) 
+    })
   };
+    
+
    
 })(jQuery);
