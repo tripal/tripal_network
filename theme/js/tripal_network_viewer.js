@@ -29,6 +29,9 @@
   
   });
   
+  /**
+   *
+   */
   $.fn.updateNodeDetails = function(args) {
      var node_id = args['node_id'];
      $.ajax({
@@ -37,11 +40,11 @@
       url: baseurl + '/networks/viewer/details/node',
       type: "GET",
       dataType: 'html',
-      data: {
-         'node_id': node_id, 
-      },
+      data: {'node_id': node_id},
       success: function(response) {
-        $('#tripal-network-viewer-node-details').replaceWith(response);
+        $('#tripal-network-viewer-node-details form').replaceWith(response);
+        Drupal.attachBehaviors();
+        $("#tripal-network-viewer-node-details .tripal-network-viewer-sidebar-box-content").show();
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
@@ -49,7 +52,9 @@
     }) 
   }
   
-  
+  /**
+   *
+   */
   $.fn.updateEdgeDetails = function(args) {
   }
   
@@ -65,7 +70,7 @@
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
-      url: baseurl + '/networks/viewer/displayform',
+      url: baseurl + '/networks/viewer/form/display',
       type: "GET",
       dataType: 'html',
       data: {
@@ -75,6 +80,7 @@
       },
       success: function(response) {
         $('#tripal-network-viewer-display-details form').replaceWith(response);
+        Drupal.attachBehaviors();
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
@@ -94,16 +100,12 @@
    * Drupal can only call JQuery functions which is why we're adding this
    * function to the $.fn variable.
    * 
-   * @param args
-   *   a JSON array with the following allowd keys:  network_id, feature_id,
-   *   and viewer. Where viewer_id is the name of the document element where
-   *   the viewer will be drawn.
+   * @param args 
    */
   $.fn.getNetwork = function(args) {
     // The data needed to retreive the network is provided to this function
     // by the tripal_network module of Drupal via the data function. 
     var network_id = args['network_id'];
-    var viewer_id = args['viewer_id'];
     var layer_by = args['layer_by'];
     var display_by = args['display_by'];
     
@@ -132,11 +134,11 @@
              'scale' : 10
            }
         };
-        Plotly.newPlot(viewer_id, response['data'], response['layout'], settings);
+        Plotly.newPlot('tripal-network-viewer', response['data'], response['layout'], settings);
         
         // Add event handlers. We don't use Jquery because it's not fully
         // compatible with Plotly.
-        var myPlot = document.getElementById(viewer_id)
+        var myPlot = document.getElementById('tripal-network-viewer')
         myPlot.on('plotly_click', function(data){  
           if (data['points'][0]['data']['mode'] == 'markers') {        
             $.fn.updateNodeDetails({'node_id': data['points'][0]['id']})

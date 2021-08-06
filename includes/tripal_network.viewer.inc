@@ -96,7 +96,8 @@ function tripal_network_viewer_ajax_get_display_form() {
     $settings .= drupal_json_encode(call_user_func_array('array_merge_recursive', $javascript['settings']['data']));
     $settings .=  ');</script>';
   }
-  return $form . $settings;
+  print $form . $settings;
+  die;
 }
 
 /**
@@ -105,10 +106,208 @@ function tripal_network_viewer_ajax_get_display_form() {
 function tripal_network_viewer_ajax_get_node_details() {
   $node_id = array_key_exists('node_id', $_GET) ? $_GET['node_id'] : NULL;
 
-  if ($node_id) {
+  $form = drupal_get_form('tripal_network_viewer_node_details_form', $node_id);
+  $form = drupal_render($form);
+
+  $settings = FALSE;
+  $javascript = drupal_add_js(NULL, NULL);
+  if(isset($javascript['settings'], $javascript['settings']['data'])) {
+    $settings = '<script type="text/javascript">jQuery.extend(Drupal.settings, ';
+    $settings .= drupal_json_encode(call_user_func_array('array_merge_recursive', $javascript['settings']['data']));
+    $settings .=  ');</script>';
   }
-  print $node_id;
+  print $form . $settings;
   die;
+}
+
+function tripal_network_viewer_node_details_form($form, &$form_state, $node_id = NULL) {
+
+  $default_field = 'summary';
+  if (array_key_exists('values', $form_state)) {
+    $node_id = array_key_exists('node_id', $form_state['values']) ? $form_state['values']['node_id'] : $node_id;
+    $default_field = array_key_exists('field_name', $form_state['values']) ? $form_state['values']['field_name'] : $default_field;
+  }
+
+  $table_fields = [];
+  $other_fields = [];
+  $selectable_fields = [
+    'summary' => 'Node Summary'
+  ];
+
+  $node_name = 'Click a node to view its details';
+  if ($node_id) {
+    $entity_id = chado_get_record_entity_by_table('feature', $node_id);
+    $entities = tripal_load_entity('TripalEntity', [$entity_id]);
+    $entity = NULL;
+    if (count($entities) == 1) {
+      $entity = $entities[$entity_id];
+      $bundle = tripal_load_bundle_entity(['name' => $entity->bundle]);
+
+      // Get information about the fields attached to this bundle and sort them
+      // in the order they were set for the display.
+      $instances = field_info_instances('TripalEntity', $bundle->name);
+      foreach ($instances as $field_name => $instance) {
+
+        // Skip hidden fields.
+        if ($instance['display']['default']['type'] == 'hidden') {
+          continue;
+        }
+        // Skip the network local viewer field
+        if ($field_name == 'sio__network_diagram') {
+          continue;
+        }
+
+        // Skip fields with no value
+        $field = field_info_field($field_name);
+        $field_items = field_get_items('TripalEntity', $entity, $field_name);
+        if (tripal_field_is_empty($field, $field_items)) {
+          continue;
+        }
+
+        // Add this field for display in the summary table.
+        if ($field['cardinality'] == 1) {
+          $table_fields[$instance['display']['default']['weight']] = $instance;
+        }
+        else {
+          $selectable_fields[$field_name] = $instance['label'];
+          $other_fields[$field_name] = $instance;
+        }
+      }
+
+      // Set the title for the panel.
+      $node_name = '<h3>Node: ' . $entity->title . '</h3>';
+    }
+  }
+
+  $details = '';
+  if ($default_field == 'summary') {
+    $rows = [];
+    foreach ($table_fields as $instance) {
+      $field_name  = $instance['field_name'];
+      $display = $instance['display']['default'];
+      $value = $entity->$field_name['und'][0]['value'];
+      if ($instance['entity_type'] == 'TripalEntity') {
+        $field = field_info_field($field_name);
+        $items = field_get_items('TripalEntity', $entity, $field_name);
+        $formatter_class = $display['type'];
+        $element = [];
+        if (tripal_load_include_field_class($formatter_class)) {
+          $element=[];
+          $formatter = new $formatter_class($field, $instance);
+          $formatter->view($element, 'TripalEntity', $entity, 'und', $items, $display);
+          $value = drupal_render($element);
+        }
+      }
+      $rows[] = [
+        [
+          'data' => $instance['label'],
+          'header' => TRUE,
+          'width' => '20%',
+        ],
+        $value,
+      ];
+    }
+    $headers = ['Attribute', 'Value'];
+    $summary_table = [
+      'header' => $headers,
+      'rows' => $rows,
+      'attributes' => [],
+      'caption' => '',
+      'sticky' => TRUE,
+      'colgroups' => [],
+      'empty' => 'No attributes for this node',
+    ];
+    $details = theme_table($summary_table);
+  }
+  else {
+    $field = field_info_field($default_field);
+    $instance = $other_fields[$default_field];
+    $items = field_get_items('TripalEntity', $entity, $default_field);
+    $display = $instance['display']['default'];
+    $formatter_class = $display['type'];
+    $element = [];
+    if (tripal_load_include_field_class($formatter_class)) {
+      $element = [];
+      $formatter = new $formatter_class($field, $instance);
+      $formatter->view($element, 'TripalEntity', $entity, 'und', $items, $display);
+      $details = drupal_render($element);
+    }
+  }
+
+
+  $form['feature_id'] = [
+    '#type' => 'value',
+    '#value' => $node_id,
+    '#prefix' => '<div id="tripal-network-viewer-node-details-form">',
+  ];
+
+  $form['field_name'] = [
+    '#type' => 'select',
+    '#title' => 'Node Information',
+    '#options' => $selectable_fields,
+    '#default_value' => $default_field,
+    '#description' => t('Select the type of information to show about this node.'),
+    '#ajax' => array(
+      'callback' => 'tripal_network_viewer_node_details_form_ajax_callback',
+      'wrapper'  => 'tripal-network-viewer-node-details-form',
+      'effect'   => 'fade',
+      'method'   => 'replace',
+    ),
+  ];
+
+  $form['feature_name'] = [
+    '#type' => 'markup',
+    '#markup' => $node_name,
+  ];
+  $form['details'] = [
+    '#type' => 'markup',
+    '#markup' => $details,
+    '#suffix' => '</div>',
+  ];
+
+
+  return $form;
+}
+
+/**
+ *
+ */
+function tripal_network_viewer_ajax_get_edge_details() {
+  $node_id = array_key_exists('edge_id', $_GET) ? $_GET['edge_id'] : NULL;
+
+  $form = drupal_get_form('tripal_network_viewer_edge_details_form', $node_id);
+  $form = drupal_render($form);
+
+  $settings = FALSE;
+  $javascript = drupal_add_js(NULL, NULL);
+  if(isset($javascript['settings'], $javascript['settings']['data'])) {
+    $settings = '<script type="text/javascript">jQuery.extend(Drupal.settings, ';
+    $settings .= drupal_json_encode(call_user_func_array('array_merge_recursive', $javascript['settings']['data']));
+    $settings .=  ');</script>';
+  }
+  print $form . $settings;
+  die;
+}
+
+/**
+ *
+ */
+function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id = NULL) {
+
+  $edge_name = 'Click an edge to view its details';
+  if ($edge_id) {
+
+  }
+
+  $form['feature_id'] = [
+    '#type' => 'value',
+    '#value' => $edge_id,
+  ];
+  $form['feature_name'] = [
+    '#type' => 'markup',
+    '#markup' => $edge_name,
+  ];
+  return $form;
 }
 
 /**
@@ -366,7 +565,6 @@ function tripal_network_viewer_network_form_ajax_callback($form, $form_state) {
 
   $args = [
     'network_id' => $network_id,
-    'viewer_id' => 'tripal-network-viewer'
   ];
 
   // Tell Drupal to update the network
@@ -459,6 +657,12 @@ function tripal_network_viewer_display_form($form, &$form_state,
   return $form;
 }
 
+/**
+ *
+ */
+function tripal_network_viewer_node_details_form_ajax_callback($form, $form_state){
+  return $form;
+}
 /**
  *
  */

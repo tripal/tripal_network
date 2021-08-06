@@ -8,9 +8,8 @@ drupal_add_js('https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js');
 drupal_add_js($js_path . '/tripal_network_viewer.js');
 drupal_add_css($css_path . '/tripal_network_viewer.css', 'external');
 
-$viewer_id = 'tripal-network-viewer';
 if ($network_id) {
-  drupal_add_js("(function(\$) {\$.fn.getNetwork({'network_id': $network_id, 'viewer_id': '$viewer_id'}); })(jQuery);", 'inline');
+  drupal_add_js("(function(\$) {\$.fn.getNetwork({'network_id': $network_id); })(jQuery);", 'inline');
 }
 
 $network_form = drupal_get_form('tripal_network_viewer_network_form', $network_id);
@@ -18,6 +17,12 @@ $network_form = drupal_render($network_form);
 
 $display_form = drupal_get_form('tripal_network_viewer_display_form', $network_id);
 $display_form = drupal_render($display_form);
+
+$node_details = drupal_get_form('tripal_network_viewer_node_details_form');
+$node_details = drupal_render($node_details);
+
+$edge_details = drupal_get_form('tripal_network_viewer_edge_details_form');
+$edge_details = drupal_render($edge_details);
 
 ?>
 <div id="tripal-network-viewer-app">
@@ -51,6 +56,7 @@ $display_form = drupal_render($display_form);
         	<h2>Node</h2>
         </div>
         <div class="tripal-network-viewer-sidebar-box-content">
+          <?php print $node_details ?>
         </div>
      </div>
      <div id="tripal-network-viewer-edge-details" class="tripal-network-viewer-sidebar-box">
@@ -60,6 +66,7 @@ $display_form = drupal_render($display_form);
         	<h2>Edge</h2>
       </div>
         <div class="tripal-network-viewer-sidebar-box-content">
+        <?php print $edge_details ?>
         </div>
      </div>
    </div>
