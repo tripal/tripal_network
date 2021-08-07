@@ -228,6 +228,12 @@
         $.fn.updateNetworkDetailsForm({
           'network_id': network_id, 
         });
+        
+        if (selected_node) {
+          var data = selected_node;
+          selected_node = null;
+          $.fn.selectNode(data);
+        }
 
         // Turn off the spinner.
         $('#tripal-network-viewer-loading').hide();
