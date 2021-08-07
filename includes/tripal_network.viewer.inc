@@ -600,6 +600,9 @@ function tripal_network_viewer_ajax_retrieve() {
       $layer_categories[$value] = 1;
     }
   }
+  $layer_categories = array_keys($layer_categories);
+  asort($layer_categories);
+
   // For quantitative properties get min/max.
   $color_max = -INF;
   $color_min = INF;
@@ -620,6 +623,8 @@ function tripal_network_viewer_ajax_retrieve() {
       $color_categories[$value] = 1;
     }
   }
+  $color_categories = array_keys($color_categories);
+  asort($color_categories);
 
   // Calculate the node size.
   $sizes = [];
@@ -643,7 +648,7 @@ function tripal_network_viewer_ajax_retrieve() {
   foreach ($edges as $network_edge_id => $edge) {
     $z = array_key_exists($network_edge_id, $layerprop) ? $layerprop[$network_edge_id] : 0;
     if ($layer_by == 'SWO:0000425') {
-      $z = abs($z);
+      $z = round(abs($z), 2);
     }
     if ($layer_by == 'NCIT:C48904') {
       $num_rank_bins = $layer_max / 100;
@@ -653,10 +658,12 @@ function tripal_network_viewer_ajax_retrieve() {
       $z = -log10($z);
     }
     if ($layer_by == 'local:KINC_test_name') {
-      $z = array_search($z, array_keys($layer_categories));
-      $num_cat_bins = count(array_keys($layer_categories)) / 100;
+      $z = array_search($z, $layer_categories);
+      $num_cat_bins = count($layer_categories) / 100;
       $z = round($z/$num_cat_bins);
+      $z = $z - ($z % 5);
     }
+
     $edge_coords[$network_edge_id] = [
       'source' => [
         'x' => $node_coords[$edge->node1_id]['x'],
@@ -670,8 +677,8 @@ function tripal_network_viewer_ajax_retrieve() {
       ],
     ];
     // Move the node's z-coordinate to the highest value score.
-    $node_coords[$edge->node1_id]['z'] = max($z, $node_coords[$edge->node1_id]['z']);
-    $node_coords[$edge->node2_id]['z'] = max($z, $node_coords[$edge->node2_id]['z']);
+    $node_coords[$edge->node1_id]['z'] = $z;
+    $node_coords[$edge->node2_id]['z'] = $z;
   }
 
   // Create the node trace
@@ -744,8 +751,8 @@ function tripal_network_viewer_ajax_retrieve() {
       $trace_name = $ci;
     }
     if ($color_by == 'local:KINC_test_name') {
-      $ci = array_search($ci, array_keys($color_categories));
-      $num_cat_bins = count(array_keys($color_categories)) / 100;
+      $ci = array_search($ci, $color_categories);
+      $num_cat_bins = count($color_categories) / 100;
       $ci = round($ci/$num_cat_bins);
       $ci = $ci - ($ci % 5);
       $trace_name = $colorprop[$network_edge_id];
@@ -786,11 +793,9 @@ function tripal_network_viewer_ajax_retrieve() {
   if ($color_by == 'local:KINC_test_name') {
     $tick_vals = array_keys($tick_vals);
     arsort($tick_vals);
-    $layout['scene']['zaxis']['title'] = '';
     $layout['scene']['zaxis']['tickmode'] = 'array';
     $layout['scene']['zaxis']['tickvals'] = $tick_vals;
     $layout['scene']['zaxis']['ticktext'] = array_keys($edges_trace);
-    $layout['scene']['zaxis']['nticks'] = count($tick_vals);
   }
   else {
     $layout['scene']['zaxis']['tickmode'] = 'auto';
