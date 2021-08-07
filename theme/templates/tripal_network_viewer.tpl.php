@@ -33,8 +33,18 @@ $edge_details = drupal_render($edge_details);
 <div id="tripal-network-viewer-app">
    <div id="tripal-network-viewer-loading"><img src="<?php print $theme_path?>/images/loading.gif"></div>
    <div id="tripal-network-viewer-sidebar">
-     <h1><?php print $site_name ?> Tripal Network Viewer</h1>
-     <?php print $network_form ?>
+     <?php print l('Site Home', '/')?>
+     <h1><?php print $site_name ?> Network Viewer</h1>
+     <div id="tripal-network-viewer-network-select" class="tripal-network-viewer-sidebar-box">
+     	 <div class="tripal-network-viewer-sidebar-box-header">
+     	   <img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
+         <img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
+     	   <h2>Network Selection</h2>
+     	 </div>
+     	 <div class="tripal-network-viewer-sidebar-box-content">
+     	   <?php print $network_form ?>
+     	 </div>
+     </div>
      <div id="tripal-network-viewer-display-details" class="tripal-network-viewer-sidebar-box">
         <div class="tripal-network-viewer-sidebar-box-header">
         	<img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
@@ -78,11 +88,14 @@ $edge_details = drupal_render($edge_details);
    </div>
    <div id="tripal-network-viewer-display"><div id="tripal-network-viewer"></div></div>
    <div id="tripal-network-viewer-footer">
-      <div class="tripal-network-viewer-footer-item">
+      <div class="tripal-network-viewer-footer-item-left">
+        <br>This viewer is provided by the <br><?php print l('Tripal Network Module', 'https://github.com/tripal/tripal_network')?>
+      </div>
+      <div class="tripal-network-viewer-footer-item-right">
         <img src="<?php print $theme_path?>/images/powered_by_tripal_small.png"><br>
         Powered by <?php print l('Tripal', 'https://tripal.info')?>
       </div>
-      <div class="tripal-network-viewer-footer-item">
+      <div class="tripal-network-viewer-footer-item-right">
         <img src="<?php print $theme_path?>/images/inspired_by_KINC_small.png"><br>
          Inspired by <?php print l('KINC', 'https://kinc.readthedocs.io/')?>
       </div>

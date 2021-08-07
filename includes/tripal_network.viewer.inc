@@ -69,7 +69,7 @@ function tripal_network_viewer_layout(){
         'showgrid' => FALSE,
         'showticklabels' => TRUE,
         'showspikes' => FALSE,
-        'title' => 'Similarity Score',
+        'title' => '',
         'color'=> "#000000"
       ]
     ],
@@ -153,6 +153,7 @@ function tripal_network_viewer_node_details_form($form, &$form_state, $node_id =
   $selectable_fields = [
     'summary' => 'Node Summary'
   ];
+  $entity = NULL;
 
   $node_name = 'Click a node to view its details';
   if ($node_id) {
@@ -285,11 +286,13 @@ function tripal_network_viewer_node_details_form($form, &$form_state, $node_id =
     '#prefix' => '<div id="tripal-network-viewer-node-details-details">',
     '#suffix' => '</div>',
   ];
+  $link = '';
+  if ($entity) {
+    $link = l("View full node page", 'bio_data/'. $entity->id, ['attributes' => ['target' => '_blank']]);
+  }
   $form['link'] = [
     '#type' => 'markup',
-    '#markup' => '<div id="tripal-network-viewer-node-link">' .
-      l("View full node page", 'bio_data/'. $entity->id, ['attributes' => ['target' => '_blank']]) .
-      '</div>',
+    '#markup' => '<div id="tripal-network-viewer-node-link">' . $link  . '</div>',
     '#suffix' => '</div>',
   ];
 
@@ -328,7 +331,7 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
   }
 
   $edge_name = 'Click an edge to view its details';
-
+  $details = '';
   if ($edge_id) {
     $sql = "
       SELECT FS.name as source, FT.name as target
@@ -409,6 +412,7 @@ function tripal_network_viewer_network_details_form($form, &$form_state, $networ
   }
 
   $network_name = 'Select a network to view its details';
+  $details = '';
 
   if ($network_id) {
     $network_name = 'Network Attributes';
@@ -463,19 +467,8 @@ function tripal_network_viewer_network_details_form($form, &$form_state, $networ
   return $form;
 }
 
-/**
- *
- */
-function tripal_network_viewer_ajax_retrieve() {
-  // Get the fitering variables requested by the user.
-  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
-  $feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : NULL;
-  $layer_by = array_key_exists('layer_by', $_GET) ? $_GET['layer_by'] : NULL;
-  $color_by = array_key_exists('color_by', $_GET) ? $_GET['color_by'] : NULL;
-
-  $layout = tripal_network_viewer_layout();
-
-  $edges_trace = [
+function tripal_network_viewer_create_edge_trace($name) {
+  return [
     'mode' => 'lines',
     'type' => 'scatter3d',
     'line' => [
@@ -483,7 +476,7 @@ function tripal_network_viewer_ajax_retrieve() {
       'width' => 2,
       'opacity' => 0.9,
     ],
-    'name' => 'Edge',
+    'name' => $name,
     'ids' => [],
     'hovertemplate'=> "%{text}",
     'x' => [],
@@ -491,6 +484,20 @@ function tripal_network_viewer_ajax_retrieve() {
     'z' => [],
     'text' => [],
   ];
+}
+/**
+ *
+ */
+function tripal_network_viewer_ajax_retrieve() {
+  // Get the fitering variables requested by the user.
+  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
+  $feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : NULL;
+  $layer_by = array_key_exists('layer_by', $_GET) ? $_GET['layer_by'] : 'SWO:0000425';
+  $color_by = array_key_exists('color_by', $_GET) ? $_GET['color_by'] : 'SWO:0000425';
+
+  $layout = tripal_network_viewer_layout();
+
+  $edges_trace = [];
 
   $nodes_trace = [
     'mode'  => 'markers',
@@ -564,7 +571,55 @@ function tripal_network_viewer_ajax_retrieve() {
   $x_coords = tripal_network_get_nodeprops(array_keys($nodes), 'feature_id', $network_id, 'SIO:000400');
   $y_coords = tripal_network_get_nodeprops(array_keys($nodes), 'feature_id', $network_id, 'SIO:000401');
   $degree = tripal_network_get_nodeprops(array_keys($nodes), 'feature_id', $network_id, 'OBI:0200130');
-  $simscores = tripal_network_get_edgeprops(array_keys($edges), 'SWO:0000425');
+
+  $layerprop = tripal_network_get_edgeprops(array_keys($edges), $layer_by);
+  if ($layer_by != $color_by) {
+    $colorprop = tripal_network_get_edgeprops(array_keys($edges), $color_by);
+  }
+  else {
+    $colorprop = $layerprop;
+  }
+
+  // For quantitative properties get min/max.
+  $layer_max = -INF;
+  $layer_min = INF;
+  $layer_categories = [];
+  if ($layer_by == 'NCIT:C48904' or $layer_by == 'SWO:0000425' or
+      $layer_by == 'local:KINC_pvalue' or $layer_by == 'local:KINC_rsquared') {
+    foreach ($layerprop as $value) {
+      if ($value > $layer_max) {
+        $layer_max = $value;
+      }
+      if ($value < $layer_min) {
+        $layer_min = $value;
+      }
+    }
+  }
+  else {
+    foreach ($layerprop as $value) {
+      $layer_categories[$value] = 1;
+    }
+  }
+  // For quantitative properties get min/max.
+  $color_max = -INF;
+  $color_min = INF;
+  $color_categories = [];
+  if ($color_by == 'NCIT:C48904' or $color_by == 'SWO:0000425' or
+      $color_by == 'local:KINC_pvalue' or $color_by == 'local:KINC_rsquared') {
+    foreach ($colorprop as $value) {
+      if ($value > $color_max) {
+        $color_max = $value;
+      }
+      if ($value < $color_min) {
+        $color_min = $value;
+      }
+    }
+  }
+  else {
+    foreach ($colorprop as $value) {
+      $color_categories[$value] = 1;
+    }
+  }
 
   // Calculate the node size.
   $sizes = [];
@@ -572,7 +627,7 @@ function tripal_network_viewer_ajax_retrieve() {
     $sizes[$node_id] = max(round(log10($value)*10), 5);
   }
 
-  // Calculate teh x,y,z coordianates for nodes and edges.
+  // Set the x,y coordianates for nodes and edges.
   $node_coords = [];
   foreach ($nodes as $node_id => $node_name) {
     $x = array_key_exists($node_id, $x_coords) ? $x_coords[$node_id] : mt_rand(0, 10);
@@ -586,8 +641,22 @@ function tripal_network_viewer_ajax_retrieve() {
 
   $edge_coords = [];
   foreach ($edges as $network_edge_id => $edge) {
-    $z = array_key_exists($network_edge_id, $simscores) ? $simscores[$network_edge_id] : 0;
-    $z = abs($z);
+    $z = array_key_exists($network_edge_id, $layerprop) ? $layerprop[$network_edge_id] : 0;
+    if ($layer_by == 'SWO:0000425') {
+      $z = abs($z);
+    }
+    if ($layer_by == 'NCIT:C48904') {
+      $num_rank_bins = $layer_max / 100;
+      $z = 100 - round($z/$num_rank_bins);
+    }
+    if ($layer_by == 'local:KINC_pvalue') {
+      $z = -log10($z);
+    }
+    if ($layer_by == 'local:KINC_test_name') {
+      $z = array_search($z, array_keys($layer_categories));
+      $num_cat_bins = count(array_keys($layer_categories)) / 100;
+      $z = round($z/$num_cat_bins);
+    }
     $edge_coords[$network_edge_id] = [
       'source' => [
         'x' => $node_coords[$edge->node1_id]['x'],
@@ -620,57 +689,125 @@ function tripal_network_viewer_ajax_retrieve() {
   // this is the easiest way to get the colors in PHP.
   // https://waldyrious.net/viridis-palette-generator/
   $virdis_colors = [
-    '1' => 'rgb(253, 231, 37)',
-    '0.95' => 'rgb(223, 227, 24)',
-    '0.9' => 'rgb(189, 223, 38)',
-    '0.85' => 'rgb(155, 217, 60)',
-    '0.8' => 'rgb(122, 209, 81)',
-    '0.75' => 'rgb(94, 201, 98)',
-    '0.7' => 'rgb(68, 191, 112)',
-    '0.65' => 'rgb(47, 180, 124)',
-    '0.6' => 'rgb(34, 168, 132)',
-    '0.55' => 'rgb(30, 156, 137)',
-    '0.5' => 'rgb(33, 145, 140)',
-    '0.45' => 'rgb(37, 132, 142)',
-    '0.4' => 'rgb(42, 120, 142)',
-    '0.35' => 'rgb(47, 108, 142)',
-    '0.3' => 'rgb(53, 95, 141)',
-    '0.25' => 'rgb(59, 82, 139)',
-    '0.2' => 'rgb(65, 68, 135)',
-    '0.15' => 'rgb(70, 52, 128)',
-    '0.1' => 'rgb(72, 36, 117)',
-    '0.05' => 'rgb(71, 19, 101)',
+    '100' => 'rgb(253, 231, 37)',
+    '95' => 'rgb(223, 227, 24)',
+    '90' => 'rgb(189, 223, 38)',
+    '85' => 'rgb(155, 217, 60)',
+    '80' => 'rgb(122, 209, 81)',
+    '75' => 'rgb(94, 201, 98)',
+    '70' => 'rgb(68, 191, 112)',
+    '65' => 'rgb(47, 180, 124)',
+    '60' => 'rgb(34, 168, 132)',
+    '55' => 'rgb(30, 156, 137)',
+    '50' => 'rgb(33, 145, 140)',
+    '45' => 'rgb(37, 132, 142)',
+    '40' => 'rgb(42, 120, 142)',
+    '35' => 'rgb(47, 108, 142)',
+    '30' => 'rgb(53, 95, 141)',
+    '25' => 'rgb(59, 82, 139)',
+    '20' => 'rgb(65, 68, 135)',
+    '15' => 'rgb(70, 52, 128)',
+    '10' => 'rgb(72, 36, 117)',
+    '5' => 'rgb(71, 19, 101)',
     '0' => 'rgb(68, 1, 84)',
   ];
 
 
+  $tick_vals = [];
   foreach ($edges as $network_edge_id => $edge) {
-    $edges_trace['x'][] = $edge_coords[$network_edge_id]['source']['x'];
-    $edges_trace['y'][] = $edge_coords[$network_edge_id]['source']['y'];
-    $edges_trace['z'][] = $edge_coords[$network_edge_id]['source']['z'];
-    $edges_trace['x'][] = $edge_coords[$network_edge_id]['target']['x'];
-    $edges_trace['y'][] = $edge_coords[$network_edge_id]['target']['y'];
-    $edges_trace['z'][] = $edge_coords[$network_edge_id]['target']['z'];
+    $ci = $colorprop[$network_edge_id];
+    $trace_name = '';
+    if ($color_by == 'SWO:0000425') {
+      if (!is_numeric($ci)) {
+        $ci = 0;
+      }
+      $ci = abs($ci);
+      $ci = strval(round(($ci * 2), 1) / 2) * 100;
+      $trace_name = $ci;
+    }
+    if ($color_by == 'NCIT:C48904') {
+      if (!is_numeric($ci)) {
+        $ci = 0;
+      }
+      $num_rank_bins = $color_max / 100;
+      $ci = 100 - round(round($ci)/$num_rank_bins);
+      $ci = $ci - ($ci % 5);
+      $trace_name = $ci;
+    }
+    if ($color_by == 'local:KINC_pvalue') {
+      if (!is_numeric($ci)) {
+        $ci = 0;
+      }
+      $num_pval_bins = round(-log10($color_min)) / 100;
+      $ci = round(round(-log10($ci))/$num_pval_bins);
+      $ci = $ci - ($ci % 5);
+      $trace_name = $ci;
+    }
+    if ($color_by == 'local:KINC_test_name') {
+      $ci = array_search($ci, array_keys($color_categories));
+      $num_cat_bins = count(array_keys($color_categories)) / 100;
+      $ci = round($ci/$num_cat_bins);
+      $ci = $ci - ($ci % 5);
+      $trace_name = $colorprop[$network_edge_id];
+    }
+
+    $trace_name = strval($trace_name);
+    if (!array_key_exists($trace_name, $edges_trace)) {
+      if (!is_scalar($trace_name)){
+        continue;
+      }
+      $edges_trace[$trace_name] = tripal_network_viewer_create_edge_trace($trace_name);
+    }
+
+    $tick_vals[$edge_coords[$network_edge_id]['target']['z']] = 1;
+    $edges_trace[$trace_name]['x'][] = $edge_coords[$network_edge_id]['source']['x'];
+    $edges_trace[$trace_name]['y'][] = $edge_coords[$network_edge_id]['source']['y'];
+    $edges_trace[$trace_name]['z'][] = $edge_coords[$network_edge_id]['source']['z'];
+    $edges_trace[$trace_name]['x'][] = $edge_coords[$network_edge_id]['target']['x'];
+    $edges_trace[$trace_name]['y'][] = $edge_coords[$network_edge_id]['target']['y'];
+    $edges_trace[$trace_name]['z'][] = $edge_coords[$network_edge_id]['target']['z'];
     // Add an empty entry to keep Plotly from adding an extra line.
-    $edges_trace['x'][] = NULL;
-    $edges_trace['y'][] = NULL;
-    $edges_trace['z'][] = NULL;
-    $edges_trace['ids'][] = $edge->network_edge_id;
-    $edges_trace['ids'][] = $edge->network_edge_id;
-    $edges_trace['ids'][] = $edge->network_edge_id;
-    $edges_trace['text'][] = $edge->node1 . ' (-) ' . $edge->node2;
-    $edges_trace['text'][] = $edge->node1 . ' (-) ' . $edge->node2;
-    $edges_trace['text'][] = $edge->node1 . ' (-) ' . $edge->node2;
-    $ci = $edge_coords[$network_edge_id]['target']['z'];
-    $ci = strval(round(($ci * 2),1) / 2);
-    $edges_trace['line']['color'][] = $virdis_colors[$ci];
-    $edges_trace['line']['color'][] = $virdis_colors[$ci];
-    $edges_trace['line']['color'][] = $virdis_colors[$ci];
+    $edges_trace[$trace_name]['x'][] = NULL;
+    $edges_trace[$trace_name]['y'][] = NULL;
+    $edges_trace[$trace_name]['z'][] = NULL;
+    $edges_trace[$trace_name]['ids'][] = $edge->network_edge_id;
+    $edges_trace[$trace_name]['ids'][] = $edge->network_edge_id;
+    $edges_trace[$trace_name]['ids'][] = $edge->network_edge_id;
+    $edges_trace[$trace_name]['text'][] = $edge->node1 . ' (-) ' . $edge->node2;
+    $edges_trace[$trace_name]['text'][] = $edge->node1 . ' (-) ' . $edge->node2;
+    $edges_trace[$trace_name]['text'][] = $edge->node1 . ' (-) ' . $edge->node2;
+    $edges_trace[$trace_name]['line']['color'][] = $virdis_colors[$ci];
+    $edges_trace[$trace_name]['line']['color'][] = $virdis_colors[$ci];
+    $edges_trace[$trace_name]['line']['color'][] = $virdis_colors[$ci];
   }
 
-  drupal_json_output(['data' => [$edges_trace, $nodes_trace], 'layout' => $layout]);
+  $layer_term = chado_get_cvterm(['id' => $layer_by]);
+  $layout['scene']['zaxis']['title'] = ucfirst($layer_term->name);
+  if ($color_by == 'local:KINC_test_name') {
+    $tick_vals = array_keys($tick_vals);
+    arsort($tick_vals);
+    $layout['scene']['zaxis']['title'] = '';
+    $layout['scene']['zaxis']['tickmode'] = 'array';
+    $layout['scene']['zaxis']['tickvals'] = $tick_vals;
+    $layout['scene']['zaxis']['ticktext'] = array_keys($edges_trace);
+    $layout['scene']['zaxis']['nticks'] = count($tick_vals);
+  }
+  else {
+    $layout['scene']['zaxis']['tickmode'] = 'auto';
+  }
+
+  krsort($edges_trace);
+  $data = array_merge([$nodes_trace], array_values($edges_trace));
+  drupal_json_output(['data' => $data, 'layout' => $layout]);
 }
 
+
+/**
+ *
+ */
+function tripal_network_viewer_get_z() {
+
+}
 /**
  *
  */
@@ -737,6 +874,12 @@ function tripal_network_viewer_display_form($form, &$form_state,
     $layer_by = array_key_exists('layer_by', $form_state['values']) ? $form_state['values']['layer_by'] : $layer_by;
     $color_by = array_key_exists('color_by', $form_state['values']) ? $form_state['values']['color_by'] : $color_by;
   }
+  if (!$layer_by) {
+    $layer_by = 'SWO:0000425';
+  }
+  if (!$color_by) {
+    $color_by = 'SWO:0000425';
+  }
 
 
   $allowed_layers = [
@@ -766,9 +909,10 @@ function tripal_network_viewer_display_form($form, &$form_state,
     $args = [':network_id' => $network_id];
     $results = chado_query($sql, $args);
     while ($record = $results->fetchObject()) {
+      $term = $record->db_name . ':' . $record->accession;
       // We only support specific fields
-      if (in_array($record->db_name . ':' . $record->accession, $allowed_layers)) {
-        $props[$record->cvterm_id] = $record->name;
+      if (in_array($term, $allowed_layers)) {
+        $props[$term] = $record->name;
       }
     }
   }
@@ -784,12 +928,6 @@ function tripal_network_viewer_display_form($form, &$form_state,
     '#options' => $props,
     '#default_value' => $layer_by,
     '#description' => t('Select a property to layer edges.'),
-    '#ajax' => array(
-      'callback' => 'tripal_network_viewer_display_form_ajax_callback',
-      'wrapper'  => 'tripal-network-viewer-display-form',
-      'effect'   => 'fade',
-      'method'   => 'replace',
-    ),
   ];
 
   $form['color_by'] = [
@@ -798,6 +936,10 @@ function tripal_network_viewer_display_form($form, &$form_state,
     '#options' => $props,
     '#default_value' => $color_by,
     '#description' => t('Select a property to color edges.'),
+  ];
+  $form['button'] = [
+    '#type' => 'submit',
+    '#value' => 'Update Display',
     '#ajax' => array(
       'callback' => 'tripal_network_viewer_display_form_ajax_callback',
       'wrapper'  => 'tripal-network-viewer-display-form',

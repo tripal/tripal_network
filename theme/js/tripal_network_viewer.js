@@ -25,6 +25,8 @@
       $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-off").hide();
       $("#" + parent + " .tripal-network-viewer-sidebar-box-content").show();
     })
+    
+    $.fn.showBox('#tripal-network-viewer-network-select');
   
   });
   
@@ -102,7 +104,7 @@
   $.fn.updateDisplayForm = function(args) {
     var network_id = args['network_id'];
     var layer_by = args['layer_by'];
-    var display_by = args['display_by'];
+    var color_by = args['color_by'];
     
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
@@ -113,7 +115,7 @@
       data: {
          'network_id': network_id, 
          'layer_by': layer_by, 
-         'display_by': display_by
+         'color_by': color_by
       },
       success: function(response) {
         $('#tripal-network-viewer-display-details form').replaceWith(response);
@@ -124,6 +126,7 @@
       }
     }) 
    };
+   
    /**
    *
    */
@@ -168,7 +171,7 @@
     // by the tripal_network module of Drupal via the data function. 
     var network_id = args['network_id'];
     var layer_by = args['layer_by'];
-    var display_by = args['display_by'];
+    var color_by = args['color_by'];
     
     $('#tripal-network-viewer-loading').show()
 
@@ -181,7 +184,7 @@
       data: {
          'network_id': network_id, 
          'layer_by': layer_by, 
-         'display_by': display_by
+         'color_by': color_by
       },
       success: function(json) {
         response = json;
@@ -214,7 +217,7 @@
         $.fn.updateDisplayForm({
           'network_id': network_id, 
           'layer_by': layer_by, 
-          'display_by': display_by
+          'color_by': color_by
         });
         
         // Update the network details

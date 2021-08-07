@@ -61,8 +61,6 @@ h3 {
   position: absolute; 
   left: 0px;
   top: 0px;
-  height: 100vh;
-  width: 100vw;
   z-index: 0;
 }
 
@@ -82,12 +80,14 @@ h3 {
   color: black;
   padding: 0px;
   margin-bottom: 10px;
-  background-color: #EEEEEE;
+  background-color: #FFFFFF;
   border-radius: 10px;
+  border-style: solid;
+  border-width: 2px;
 }
 
 .tripal-network-viewer-sidebar-box-header {
-  background-color: #AAAAAA;
+  background-color: #CCCCCC;
   color: black;
   margin: 0px;
   padding: 10px;
@@ -114,20 +114,23 @@ h3 {
   margin: 0px;
   padding: 10px;
   border-radius: 10px;
-  display: none;
+  display: none;  
 }
 
 #tripal-network-viewer-footer {
   position: absolute;
-  bottom: 10px;
+  bottom: 0px;
   left: 0px;
-  z-index: 200;
+  z-index: 99;
   width: 100vw;
   background-color: white;
 }
-.tripal-network-viewer-footer-item {
-  margin-top: 10px;
-  margin-right: 50px;
+.tripal-network-viewer-footer-item-left {
+  margin: 10px 50px 10px 10px;
+  float: left;
+}
+.tripal-network-viewer-footer-item-right {
+  margin: 10px 50px 10px 10px;
   float: right;
 }
 .tripal-network-viewer-footer-item img {
