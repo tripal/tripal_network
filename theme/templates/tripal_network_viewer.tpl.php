@@ -1,11 +1,10 @@
 <?php
 $site_name = variable_get('site_name');
-$network_id = $variables['network_id'];
 
 $theme_path = url(drupal_get_path('module', 'tripal_network') . '/theme', array('absolute' => TRUE));
 $js_path = url(drupal_get_path('module', 'tripal_network') . '/theme/js', array('absolute' => TRUE));
 $css_path = url(drupal_get_path('module', 'tripal_network') . '/theme/css', array('absolute' => TRUE));
-drupal_add_js('https://cdn.plot.ly/plotly-2.3.0.min.js');
+drupal_add_js('https://cdn.plot.ly/plotly-2.3.1.min.js');
 drupal_add_js('https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js');
 drupal_add_js($js_path . '/tripal_network_viewer.js');
 drupal_add_css($css_path . '/tripal_network_viewer.css', 'external');

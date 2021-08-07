@@ -1,5 +1,6 @@
 (function($) {
    
+   var selected_node = null;
   
   // All code within this Drupal.behavior.tripal_network array is 
   // executed everytime a page load occurs or when an ajax call returns.
@@ -203,12 +204,15 @@
         // Add event handlers. We don't use Jquery because it's not fully
         // compatible with Plotly.
         var myPlot = document.getElementById('tripal-network-viewer')
-        myPlot.on('plotly_click', function(data){  
-          if (data['points'][0]['data']['mode'] == 'markers') {        
-            $.fn.updateNodeDetails({'node_id': data['points'][0]['id']})
+        myPlot.on('plotly_click', function(data){ 
+          var mode =  data['points'][0]['data']['mode'];
+          var id = data['points'][0]['id'];
+          if (mode == 'markers') {
+            $.fn.selectNode(data);            
+            $.fn.updateNodeDetails({'node_id': id})
           }
-           if (data['points'][0]['data']['mode'] == 'lines') {        
-            $.fn.updateEdgeDetails({'edge_id': data['points'][0]['id']})
+          if (mode == 'lines') {        
+            $.fn.updateEdgeDetails({'edge_id': id})
           }
         });
         
@@ -234,7 +238,38 @@
       }
     })
   };
+  
+  /**
+   *
+   */
+  $.fn.selectNode = function(data) {       
+    var update = {};
+    var id = data['points'][0]['id'];
+    var sid = null;
     
+    if (selected_node ) {
+      var sid = selected_node['points'][0]['id'];
+      if (id != sid) {
+        var spn = selected_node['points'][0]['pointNumber'];
+        var stn = selected_node['points'][0]['curveNumber'];
+        var smarker = selected_node['points'][0]['data']['marker'];
+        smarker['color'][spn] = '#AAAAAA';
+        update = {'marker': smarker};
+        selected_node = null;
+        Plotly.restyle('tripal-network-viewer', update, [stn]);
+      }
+    }
+    
+    if (id != sid) {
+      var pn = data['points'][0]['pointNumber'];
+      var tn = data['points'][0]['curveNumber'];
+      var marker = data.points[0]['data']['marker'];
+      marker['color'][pn] = '#FF0000';
+      update = {'marker': marker};
+      selected_node = data;
+      Plotly.restyle('tripal-network-viewer', update, [tn]);
+    }
+  }
 
    
 })(jQuery);

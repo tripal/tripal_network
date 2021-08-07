@@ -677,8 +677,15 @@ function tripal_network_viewer_ajax_retrieve() {
       ],
     ];
     // Move the node's z-coordinate to the highest value score.
-    $node_coords[$edge->node1_id]['z'] = $z;
-    $node_coords[$edge->node2_id]['z'] = $z;
+    if ($layer_by == 'SWO:0000425' or $layer_By = 'NCIT:C48904' or $layer_by == 'local:KINC_pvalue') {
+      $node_coords[$edge->node1_id]['z'] = max($z, $node_coords[$edge->node1_id]['z']);
+      $node_coords[$edge->node2_id]['z'] = max($z, $node_coords[$edge->node1_id]['z']);
+    }
+    if ($layer_by == 'local:KINC_test_name') {
+      $node_coords[$edge->node1_id]['z'] = $z;
+      $node_coords[$edge->node1_id]['z'] = $z;
+    }
+
   }
 
   // Create the node trace
@@ -760,9 +767,6 @@ function tripal_network_viewer_ajax_retrieve() {
 
     $trace_name = strval($trace_name);
     if (!array_key_exists($trace_name, $edges_trace)) {
-      if (!is_scalar($trace_name)){
-        continue;
-      }
       $edges_trace[$trace_name] = tripal_network_viewer_create_edge_trace($trace_name);
     }
 
