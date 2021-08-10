@@ -10,7 +10,7 @@ drupal_add_js($js_path . '/tripal_network_viewer.js');
 drupal_add_css($css_path . '/tripal_network_viewer.css', 'external');
 
 if ($network_id) {
-  drupal_add_js("(function(\$) {\$.fn.getNetwork({'network_id': $network_id); })(jQuery);", 'inline');
+  drupal_add_js("(function(\$) { $(document).ready(function() { \$.fn.getNetwork({'network_id': $network_id }); }); })(jQuery);", 'inline');
 }
 
 $network_form = drupal_get_form('tripal_network_viewer_network_form', $network_id);

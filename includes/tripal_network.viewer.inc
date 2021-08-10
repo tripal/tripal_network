@@ -797,13 +797,10 @@ function tripal_network_viewer_ajax_retrieve() {
   if ($color_by == 'local:KINC_test_name') {
     $tick_vals = array_keys($tick_vals);
     arsort($tick_vals);
-    $layout['scene']['zaxis']['tickmode'] = 'array';
     $layout['scene']['zaxis']['tickvals'] = $tick_vals;
-    $layout['scene']['zaxis']['ticktext'] = array_keys($edges_trace);
   }
-  else {
-    $layout['scene']['zaxis']['tickmode'] = 'auto';
-  }
+  $layout['scene']['zaxis']['tickmode'] = 'array';
+  $layout['scene']['zaxis']['ticktext'] = array_keys($edges_trace);
 
   krsort($edges_trace);
   $data = array_merge([$nodes_trace], array_values($edges_trace));

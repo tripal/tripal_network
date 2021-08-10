@@ -1,6 +1,13 @@
 (function($) {
    
    var selected_node = null;
+   var selected_edge = null;
+   var selected_edge_prev_color = null;
+   
+   // Plotly has a bug. When a relayout is called it triggers a click
+   // event which causes an eternal loop. So, we'll use this to keep 
+   // that loop from happening when nodes and edges are being selected.
+   var in_selection = false;
   
   // All code within this Drupal.behavior.tripal_network array is 
   // executed everytime a page load occurs or when an ajax call returns.
@@ -28,7 +35,7 @@
     })
     
     $.fn.showBox('#tripal-network-viewer-network-select');
-  
+   
   });
   
   /**
@@ -211,7 +218,8 @@
             $.fn.selectNode(data);            
             $.fn.updateNodeDetails({'node_id': id})
           }
-          if (mode == 'lines') {        
+          if (mode == 'lines') {   
+            $.fn.selectEdge(data);     
             $.fn.updateEdgeDetails({'edge_id': id})
           }
         });
@@ -229,10 +237,19 @@
           'network_id': network_id, 
         });
         
+        // If the graph is reloaded we want to preserve the selected 
+        // node.
         if (selected_node) {
           var data = selected_node;
           selected_node = null;
           $.fn.selectNode(data);
+        }
+        
+        // If the graph is reloaded do not preserve the highlight of the 
+        // selected node.
+        if (selected_edge) {
+          selected_edge = null;
+          selected_edge_prev_color = null;
         }
 
         // Turn off the spinner.
@@ -245,36 +262,80 @@
     })
   };
   
-  /**
+  
+    /**
    *
    */
   $.fn.selectNode = function(data) {       
     var update = {};
-    var id = data['points'][0]['id'];
-    var sid = null;
+    
+    if (in_selection) {
+      return;
+    }
+    
+    in_selection = true;
     
     if (selected_node ) {
-      var sid = selected_node['points'][0]['id'];
-      if (id != sid) {
-        var spn = selected_node['points'][0]['pointNumber'];
-        var stn = selected_node['points'][0]['curveNumber'];
-        var smarker = selected_node['points'][0]['data']['marker'];
-        smarker['color'][spn] = '#AAAAAA';
-        update = {'marker': smarker};
-        selected_node = null;
-        Plotly.restyle('tripal-network-viewer', update, [stn]);
-      }
+      var spn = selected_node['points'][0]['pointNumber'];
+      var stn = selected_node['points'][0]['curveNumber'];
+      var smarker = selected_node['points'][0]['data']['marker'];
+      smarker['color'][spn] = '#AAAAAA';
+      update = {'marker': smarker};
+      selected_node = null;
+      Plotly.restyle('tripal-network-viewer', update, [stn]);
     }
     
-    if (id != sid) {
-      var pn = data['points'][0]['pointNumber'];
-      var tn = data['points'][0]['curveNumber'];
-      var marker = data.points[0]['data']['marker'];
-      marker['color'][pn] = '#FF0000';
-      update = {'marker': marker};
-      selected_node = data;
-      Plotly.restyle('tripal-network-viewer', update, [tn]);
+    var pn = data['points'][0]['pointNumber'];
+    var tn = data['points'][0]['curveNumber'];
+    var marker = data.points[0]['data']['marker'];
+    marker['color'][pn] = '#FF0000';
+    update = {'marker': marker};
+    selected_node = data;
+    Plotly.restyle('tripal-network-viewer', update, [tn]);
+    
+    in_selection = false;
+  }
+  
+  /**
+   *
+   */
+  $.fn.selectEdge = function(data) {       
+    var update = {};
+    var id = data['points'][0]['id'];
+    
+    if (in_selection) {
+      return;
     }
+    in_selection = true;
+    
+    if (selected_edge) {
+      var sid = selected_edge['points'][0]['id'];
+      var stn = selected_edge['points'][0]['curveNumber'];
+      var sids = selected_edge['points'][0]['data']['ids'];
+      var spn1 = sids.indexOf(sid);
+      var slines = selected_edge['points'][0]['data']['line'];
+      slines['color'][spn1] = selected_edge_prev_color;
+      slines['color'][spn1+1] = selected_edge_prev_color;
+      slines['color'][spn1+2] = selected_edge_prev_color;
+      update = {'line': slines};
+      selected_edge = null;
+      selected_edge_prev_color = null;
+      Plotly.restyle('tripal-network-viewer', update, [stn]);
+    }
+    
+    var tn = data['points'][0]['curveNumber'];
+    var ids = data.points[0]['data']['ids'];
+    var pn1 = ids.indexOf(id);
+    var lines = data.points[0]['data']['line'];
+    selected_edge_prev_color = lines['color'][pn1];
+    lines['color'][pn1] = '#FF0000';
+    lines['color'][pn1+1] = '#FF0000';
+    lines['color'][pn1+2] = '#FF0000';
+    update = {'line': lines};
+    selected_edge = data;
+    Plotly.restyle('tripal-network-viewer', update, [tn]);
+    
+    in_selection = false;
   }
 
    
