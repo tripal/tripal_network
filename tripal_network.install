@@ -333,6 +333,7 @@ function tripal_network_add_terms() {
   // Set default property terms
   variable_set('tripal_network_graphml_mapper', [
     'g_name' => 'schema:name',
+    'g_uname' => 'data:0842',
     'v_name' => 'schema:name',
     'v_degree' => 'OBI:0200130',
     'v_x' => 'SIO:000400',

@@ -221,6 +221,9 @@ class GraphMLImporter extends TripalImporter {
       case 'step2':
         $form = $this->formStep2($form, $form_state);
         break;
+      case 'step3':
+        $form = $this->formStep3($form, $form_state);
+        break;
     }
 
     return $form;
@@ -343,26 +346,6 @@ class GraphMLImporter extends TripalImporter {
     $cv = chado_select_record('cv', ['cv_id'], $values);
     $cv_id = $cv[0]->cv_id;
 
-    $form['graph_name'] = [
-      '#title' => t('Graph Name'),
-      '#required' => FALSE,
-      '#type' => 'textfield',
-      '#description' => t("The human readable name for this graph. If no name is supplied
-         then the graph will be named according to a 'name' attribute for the graph
-         or the graph ID in the GraphML file."),
-    ];
-    $form['graph_uname'] = [
-      '#title' => t('Graph Unique Name'),
-      '#required' => FALSE,
-      '#type' => 'textfield',
-      '#maxlength' => 255,
-      '#description' => t("A unique name name for this graph. It need not be human
-         readable, but it must be unique from any other existing graph. If no
-         name is supplied then the graph will be named using the graph ID in
-         the GraphML file. Note: if the network already exists it will
-         be replaced."),
-    ];
-
     $form['node_type'] = [
       '#title' => t('Default Node Type'),
       '#required' => TRUE,
@@ -443,7 +426,6 @@ class GraphMLImporter extends TripalImporter {
   private function formStep2($form, &$form_state) {
 
 
-
     $this->extractGraphMLpertinents($form_state);
     $form['gml_attributes'] = [
       '#type' => 'item',
@@ -461,10 +443,11 @@ class GraphMLImporter extends TripalImporter {
          ]),
       '#weight' => -100,
     ];
-
     $default_terms = variable_get('tripal_network_graphml_mapper');
     $delta = 0;
     foreach ($this->attr_keys as $key => $attr_info) {
+
+      $title = $key . ' (' . $attr_info['for'] . ')';
 
       // Set a reasonable default of the term mapping.
       $default_term = tripal_get_term_lookup_form_result($form, $form_state,'', $delta);
@@ -479,7 +462,7 @@ class GraphMLImporter extends TripalImporter {
         }
       }
       tripal_get_term_lookup_form($form, $form_state, $default_term,
-          $key, '', FALSE,  '', $delta,
+          $title, '', FALSE,  '', $delta,
           'tripal_network_graphml_form_ajax_callback');
 
 
@@ -513,6 +496,84 @@ class GraphMLImporter extends TripalImporter {
   }
 
   /**
+   *
+   */
+  private function formStep3($form, &$form_state) {
+
+    // First get the mapping of CVterms to each attribute.
+    $this->extractGraphMLpertinents($form_state);
+    $attr_terms = [];
+    foreach ($this->attr_keys as $key => $attr_info) {
+      if (array_key_exists('graphml_key.' . $key . '.id', $form_state['storage'])) {
+        $cvterm_id = $form_state['storage']['graphml_key.' . $key . '.id'];
+        $for = $attr_info['for'];
+        $attr_terms[$for][$cvterm_id] = $key;
+      }
+    }
+
+    // If an attribute uses the schema:name for the graph then use
+    // that for the name.
+    $graph_name = $this->graph['id'];
+    $namet = chado_get_cvterm(['id' => 'schema:name']);
+    if (array_key_exists($namet->cvterm_id, $attr_terms['graph'])){
+      $graph_name = $this->graph[$attr_terms['graph'][$namet->cvterm_id]];
+      $graph_uname = $graph_name;
+    }
+
+    $graph_uname = $this->graph['id'];
+    $unamet = chado_get_cvterm(['id' => 'data:0842']);
+    if (array_key_exists($unamet->cvterm_id, $attr_terms['graph'])){
+      $graph_uname = $this->graph[$attr_terms['graph'][$unamet->cvterm_id]];
+      if (!$graph_name or $graph_name == 'G') {
+        $graph_name = $graph_uname;
+      }
+    }
+
+
+    $form['graph_name'] = [
+      '#title' => t('Graph Name'),
+      '#required' => TRUE,
+      '#type' => 'textfield',
+      '#default_value' => $graph_name,
+      '#description' => t("The human readable name for this graph. This name was extracted from the GraphML file provided."),
+    ];
+    $form['graph_uname'] = [
+      '#title' => t('Graph Unique Name'),
+      '#required' => TRUE,
+      '#type' => 'textfield',
+      '#maxlength' => 255,
+      '#default_value' => $graph_uname,
+      '#description' => t("A unique name name for this graph. It need not be human
+         readable, but it must be unique from any other existing graph. This name was extracted from the GraphML file provided."),
+    ];
+
+    // We need to let the user know how the load will perform given the
+    // inputs provided. First get the list of required terms.
+    $simscore = chado_get_cvterm(['id' => 'SWO:0000425']);
+    $xcoord = chado_get_cvterm(['id' => 'SIO:000400']);
+    $ycoord = chado_get_cvterm(['id' => 'SIO:000401']);
+
+    if (!array_key_exists($xcoord->cvterm_id, $attr_terms)) {
+
+    }
+    if (!array_key_exists($ycoord->cvterm_id, $attr_terms)) {
+
+    }
+    if (!array_key_exists($simscore->cvterm_id, $attr_terms)) {
+
+    }
+
+
+    $form['next_step'] = array(
+      '#type' => 'submit',
+      '#name' => 'done',
+      '#value' => 'Next Step',
+      '#weight' => 100,
+    );
+    return $form;
+  }
+
+  /**
    * See TripalImporter::formValidate()
    */
   public function formValidate($form, &$form_state) {
@@ -528,7 +589,11 @@ class GraphMLImporter extends TripalImporter {
       $this->validateStep1($form, $form_state);
     }
     if ($next_step == 'step3') {
+      $form_state['rebuild'] = TRUE;
       $this->validateStep2($form, $form_state);
+    }
+    if ($next_step == 'done') {
+      $this->validateStep3($form, $form_state);
     }
   }
 
@@ -545,8 +610,6 @@ class GraphMLImporter extends TripalImporter {
     $analysis_id = $form_state['values']['analysis_id'];
     $node_type = $form_state['values']['node_type'];
     $match_type = $form_state['values']['match_type'];
-    $graph_name = $form_state['values']['graph_name'];
-    $graph_uname = $form_state['values']['graph_uname'];
 
     // Get the form values for the file.
     $file_local = trim($form_state['values']['file_local']);
@@ -585,8 +648,6 @@ class GraphMLImporter extends TripalImporter {
     $form_state['storage']['network_type'] = $network_type;
     $form_state['storage']['node_type'] = $node_type;
     $form_state['storage']['match_type'] = $match_type;
-    $form_state['storage']['graph_name'] = $graph_name;
-    $form_state['storage']['graph_uname'] = $graph_uname;
   }
 
   /**
@@ -598,21 +659,27 @@ class GraphMLImporter extends TripalImporter {
     foreach ($this->attr_keys as $key => $attr_info) {
       $selected_term = tripal_get_term_lookup_form_result($form, $form_state,'',$delta);
       $cvterm_id = $selected_term[0]->cvterm_id;
-      $form_state['values']['graphml_key.' . $key . '.id'] = $cvterm_id;
+      $form_state['storage']['graphml_key.' . $key . '.id'] = $cvterm_id;
       $skip = $form_state['values']['skip' . $delta];
-      $form_state['values']['graphml_key.' . $key . '.skip'] = $skip;
-
-      # Remove unwanted values to keep the run arguments clean.
-      unset($form_state['values']['term_name'. $delta]);
-      unset($form_state['values']['select_button'. $delta]);
-      unset($form_state['values']['skip'. $delta]);
-      unset($form_state['values']['term-'. $cvterm_id . '-' . $delta]);
-
+      $form_state['storage']['graphml_key.' . $key . '.skip'] = $skip;
       $delta++;
     }
-    unset($form_state['values']['step3']);
-    unset($form_state['values']['next_step']);
+  }
+  /**
+   *
+   */
+  private function validateStep3($form, &$form_state) {
+    $graph_name = $form_state['values']['graph_name'];
+    $graph_uname = $form_state['values']['graph_uname'];
 
+
+    // Put all of the values in storage back into the values array for
+    // job submission.
+    $this->extractGraphMLpertinents($form_state);
+    foreach ($this->attr_keys as $key => $attr_info) {
+      $form_state['values']['graphml_key.' . $key . '.id'] = $form_state['storage']['graphml_key.' . $key . '.id'];
+      $form_state['values']['graphml_key.' . $key . '.skip'] = $form_state['storage']['graphml_key.' . $key . '.skip'];
+    }
     $form_state['values']['graphml_file_local'] = $form_state['storage']['file_local'];
     $form_state['values']['graphml_file_upload'] = $form_state['storage']['file_upload'];
     $form_state['values']['graphml_file_upload_existing'] = $form_state['storage']['file_upload_existing'];
@@ -1054,11 +1121,6 @@ class GraphMLImporter extends TripalImporter {
     }
 
 
-    // If this is a quick scan then we don't need to parse the nodes and edges.
-    if ($this->quick_scan) {
-      return;
-    }
-
     // Now iterate through the nodes and edges and add them to the database.
     while ($this->readGraphML()) {
       if ($this->graphml->nodeType == XMLReader::ELEMENT) {
@@ -1070,15 +1132,27 @@ class GraphMLImporter extends TripalImporter {
           }
         }
         elseif (strcmp($this->graphml->name, 'node') == 0) {
-          $this->parseNode();
+          if ($this->quick_scan) {
+            $this->graphml->next();
+          }
+          else {
+            $this->parseNode();
+          }
         }
         elseif (strcmp($this->graphml->name, 'edge') == 0) {
-          $this->parseEdge();
+          if ($this->quick_scan) {
+            $this->graphml->next();
+          }
+          else {
+            $this->parseEdge();
+          }
         }
       }
     }
 
-    $this->graph = $this->swapTerms($this->graph);
+    if (!$this->quick_scan) {
+      $this->graph = $this->swapTerms($this->graph);
+    }
     $this->graph['local:node_count'] = count($this->nodes);
     $this->graph['local:edge_count'] = count($this->edges);
   }
