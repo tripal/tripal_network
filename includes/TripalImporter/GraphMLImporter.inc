@@ -1252,7 +1252,9 @@ class GraphMLImporter extends TripalImporter {
       return FALSE;
     }
     $this->graphml->read();
-    return ['key' => $key, 'value' => $this->graphml->value];
+    $value = $this->graphml->value;
+    $value = trim($value);
+    return ['key' => $key, 'value' => $value];
   }
 
   /**

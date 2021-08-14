@@ -1,4 +1,6 @@
 <?php
+global $user;
+
 $site_name = variable_get('site_name');
 
 $theme_path = url(drupal_get_path('module', 'tripal_network') . '/theme', array('absolute' => TRUE));
@@ -10,7 +12,22 @@ drupal_add_js($js_path . '/tripal_network_viewer.js');
 drupal_add_css($css_path . '/tripal_network_viewer.css', 'external');
 
 if ($network_id) {
-  drupal_add_js("(function(\$) { $(document).ready(function() { \$.fn.getNetwork({'network_id': $network_id }); }); })(jQuery);", 'inline');
+
+  // Load the network that was provided if the user has access.
+  $entity_id = chado_get_record_entity_by_table('network', $network_id);
+  if ($entity_id){
+    $entity = tripal_load_entity('TripalEntity', [$entity_id]);
+
+    if (tripal_entity_access('view', $entity[$entity_id], $user, 'TripalEntity')) {
+      drupal_add_js("(function(\$) { $(document).ready(function() { \$.fn.getNetwork({'network_id': $network_id }); }); })(jQuery);", 'inline');
+    }
+    else {
+      drupal_set_message(t('You must be granted permission to view this network.'), 'error');
+    }
+  }
+  else {
+    drupal_set_message(t('The requested network does not exist.'), 'error');
+  }
 }
 
 $network_form = drupal_get_form('tripal_network_viewer_network_form', $network_id);
@@ -85,7 +102,10 @@ $edge_details = drupal_render($edge_details);
         </div>
      </div>
    </div>
-   <div id="tripal-network-viewer-display"><div id="tripal-network-viewer"></div></div>
+   <div id="tripal-network-viewer-display">
+
+     <div id="tripal-network-viewer"></div>
+   </div>
    <div id="tripal-network-viewer-footer">
       <div class="tripal-network-viewer-footer-item-left">
         <br>This viewer is provided by the <br><?php print l('Tripal Network Module', 'https://github.com/tripal/tripal_network')?>

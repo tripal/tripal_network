@@ -287,7 +287,7 @@
     
     var pn = data['points'][0]['pointNumber'];
     var tn = data['points'][0]['curveNumber'];
-    var marker = data.points[0]['data']['marker'];
+    var marker = data['points'][0]['data']['marker'];
     marker['color'][pn] = '#FF0000';
     update = {'marker': marker};
     selected_node = data;
@@ -324,9 +324,9 @@
     }
     
     var tn = data['points'][0]['curveNumber'];
-    var ids = data.points[0]['data']['ids'];
+    var ids = data['points'][0]['data']['ids'];
     var pn1 = ids.indexOf(id);
-    var lines = data.points[0]['data']['line'];
+    var lines = data['points'][0]['data']['line'];
     selected_edge_prev_color = lines['color'][pn1];
     lines['color'][pn1] = '#FF0000';
     lines['color'][pn1+1] = '#FF0000';
