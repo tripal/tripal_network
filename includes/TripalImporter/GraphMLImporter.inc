@@ -205,7 +205,8 @@ class GraphMLImporter extends TripalImporter {
 
     if (array_key_exists('triggering_element', $form_state) and
         $form_state['triggering_element']['#type'] == 'submit' and
-        $form_state['triggering_element']['#value'] == 'Next Step') {
+        ($form_state['triggering_element']['#value'] == 'Next Step' or
+         $form_state['triggering_element']['#value'] == 'Previous Step')) {
       $form_state['storage']['current_step'] = $form_state['triggering_element']['#name'];
     }
 
@@ -213,6 +214,7 @@ class GraphMLImporter extends TripalImporter {
     if (array_key_exists('storage', $form_state)) {
       $current_step = $form_state['storage']['current_step'];
     }
+
     // Based on the current stage, return the correct form.
     switch ($current_step) {
       case 'step1':
@@ -425,63 +427,110 @@ class GraphMLImporter extends TripalImporter {
    */
   private function formStep2($form, &$form_state) {
 
-
     $this->extractGraphMLpertinents($form_state);
+
+    $expected_terms = theme_item_list([
+      'items' => [
+        'x cartesian coordinate (SIO:000400)',
+        'y cartesian coordinate (SIO:000401)'
+      ],
+      'title' => NULL,
+      'type' => 'ul',
+      'attributes' => [],
+    ]);
+
     $form['gml_attributes'] = [
       '#type' => 'item',
-      '#title' => 'Match Properties to Terms',
-      '#markup' => t('Below is a list of properties that were found in the GraphML file. Tripal requires that
-         all properties are associated with controlled vocabulary terms. Please take a moment to map each of
-         these properties to appropriate terms.  If an appropriate term is not present you can add one
-         !here.  You can find appropriate terms at the !EBI. To follow best practice, only add a term to the
-         "local" vocabulary if you cannot find one in an existing controlled vocabulary. If you leave
-         the fields blank then the property will be automatically added to the "local" vocabulary.
-         however, this is not best practice.',
+      '#title' => 'Instructions',
+      '#markup' => t('All attributes for the graph, nodes and edges in the
+         GraphML file must be associated with a controlled
+         vocabulary term. Use the form below to make the assocaition with
+         attributes that were found in the file provided.
+         If an appropriate term is not present you can add one
+         !here.  You can find terms at the !EBI. If you cannot
+         find an appropriate term, you can add one to the "local" vocabulary.
+         However, best practice is to use existing terms if possible.
+         If you leave any attribute without an association, then the property
+         will be excluded and will not be visible to end-users.',
          [
            '!here' => l('here', 'http://localhost/admin/tripal/loaders/chado_vocabs/chado_cv/cvterm/add', ['attributes' => ['target' => '_blank']]),
            '!EBI' => l('EBI Ontology Lookup Service' ,'https://www.ebi.ac.uk/ols/index', ['attributes' => ['target' => '_blank']])
-         ]),
+         ]) . '<p>' .
+         t('This loader does create a 2D layout for the nodes in the network viewer.
+            This positions must be provided in the GraphML file. Please use the
+            following terms to indicate which node attributes in the GraphML file
+            provide the x and y coordinates: ') . $expected_terms . '</p>',
       '#weight' => -100,
     ];
+
+    // For Ajax triggered form elements we don't want the fieldset to close
+    // so we need to know the delta value of the triggering parent to
+    // keep the fieldset open.
+    $triggered_parent = NULL;
+    if ($form_state['triggering_element']['#type'] == 'button' and
+        $form_state['triggering_element']['#value'] == 'Lookup Term') {
+      $triggered_parent = $form_state['triggering_element']['#parents'][0];
+      $triggered_parent = preg_replace('/select_button/', '', $triggered_parent);
+    }
+
+    // Get the list of terms that have known default mappings.
     $default_terms = variable_get('tripal_network_graphml_mapper');
+
+    // Iterate through the GraphML attributes and add a form element for each.
     $delta = 0;
     foreach ($this->attr_keys as $key => $attr_info) {
 
-      $title = $key . ' (' . $attr_info['for'] . ')';
+      $default_term_name = '';
 
-      // Set a reasonable default of the term mapping.
-      $default_term = tripal_get_term_lookup_form_result($form, $form_state,'', $delta);
-      if (!$default_term and array_key_exists($key, $default_terms)) {
+      // Get the default value for this attribute if the the form is being
+      // reloaded due to an error.
+      if ($form_state['triggering_element']['#type'] == 'submit' and
+          $form_state['triggering_element']['#name'] == 'step3' and
+          $form_state['triggering_element']['#value'] == 'Next Step') {
+        // Do nothing, we dcan't get the $form_state['input'] from the API.
+      }
+      // Get the default value for this attribute if the form is being
+      // reloaded by returning from step 3.
+      elseif ($form_state['triggering_element']['#type'] == 'submit' and
+              $form_state['triggering_element']['#name'] == 'step2' and
+              $form_state['triggering_element']['#value'] == 'Previous Step') {
+        if (array_key_exists('graphml_key.' . $key . '.id', $form_state['storage'])) {
+          $default_term_id = $form_state['storage']['graphml_key.' . $key . '.id'];
+          $default_term = chado_get_cvterm(['cvterm_id' => $default_term_id]);
+          $default_term_name = $default_term->name;
+        }
+      }
+      // Get the default value for the attribute if this is being reloaded
+      // from an AJAX submit for the lookup form.
+      elseif ($form_state['triggering_element']['#type'] == 'button' and
+              $form_state['triggering_element']['#value'] == 'Lookup Term') {
+        // Do nothing, let the API handle it.
+      }
+      // If this step was not yet submitted set some defaults for this term.
+      else {
         $term = $default_terms[$key];
         if (preg_match('/:/', $term)) {
           list($vocabulary, $accession) = explode(':', $term);
           $term = tripal_get_term_details($vocabulary, $accession);
           if ($term) {
-            $default_term = $term['name'];
+            $default_term_name = $term['name'];
           }
         }
       }
-      tripal_get_term_lookup_form($form, $form_state, $default_term,
+
+      // Build a title for the field set.
+      $title = $attr_info['for'] . ' ' . $key;
+
+      // Add the lookup fieldset to the form.
+      tripal_get_term_lookup_form($form, $form_state, $default_term_name,
           $title, '', FALSE,  '', $delta,
           'tripal_network_graphml_form_ajax_callback');
 
-
-      // Add a skip checkbox
-      $skip_property = FALSE;
-      if (array_key_exists('skip' . $delta, $form_state['input'])) {
-        $skip_property = $form_state['input']['skip' . $delta];
+      // Make the form element collapsed.
+      $form['term_match' . $delta]['#collapsible'] = TRUE;
+      if ($triggered_parent !== "$delta") {
+        $form['term_match' . $delta]['#collapsed'] = TRUE;
       }
-      elseif (array_key_exists('skip' . $delta, $form_state['values'])) {
-        $skip_property = $form_state['values']['skip' . $delta];
-      }
-      elseif (array_key_exists($key, $default_terms) and $default_terms[$key] == 'SKIP') {
-        $skip_property = TRUE;
-      }
-      $form['term_match' . $delta]['skip' . $delta] = [
-        '#type' => 'checkbox',
-        '#title' => 'Skip this property during import',
-        '#default_value' => $skip_property,
-      ];
       $delta++;
     }
 
@@ -549,25 +598,42 @@ class GraphMLImporter extends TripalImporter {
 
     // We need to let the user know how the load will perform given the
     // inputs provided. First get the list of required terms.
-    $simscore = chado_get_cvterm(['id' => 'SWO:0000425']);
     $xcoord = chado_get_cvterm(['id' => 'SIO:000400']);
+    if (!array_key_exists($xcoord->cvterm_id, $attr_terms['node'])) {
+      drupal_set_message('The GraphML file provided needs a node attribute
+        assigned the term "x cartesian coordinate" (SIO:000400). This term
+        indicates that the attribute provides the x-axis coordinate for
+        the node for the network visualization. If you do
+        not have an attribute with this term then the node will be randomly
+        positioned in the graphical viewers.',  'warning');
+    }
+
     $ycoord = chado_get_cvterm(['id' => 'SIO:000401']);
-
-    if (!array_key_exists($xcoord->cvterm_id, $attr_terms)) {
-
-    }
-    if (!array_key_exists($ycoord->cvterm_id, $attr_terms)) {
-
-    }
-    if (!array_key_exists($simscore->cvterm_id, $attr_terms)) {
-
+    if (!array_key_exists($ycoord->cvterm_id, $attr_terms['node'])) {
+      drupal_set_message('The GraphML file provided needs a node attribute
+        assigned the term "y cartesian coordinate" (SIO:000401). This termy
+        indicates that the attribute provides the x-axis coordinate for
+        the node for the network visualization. If you do
+        not have an attribute with this term then the node will be randomly
+        positioned in the graphical viewers.',  'warning');
     }
 
+    $simscore = chado_get_cvterm(['id' => 'SWO:0000425']);
+    if (!array_key_exists($simscore->cvterm_id, $attr_terms['edge'])) {
 
+    }
+
+
+    $form['prev_step'] = array(
+      '#type' => 'submit',
+      '#name' => 'step2',
+      '#value' => 'Previous Step',
+      '#weight' => 100,
+    );
     $form['next_step'] = array(
       '#type' => 'submit',
       '#name' => 'done',
-      '#value' => 'Next Step',
+      '#value' => 'Submit',
       '#weight' => 100,
     );
     return $form;
@@ -577,6 +643,7 @@ class GraphMLImporter extends TripalImporter {
    * See TripalImporter::formValidate()
    */
   public function formValidate($form, &$form_state) {
+    $forward = TRUE;
 
     // If the submit was clicked, iterate the stage.
     $next_step = 'step1';
@@ -584,13 +651,25 @@ class GraphMLImporter extends TripalImporter {
       $next_step = $form_state['triggering_element']['#name'];
     }
 
+    if (array_key_exists('triggering_element', $form_state) and
+        $form_state['triggering_element']['#type'] == 'submit') {
+      if ($form_state['triggering_element']['#value'] == 'Previous Step') {
+        $forward = FALSE;
+      }
+      $next_step = $form_state['triggering_element']['#name'];
+    }
+
     if ($next_step == 'step2') {
       $form_state['rebuild'] = TRUE;
-      $this->validateStep1($form, $form_state);
+      if ($forward) {
+        $this->validateStep1($form, $form_state);
+      }
     }
     if ($next_step == 'step3') {
       $form_state['rebuild'] = TRUE;
-      $this->validateStep2($form, $form_state);
+      if ($forward) {
+        $this->validateStep2($form, $form_state);
+      }
     }
     if ($next_step == 'done') {
       $this->validateStep3($form, $form_state);
@@ -658,10 +737,13 @@ class GraphMLImporter extends TripalImporter {
     $delta = 0;
     foreach ($this->attr_keys as $key => $attr_info) {
       $selected_term = tripal_get_term_lookup_form_result($form, $form_state,'',$delta);
-      $cvterm_id = $selected_term[0]->cvterm_id;
-      $form_state['storage']['graphml_key.' . $key . '.id'] = $cvterm_id;
-      $skip = $form_state['values']['skip' . $delta];
-      $form_state['storage']['graphml_key.' . $key . '.skip'] = $skip;
+      if ($selected_term) {
+        $cvterm_id = $selected_term[0]->cvterm_id;
+        $form_state['storage']['graphml_key.' . $key . '.id'] = $cvterm_id;
+      }
+      else {
+        $form_state['storage']['graphml_key.' . $key . '.id'] = NULL;
+      }
       $delta++;
     }
   }
@@ -669,16 +751,14 @@ class GraphMLImporter extends TripalImporter {
    *
    */
   private function validateStep3($form, &$form_state) {
-    $graph_name = $form_state['values']['graph_name'];
-    $graph_uname = $form_state['values']['graph_uname'];
-
 
     // Put all of the values in storage back into the values array for
     // job submission.
     $this->extractGraphMLpertinents($form_state);
     foreach ($this->attr_keys as $key => $attr_info) {
-      $form_state['values']['graphml_key.' . $key . '.id'] = $form_state['storage']['graphml_key.' . $key . '.id'];
-      $form_state['values']['graphml_key.' . $key . '.skip'] = $form_state['storage']['graphml_key.' . $key . '.skip'];
+      if (array_key_exists('graphml_key.' . $key . '.id', $form_state['storage'])) {
+        $form_state['values']['graphml_key.' . $key . '.id'] = $form_state['storage']['graphml_key.' . $key . '.id'];
+      }
     }
     $form_state['values']['graphml_file_local'] = $form_state['storage']['file_local'];
     $form_state['values']['graphml_file_upload'] = $form_state['storage']['file_upload'];
@@ -688,8 +768,6 @@ class GraphMLImporter extends TripalImporter {
     $form_state['values']['network_type'] = $form_state['storage']['network_type'];
     $form_state['values']['node_type'] = $form_state['storage']['node_type'];
     $form_state['values']['match_type'] = $form_state['storage']['match_type'];
-    $form_state['values']['graph_name'] = $form_state['storage']['graph_name'];
-    $form_state['values']['graph_uname'] = $form_state['storage']['graph_uname'];
   }
 
   /**
@@ -1071,7 +1149,8 @@ class GraphMLImporter extends TripalImporter {
         }
         elseif (strcmp($this->graphml->name, 'graph') == 0) {
           $this->parseGraph();
-          // If this is a quick scan then we don't need to parse the nodes and edges.
+          // If this is a quick scan then we don't need to parse the nodes
+          // and edges.
           if ($this->quick_scan) {
             return;
           }
@@ -1091,12 +1170,15 @@ class GraphMLImporter extends TripalImporter {
       do {
         $attr_name = $this->graphml->name;
         $attr_value = $this->graphml->value;
-        // Only add attributes that weren't requested to be skipped
+
+        // When running as a job, skip attributes without terms.
         if (array_key_exists('run_args', $this->arguments) and
-            $this->arguments['run_args']['graphml_key.' . $attr_name . '.skip'] == 1) {
-              continue;
+            array_key_exists('graphml_key.' . $attr_name . '.id', $this->arguments['run_args']) and
+            !$this->arguments['run_args']['graphml_key.' . $attr_name . '.id']) {
+          continue;
         }
         $attrs[$attr_name] = $attr_value;
+
       } while($this->graphml->moveToNextAttribute());
     }
     return $attrs;
@@ -1163,9 +1245,10 @@ class GraphMLImporter extends TripalImporter {
   private function parseData(){
     $key = $this->graphml->getAttribute('key');
 
-    // Only add attributes that weren't requested to be skipped
+    // When running as a job, skip attributes without terms.
     if (array_key_exists('run_args', $this->arguments) and
-        $this->arguments['run_args']['graphml_key.' . $key . '.skip'] == 1) {
+        array_key_exists('graphml_key.' . $key . '.id', $this->arguments['run_args']) and
+        !$this->arguments['run_args']['graphml_key.' . $key . '.id']) {
       return FALSE;
     }
     $this->graphml->read();
@@ -1674,5 +1757,5 @@ function tripal_network_graphml_form_ajax_callback($form, $form_state) {
   $ajax_wrapper_id = $form_state['triggering_element']['#ajax']['wrapper'];
 
   $delta = $form_state['storage'][$ajax_wrapper_id]['term_match_delta'];
-  return $form['gml_attributes']['term_match' . $delta];
+  return $form['term_match' . $delta];
 }
