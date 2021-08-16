@@ -97,7 +97,7 @@ function tripal_network_menu() {
     'page callback' => 'tripal_network_neighborhood_viewer_ajax_retrieve',
     'page arguments' => [],
     'access arguments' => ['view ' . $bundle->name],
-    'file' => '/includes/tripal_network.neighborhood_viewer.inc',
+    'file' => '/includes/tripal_network.viewer.inc',
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
   ];

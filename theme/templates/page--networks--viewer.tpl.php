@@ -6,7 +6,6 @@
    </div>
  </div><?php
 }
-else {
-  print drupal_render($page['content']);
-}?>
+print drupal_render($page['content']);
+?>
 

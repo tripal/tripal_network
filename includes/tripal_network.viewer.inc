@@ -398,99 +398,20 @@ function tripal_network_viewer_network_details_form($form, &$form_state, $networ
   return $form;
 }
 
-function tripal_network_viewer_create_edge_trace($name) {
-  return [
-    'mode' => 'lines',
-    'type' => 'scatter3d',
-    'line' => [
-      'color' => [],
-      'width' => 2,
-      'opacity' => 0.9,
-    ],
-    'name' => $name,
-    'ids' => [],
-    'hovertemplate'=> "%{text}",
-    'x' => [],
-    'y' => [],
-    'z' => [],
-    'text' => [],
-  ];
-}
 /**
  *
  */
 function tripal_network_viewer_ajax_retrieve() {
+  global $user;
+
   // Get the fitering variables requested by the user.
   $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
   $layer_by = array_key_exists('layer_by', $_GET) ? $_GET['layer_by'] : NULL;
   $color_by = array_key_exists('color_by', $_GET) ? $_GET['color_by'] : NULL;
 
-  // Set the Plotly layout sepcifications.
-  $layout = [
-    'autosize' => TRUE,
-    'paper_bgcolor' => "#FFFFFF",
-    'showlegend' => TRUE,
-    'legend' => [
-      'font' => [
-        'color' => "#000000",
-      ],
-    ],
-    'scene' => [
-      'aspectmode' => 'manual',
-      'aspectratio' => [
-        'x' => 1,
-        'y' => 1,
-        'z' => 1
-      ],
-      'camera' => [
-        'eye' => [
-          'x' => 0,
-          'y' => 0,
-          'z' => 2
-        ],
+  $layout = tripal_network_get_default_layout();
 
-        'projection' => [
-          'type' => 'orthographic'
-        ]
-      ],
-      'xaxis' => [
-        'type' => 'linear',
-        'zeroline' => FALSE,
-        'showbackground' => FALSE,
-        'showline' => FALSE,
-        'zeroline' => FALSE,
-        'showgrid' => FALSE,
-        'showticklabels' => FALSE,
-        'title' => '',
-        'showspikes' => FALSE,
-        'color'=> "#000000"
-      ],
-      'yaxis' => [
-        'type' => 'linear',
-        'zeroline' => FALSE,
-        'showline' => FALSE,
-        'zeroline' => FALSE,
-        'showgrid' => FALSE,
-        'showticklabels' => FALSE,
-        'title' => '',
-        'showspikes' => FALSE,
-        'color'=> "#000000"
-      ],
-      'zaxis' => [
-        'type' => 'linear',
-        'zeroline' => FALSE,
-        'showline' => FALSE,
-        'zeroline' => FALSE,
-        'showgrid' => FALSE,
-        'showticklabels' => TRUE,
-        'showspikes' => FALSE,
-        'title' => '',
-        'color'=> "#000000"
-      ]
-    ],
-    'title' => '',
-  ];
-
+  // TODO: this shoulnd't be hardcoded.
   if (!$layer_by) {
     $layer_by = 'SWO:0000425';
   }
@@ -509,25 +430,25 @@ function tripal_network_viewer_ajax_retrieve() {
     $network_id = 0;
   }
 
-  // Make sure we have required filters.
+  // If we don't have a network ID then return an empty scene.
   $plotly_data = NULL;
   if ($network_id == 0) {
-    $plotly_data = tripal_network_make_plotly_data(NULL, $layer_by, $color_by, TRUE);
-  }
-  else {
-    $network = tripal_network_get_network_elements($network_id);
-    $plotly_data = tripal_network_make_plotly_data($network, $layer_by, $color_by);
+    $plotly_data = tripal_network_make_plotly_data(NULL, $layout, $layer_by, $color_by, TRUE);
+    drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
+    return;
   }
 
-  drupal_json_output([
-    'data' => [
-      $plotly_data['edges_trace'],
-      $plotly_data['nodes_trace']
-    ],
-    'layout' => $layout]
-  );
+  $network = new ChadoRecord('network');
+  $network->setValues(['network_id' => $network_id]);
+  $network->find();
+  $layout['title'] = $network->getValue('name');
+
+  // Get the network Plotly data.
+  $network_items = tripal_network_get_network_elements($network_id);
+  $plotly_data = tripal_network_make_plotly_data($network_items, $layout, $layer_by, $color_by);
+
+  drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
 }
-
 
 /**
  *
@@ -697,22 +618,21 @@ function tripal_network_viewer_display_form_ajax_callback($form, $form_state) {
   return $form;
 }
 
-
 /**
  *
+ * @return
  */
-function tripal_network_neighborhood_viewer_ajax_retrieve() {
-  // Get the fitering variables requested by the user.
-  $network_id = $_GET['network_id'];
-  $feature_id = $_GET['feature_id'];
-
-  // Set the Plotly layout sepcifications.
-  $layout = [
+function tripal_network_get_default_layout(){
+  return [
     'autosize' => TRUE,
-    'height' => 500,
-    'width' => 500,
     'paper_bgcolor' => "#FFFFFF",
+    'margin' => ['l' => 30, 'r' => 20, 't' => 50, 'b' => 20],
     'showlegend' => TRUE,
+    'legend' => [
+      'font' => [
+        'color' => "#000000",
+      ],
+    ],
     'scene' => [
       'aspectmode' => 'manual',
       'aspectratio' => [
@@ -740,7 +660,8 @@ function tripal_network_neighborhood_viewer_ajax_retrieve() {
         'showgrid' => FALSE,
         'showticklabels' => FALSE,
         'title' => '',
-        'showspikes' => FALSE
+        'showspikes' => FALSE,
+        'color'=> "#000000"
       ],
       'yaxis' => [
         'type' => 'linear',
@@ -750,7 +671,8 @@ function tripal_network_neighborhood_viewer_ajax_retrieve() {
         'showgrid' => FALSE,
         'showticklabels' => FALSE,
         'title' => '',
-        'showspikes' => FALSE
+        'showspikes' => FALSE,
+        'color'=> "#000000"
       ],
       'zaxis' => [
         'type' => 'linear',
@@ -760,40 +682,52 @@ function tripal_network_neighborhood_viewer_ajax_retrieve() {
         'showgrid' => FALSE,
         'showticklabels' => TRUE,
         'showspikes' => FALSE,
-        'title' => 'Similarity Score'
+        'title' => '',
+        'color'=> "#000000"
       ]
     ],
-    'title' => 'Connected Neighbors',
+    'title' => '',
   ];
+}
 
+/**
+ *
+ */
+function tripal_network_neighborhood_viewer_ajax_retrieve() {
+  global $user;
+
+  // Get the fitering variables requested by the user.
+  $network_id = $_GET['network_id'];
+  $feature_id = $_GET['feature_id'];
+
+  // Set the Plotly layout sepcifications.
+  // Set the Plotly layout sepcifications.
+  $layout = tripal_network_get_default_layout();
+  $layout['title'] = 'Connected Neighbors';
+
+  // TODO: this shoulnd't be hardcoded.
   $layer_by = 'SWO:0000425';
   $color_by = 'SWO:0000425';
 
   // Make sure we have required filters.
   $plotly_data = NULL;
   if ($network_id == 0) {
-    $plotly_data = tripal_network_make_plotly_data(NULL, TRUE);
-  }
-  else {
-    $network = tripal_network_get_network_elements($network_id, $feature_id);
-    $plotly_data = tripal_network_make_plotly_data($network, $layer_by, $color_by);
+    $plotly_data = tripal_network_make_plotly_data(NULL, $layout, $layer_by, $color_by, TRUE);
+    drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
+    return;
   }
 
-  drupal_json_output([
-    'data' => [
-      $plotly_data['edges_trace'],
-      $plotly_data['nodes_trace']
-    ],
-    'layout' => $layout]
-      );
+  $network_items = tripal_network_get_network_elements($network_id, $feature_id);
+  $plotly_data = tripal_network_make_plotly_data($network_items, $layout, $layer_by, $color_by);
+  drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
 }
 
 /**
  *
  */
-function tripal_network_make_plotly_data($network, $layer_by, $color_by, $is_empty = FALSE) {
+function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $color_by, $is_empty = FALSE) {
 
-  $edges_trace = [
+  $edge_trace_defaults = [
     'mode' => 'lines',
     'type' => 'scatter3d',
     'line' => [
@@ -810,7 +744,7 @@ function tripal_network_make_plotly_data($network, $layer_by, $color_by, $is_emp
     'text' => [],
   ];
 
-  $nodes_trace = [
+  $node_trace_defaults = [
     'mode'  => 'markers',
     'type' => 'scatter3d',
     'marker' => [
@@ -834,19 +768,16 @@ function tripal_network_make_plotly_data($network, $layer_by, $color_by, $is_emp
   ];
 
   if ($is_empty) {
-    return [
-      'edges_trace' => $edges_trace,
-      'nodes_trace' => $nodes_trace
-    ];
+    return [$edge_trace_defaults, $node_trace_defaults];
   }
 
-  $edges = $network['edges'];
-  $nodes = $network['nodes'];
+  $edges = $network_items['edges'];
+  $nodes = $network_items['nodes'];
 
   // Get properties of the nodes used for the viewer.
-  $x_coords = tripal_network_get_nodeprops(array_keys($nodes), 'feature_id', $network['network_id'], 'SIO:000400');
-  $y_coords = tripal_network_get_nodeprops(array_keys($nodes), 'feature_id', $network['network_id'], 'SIO:000401');
-  $degree = tripal_network_get_nodeprops(array_keys($nodes), 'feature_id', $network['network_id'], 'OBI:0200130');
+  $x_coords = tripal_network_get_nodeprops(array_keys($nodes), 'feature_id', $network_items['network_id'], 'SIO:000400');
+  $y_coords = tripal_network_get_nodeprops(array_keys($nodes), 'feature_id', $network_items['network_id'], 'SIO:000401');
+  $degree = tripal_network_get_nodeprops(array_keys($nodes), 'feature_id', $network_items['network_id'], 'OBI:0200130');
 
   // Calculate teh x,y,z coordianates for nodes.
   $node_coords = [];
@@ -860,80 +791,131 @@ function tripal_network_make_plotly_data($network, $layer_by, $color_by, $is_emp
     ];
   }
 
-  // Get the layer bins for the z-coordinate and the color
-  $layers = tripal_network_layer_network_edges(array_keys($edges), $layer_by, $color_by);
+  // Get the layer and colors for the selected properties.
+  $edge_ids = array_keys($edges);
+  $layers = tripal_network_layer_edges($edge_ids, $layer_by);
+  $colors = tripal_network_color_edges($edge_ids, $color_by);
 
   // Create the edges trace.
+  $traces = [];
   foreach ($edges as $network_edge_id => $edge) {
 
-    // Get the z-coord.
-    $z = array_key_exists($network_edge_id, $layers['z']['bins']) ? $layers['z']['bins'][$network_edge_id] : 0;
+    // Get the z-coord, bin and color for this edge.
+    $layer = array_key_exists($network_edge_id, $layers['item_layer']) ? $layers['item_layer'][$network_edge_id] : 0;
+    $layer_name = $layers['layer_labels'][$layer];
+    $color = array_key_exists($network_edge_id, $colors) ? $colors[$network_edge_id] : 0;
+
+    $z = 0;
+    if ($layers['is_quantitative']) {
+      $z = array_key_exists($network_edge_id, $layers['adj_values']) ? $layers['adj_values'][$network_edge_id] : 0;
+    }
+    else {
+      $z = $layer;
+    }
+
+    // Add a new trace if we haven't seen this bin yet.
+    if (!array_key_exists($layer_name, $traces)) {
+      $traces[$layer_name] = $edge_trace_defaults;
+      $traces[$layer_name]['name'] = $layer_name;
+    }
 
     $source_feature_id = $edge['source_feature_id'];
     $target_feature_id = $edge['target_feature_id'];
 
     // Set the line x,y,z coordinates
-    $edges_trace['x'][] = $node_coords[$source_feature_id]['x'];
-    $edges_trace['y'][] = $node_coords[$source_feature_id]['y'];
-    $edges_trace['z'][] = $z;
-    $edges_trace['x'][] = $node_coords[$target_feature_id]['x'];
-    $edges_trace['y'][] = $node_coords[$target_feature_id]['y'];
-    $edges_trace['z'][] = $z;
+    $traces[$layer_name]['x'][] = $node_coords[$source_feature_id]['x'];
+    $traces[$layer_name]['y'][] = $node_coords[$source_feature_id]['y'];
+    $traces[$layer_name]['z'][] = $z;
+    $traces[$layer_name]['x'][] = $node_coords[$target_feature_id]['x'];
+    $traces[$layer_name]['y'][] = $node_coords[$target_feature_id]['y'];
+    $traces[$layer_name]['z'][] = $z;
 
     // Add an empty entry to keep Plotly from adding an extra line.
-    $edges_trace['x'][] = NULL;
-    $edges_trace['y'][] = NULL;
-    $edges_trace['z'][] = NULL;
+    $traces[$layer_name]['x'][] = NULL;
+    $traces[$layer_name]['y'][] = NULL;
+    $traces[$layer_name]['z'][] = NULL;
 
     // Set the line text.
     $text = $edge['source_name'] . ' (-) ' . $edge['target_name'];
-    $edges_trace['text'][] = $text;
-    $edges_trace['text'][] = $text;
-    $edges_trace['text'][] = $text;
+    $traces[$layer_name]['text'][] = $text;
+    $traces[$layer_name]['text'][] = $text;
+    $traces[$layer_name]['text'][] = $text;
 
     // Set the line color.
-    $color = array_key_exists($network_edge_id, $layers['colors']['bins']) ? $layers['colors']['bins'][$network_edge_id] : 0;
-    $edges_trace['line']['color'][] = $color;
-    $edges_trace['line']['color'][] = $color;
-    $edges_trace['line']['color'][] = $color;
+    $traces[$layer_name]['line']['color'][] = $color;
+    $traces[$layer_name]['line']['color'][] = $color;
+    $traces[$layer_name]['line']['color'][] = $color;
 
     // Set the line ids.
-    $edges_trace['ids'][] = $network_edge_id;
-    $edges_trace['ids'][] = $network_edge_id;
-    $edges_trace['ids'][] = $network_edge_id;
+    $traces[$layer_name]['ids'][] = $network_edge_id;
+    $traces[$layer_name]['ids'][] = $network_edge_id;
+    $traces[$layer_name]['ids'][] = $network_edge_id;
 
     // Move the node's z-coordinate to the highest value score.
-    if ($layers['z']['is_quantitative'] === TRUE) {
+    if ($layers['is_quantitative'] === TRUE) {
       $node_coords[$source_feature_id]['z'] = max($z, $node_coords[$source_feature_id]['z']);
       $node_coords[$target_feature_id]['z'] = max($z, $node_coords[$target_feature_id]['z']);
+      $node_coords[$source_feature_id]['layer'] = $layer;
+      $node_coords[$target_feature_id]['layer'] = $layer;
 
       // If the layer by is "rank" then put nodes at the lowest rank they
       // first appear. Otherwise, use the highest.
       if ($layer_by == 'NCIT:C48904' and $node_coords[$source_feature_id]['z'] != 0) {
         $node_coords[$source_feature_id]['z'] = min($z, $node_coords[$source_feature_id]['z']);
         $node_coords[$target_feature_id]['z'] = min($z, $node_coords[$target_feature_id]['z']);
+        $node_coords[$source_feature_id]['layer'] = $layer;
+        $node_coords[$target_feature_id]['layer'] = $layer;
       }
+    }
+    else {
+      $node_coords[$source_feature_id]['z'] = $z;
+      $node_coords[$target_feature_id]['z'] = $z;
+      $node_coords[$source_feature_id]['layer'] = $layer;
+      $node_coords[$target_feature_id]['layer'] = $layer;
     }
   }
 
-  // Create the node trace
-  foreach ($nodes as $node_id => $node) {
-    $nodes_trace['x'][] = $node_coords[$node_id]['x'];
-    $nodes_trace['y'][] = $node_coords[$node_id]['y'];
-    $nodes_trace['z'][] = $node_coords[$node_id]['z'];
-    $nodes_trace['ids'][] = $node_id;
-    $nodes_trace['text'][] = $node['node_name'];
-    $nodes_trace['marker']['size'][] = max(round(log10($degree[$node_id])*10), 5);
-    $nodes_trace['marker']['color'][] = $node_id == $network['feature_id'] ? '#FF0000': '#AAAAAA';
+  if ($layers['is_categorical']) {
+    ksort($traces);
+  }
+  else {
+    ksort($traces, SORT_NUMERIC);
   }
 
-  return [
-    'edges_trace' => $edges_trace,
-    'nodes_trace' => $nodes_trace
-  ];
+  // Create the node trace
+  $traces['nodes'] = $node_trace_defaults;
+  foreach ($nodes as $node_id => $node) {
+
+    // The bin for the node is the z coordinate assigned to the node.
+    $layer = $node_coords[$node_id]['layer'];
+    $traces['nodes']['x'][] = $node_coords[$node_id]['x'];
+    $traces['nodes']['y'][] = $node_coords[$node_id]['y'];
+    $traces['nodes']['z'][] = $node_coords[$node_id]['z'];
+    $traces['nodes']['ids'][] = $node_id;
+    $traces['nodes']['text'][] = $node['node_name'];
+    $traces['nodes']['marker']['size'][] = max(round(log10($degree[$node_id])*10), 5);
+    $traces['nodes']['marker']['color'][] = $node_id == $network_items['feature_id'] ? '#FF0000': '#AAAAAA';
+  }
+
+  // Now set the tick labels
+  if ($layers['is_categorical']) {
+    $layout['scene']['zaxis']['tickmode'] = "array";
+    $layout['scene']['zaxis']['tickvals'] = $layers['layers'];
+    $layout['scene']['zaxis']['ticktext'] = $layers['layer_labels'];
+  }
+  $layout['scene']['zaxis']['title'] = $layers['title'];
+
+  return array_values($traces);
 }
 
-
+/**
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ * @param unknown $feature_id
+ * @param unknown $network_id
+ * @return unknown
+ */
 function tripal_network_neighborhood_viewer_form($form, &$form_state,
     $feature_id = NULL, $network_id = NULL) {
 

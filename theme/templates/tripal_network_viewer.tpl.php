@@ -103,18 +103,17 @@ $edge_details = drupal_render($edge_details);
      </div>
    </div>
    <div id="tripal-network-viewer-display">
-
      <div id="tripal-network-viewer"></div>
    </div>
    <div id="tripal-network-viewer-footer">
       <div class="tripal-network-viewer-footer-item-left">
         <br>This viewer is provided by the <br><?php print l('Tripal Network Module', 'https://github.com/tripal/tripal_network')?>
       </div>
-      <div class="tripal-network-viewer-footer-item-right">
+      <div class="tripal-network-viewer-footer-item tripal-network-viewer-footer-item-right">
         <img src="<?php print $theme_path?>/images/powered_by_tripal_small.png"><br>
         Powered by <?php print l('Tripal', 'https://tripal.info')?>
       </div>
-      <div class="tripal-network-viewer-footer-item-right">
+      <div class="tripal-network-viewer-footer-item tripal-network-viewer-footer-item-right">
         <img src="<?php print $theme_path?>/images/inspired_by_KINC_small.png"><br>
          Inspired by <?php print l('KINC', 'https://kinc.readthedocs.io/')?>
       </div>

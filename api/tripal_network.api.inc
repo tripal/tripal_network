@@ -80,14 +80,34 @@ function tripal_network_get_network_elements($network_id, $feature_id = NULL, $l
  * @param int $num_bins
  *   The total number of bins
  */
-function _tripal_network_bin_by_props($props, $num_bins = INF, $abs = FALSE) {
+function tripal_network_layer_edges($edge_ids, $layer_term) {
 
-  $bins = [];
+  // We want to take the absolute value of some property types.
+  $abs = FALSE;
+  if ($layer_term == 'SWO:0000425') {
+    $abs = TRUE;
+  }
+
+  $term = chado_get_cvterm(['id' => $layer_term]);
+
+  // Get the property used for layering for each edge.
+  $props = tripal_network_get_edgeprops($edge_ids, $layer_term);
+
+  // We only have 20 colors and we don't want to over run plotly, so
+  // let's use 20 bins.
+  $num_layers = 20;
+
+  $item_layer = [];
+  $layer_labels = [];
+  $layers = [];
+  $adj_values = [];
 
   // Let's determine if the property is categorical, ordinal or quantitative.
   $is_ordinal = FALSE;
   $is_categorical = FALSE;
   $is_quantitative = FALSE;
+  $is_log10_transformed = FALSE;
+  $is_abs = FALSE;
   $num_numeric = 0;
   $num_floats = 0;
   $num_ints = 0;
@@ -100,7 +120,7 @@ function _tripal_network_bin_by_props($props, $num_bins = INF, $abs = FALSE) {
 
     if (is_numeric($value)) {
       $num_numeric++;
-      if (is_int($value)) {
+      if (preg_match('/^[01234567889]+$/', $value)) {
         $num_ints++;
       }
       else {
@@ -124,7 +144,7 @@ function _tripal_network_bin_by_props($props, $num_bins = INF, $abs = FALSE) {
     $is_categorical = TRUE;
   }
   else {
-    if ($num_ints > 0 and $num_floats == 0 and $num_ints <= $num_bins) {
+    if ($num_ints > 0 and $num_floats == 0 and $num_ints <= $num_layers) {
       $is_ordinal = TRUE;
     }
     else {
@@ -132,11 +152,13 @@ function _tripal_network_bin_by_props($props, $num_bins = INF, $abs = FALSE) {
     }
   }
 
-  // For quantitative properties get min/max.
+  // Handle quantitiative data.
   $smallest = INF;
   $max = -INF;
   $min = INF;
   if ($is_quantitative) {
+
+    // Get the min and max value and take the abs value if requested.
     foreach ($props as $network_edge_id => $value) {
       if (!$value) {
         continue;
@@ -144,6 +166,7 @@ function _tripal_network_bin_by_props($props, $num_bins = INF, $abs = FALSE) {
       if ($abs === TRUE) {
         $value = abs($value);
         $props[$network_edge_id] = $value;
+        $is_abs = TRUE;
       }
       if ($value > 0 and $value < 0.001 and $value < $smallest) {
         $smallest = $value;
@@ -162,6 +185,7 @@ function _tripal_network_bin_by_props($props, $num_bins = INF, $abs = FALSE) {
       $needs_transform = TRUE;
       $max = -log10($smallest);
       $min = 0;
+      $is_log10_transformed = TRUE;
     }
 
     // Now do any log transform if needed, otherwise round the value
@@ -180,127 +204,162 @@ function _tripal_network_bin_by_props($props, $num_bins = INF, $abs = FALSE) {
     }
 
     // Assign the value to a bin.
-    if ($num_bins == INF) {
+    $bin_size = ($max - $min) / $num_layers;
+    foreach ($props as $network_edge_id => $value) {
+      $adj_values[$network_edge_id] = $value;
+      $item_layer[$network_edge_id] = intval(floor(($value - $min) / $bin_size));
+    }
+
+    // Set the bin labels.
+    for ($i = 0; $i <= 20; $i++){
+      if ($num_floats > 0) {
+        $layer_labels[] = strval(round($min + ($bin_size * $i), 2));
+      }
+      else {
+        $layer_labels[] = strval(round($min + ($bin_size * $i), 0));
+      }
+      $layers[] = $i;
+    }
+  }
+
+  // Handle categorical values.
+  $categories = [];
+  if ($is_categorical) {
+
+    // Get the list of categories.
+    $categories = array_keys($prop_values);
+    $num_categories = count($categories);
+    asort($categories);
+
+    // Set the bin labels.
+    if ($num_categories <= $num_layers) {
+
+      // Use the index of the category to set it's bin.
       foreach ($props as $network_edge_id => $value) {
-        $bins[$network_edge_id] = $value;
+        $item_layer[$network_edge_id] = array_search($value, $categories);
+      }
+
+
+      for ($i = 0; $i < $num_categories; $i++){
+        $layer_labels[] = $categories[$i];
+        $layers[] = $i;
       }
     }
     else {
-      $bin_size = ($max - $min) / $num_bins;
       foreach ($props as $network_edge_id => $value) {
-        $bins[$network_edge_id] = ($value - $min) / $bin_size;
+        $item_layer[$network_edge_id] = 0;
+      }
+
+      for ($i = 0; $i < $num_layers; $i++){
+        $layer_labels[] = 'Too many categories';
+        $layers[] = 0;
       }
     }
   }
 
-  $categories = [];
-  if ($is_categorical or $is_ordinal) {
-    if ($is_categorical) {
-      $categories = array_keys($prop_values);
-      asort($categories);
-    }
+  // Handle ordinal data.
+  if ($is_ordinal) {
+    // Get the list of ordinal values.
+    $ordinals = array_keys($prop_values);
+    asort($ordinals);
+
+    // Use the index of the ordinal to set it's bin.
     foreach ($props as $network_edge_id => $value) {
-      $bins[$network_edge_id] = $value;
+      $item_layer[$network_edge_id] = array_search($value, $ordinals);
+    }
+
+    // Set the bin labels.
+    for ($i = 0; $i < count($ordinals); $i++){
+      $layer_labels[] = strval($ordinals[$i]);
+      $layers[] = $i;
     }
   }
 
+  $title = ucfirst($term->name);
+  if ($is_log10_transformed) {
+    $title = '-log10 ' . $title;
+  }
+  if ($is_abs) {
+    $title = 'AV ' . $title;
+  }
+
   return [
+    'num_floats' => $num_floats,
+    'num_ints' => $num_ints,
+    'num_numeric' => $num_numeric,
+    'num_strings' => $num_strings,
     'is_categorical' => $is_categorical,
     'is_ordinal' => $is_ordinal,
     'is_quantitative' => $is_quantitative,
-    'bins' => $bins,
+    'is_log10_transformed' => $is_log10_transformed,
+    'is_abs' => $is_abs,
+    'adj_values' => $adj_values,
+    'item_layer' => $item_layer,
+    'layers' => $layers,
+    'layer_labels' => $layer_labels,
     'min' => $min,
     'max' => $max,
-    'categories' => $categories
+    'title' => $title,
   ];
 }
 
 /**
- * Sorts nodes into bins using a node property
  *
- * This function accepts either feature IDs or network node IDs.  If
- * feature IDs are provided then the properties are returned indexed by
- * the feature ID. If a network node ID is provided then the properties are
- * returned indexed by the network node IDs.
- *
- * @param array $ids
- *   An array of feature IDs or network node IDs.
- * @param string $bin_term
- *   The name of the term that will used to layer the nodes into bins. It
- *   is in the format: db_name:accession. For example SWO:0000425.
- * @param string $color_term
- *   The name of the term that will be used to color the nodes. It is in
- *   the format: db_name:accession. For example OBI:0200130.
+ * @param unknown $edge_ids
+ * @param unknown $color_term
+ * @return string[]
  */
-function tripal_network_layer_network_edges($edge_ids, $bin_term = NULL, $color_term = NULL) {
+function tripal_network_color_edges($edge_ids, $color_term) {
 
+  // The colros array that will be returned.
+  $colors = [];
+
+
+  // Hard-coded virdis colors
   $virdis_colors = [
-    'rgb(253, 231, 37)',
-    'rgb(223, 227, 24)',
-    'rgb(189, 223, 38)',
-    'rgb(155, 217, 60)',
-    'rgb(122, 209, 81)',
-    'rgb(94, 201, 98)',
-    'rgb(68, 191, 112)',
-    'rgb(47, 180, 124)',
-    'rgb(34, 168, 132)',
-    'rgb(30, 156, 137)',
-    'rgb(33, 145, 140)',
-    'rgb(37, 132, 142)',
-    'rgb(42, 120, 142)',
-    'rgb(47, 108, 142)',
-    'rgb(53, 95, 141)',
-    'rgb(59, 82, 139)',
-    'rgb(65, 68, 135)',
-    'rgb(70, 52, 128)',
-    'rgb(72, 36, 117)',
-    'rgb(71, 19, 101)',
+
     'rgb(68, 1, 84)',
+    'rgb(71, 19, 101)',
+    'rgb(72, 36, 117)',
+    'rgb(70, 52, 128)',
+    'rgb(65, 68, 135)',
+    'rgb(59, 82, 139)',
+    'rgb(53, 95, 141)',
+    'rgb(47, 108, 142)',
+    'rgb(42, 120, 142)',
+    'rgb(37, 132, 142)',
+    'rgb(33, 145, 140)',
+    'rgb(30, 156, 137)',
+    'rgb(34, 168, 132)',
+    'rgb(47, 180, 124)',
+    'rgb(68, 191, 112)',
+    'rgb(94, 201, 98)',
+    'rgb(122, 209, 81)',
+    'rgb(155, 217, 60)',
+    'rgb(189, 223, 38)',
+    'rgb(223, 227, 24)',
+    'rgb(253, 231, 37)',
   ];
   $num_colors = count($virdis_colors);
 
-  $colors = [];
-  $z_props = tripal_network_get_edgeprops($edge_ids, $bin_term);
-  $color_props = tripal_network_get_edgeprops($edge_ids, $color_term);
+  // Get the layers for the color term as this wilh lelp us determine the
+  // colors (one for each layer).
+  $layers = tripal_network_layer_edges($edge_ids, $color_term);
+  $num_layers = count($layers['layers']);
 
-  //  For the similarity score, take the absolute value.
-  $z_abs = FALSE;
-  if ($bin_term == 'SWO:0000425') {
-    $z_abs = TRUE;
-  }
-  $color_abs = FALSE;
-  if ($bin_term == 'SWO:0000425') {
-    $color_abs = TRUE;
-  }
+  // Convert the layer bin into a color
+  foreach ($layers['item_layer'] as $network_edge_id => $layer) {
+    $ci = floor($layer * ($num_colors / $num_layers));
 
-  $z = _tripal_network_bin_by_props($z_props, INF, $z_abs);
-  $colors = _tripal_network_bin_by_props($color_props, 20, $color_abs);
-  if ($colors['is_categorical'] === TRUE) {
-    $csize = count($virdis_colors) / count($colors['categories']);
-    foreach ($colors['bins'] as $network_edge_id => $bin) {
-      $ci = array_search($bin, $colors['categories']);
-      $ci = floor($ci * $csize);
-      $colors['bins'][$network_edge_id] = $virdis_colors[$ci];
+    // Reverse the colors for the rank property.
+    if ($color_term == 'NCIT:C48904'){
+      $ci = ($num_colors - 1) - $ci;
     }
-  }
-  else {
-    foreach ($colors['bins'] as $network_edge_id => $bin) {
-      // For the term 'rank' reverse order the colors.
-      if ($color_term == 'NCIT:C48904') {
-        $colors['bins'][$network_edge_id] = $virdis_colors[round($bin)];
-      }
-      else {
-        $colors['bins'][$network_edge_id] = $virdis_colors[$num_colors - round($bin) - 1];
-      }
-    }
+    $colors[$network_edge_id] = $virdis_colors[$ci];
   }
 
-  return [
-    'z' => $z,
-    'colors' => $colors
-  ];
+  return $colors;
 }
-
 /**
  * Retreives properties of one or more networks.
  *
