@@ -16,8 +16,11 @@ function tripal_network_viewer_ajax_get_display_form() {
   $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
   $layer_by = array_key_exists('layer_by', $_GET) ? $_GET['layer_by'] : NULL;
   $color_by = array_key_exists('color_by', $_GET) ? $_GET['color_by'] : NULL;
+  $limit = array_key_exists('limit', $_GET) ? $_GET['limit'] : NULL;
+  $limit_by = array_key_exists('limit_by', $_GET) ? $_GET['limit_by'] : NULL;
 
-  $form = drupal_get_form('tripal_network_viewer_display_form', $network_id, $layer_by, $color_by);
+  $form = drupal_get_form('tripal_network_viewer_display_form', $network_id,
+      $layer_by, $color_by, $limit, $limit_by);
   $form = drupal_render($form);
 
   $settings = FALSE;
@@ -408,6 +411,8 @@ function tripal_network_viewer_ajax_retrieve() {
   $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
   $layer_by = array_key_exists('layer_by', $_GET) ? $_GET['layer_by'] : NULL;
   $color_by = array_key_exists('color_by', $_GET) ? $_GET['color_by'] : NULL;
+  $limit = array_key_exists('limit', $_GET) ? $_GET['limit'] : 1000;
+  $limit_by = array_key_exists('limit_by', $_GET) ? $_GET['limit_by'] : NULL;
 
   $layout = tripal_network_get_default_layout();
 
@@ -444,7 +449,7 @@ function tripal_network_viewer_ajax_retrieve() {
   $layout['title'] = $network->getValue('name');
 
   // Get the network Plotly data.
-  $network_items = tripal_network_get_network_elements($network_id);
+  $network_items = tripal_network_get_network_elements($network_id, NULL, $limit_by, $limit);
   $plotly_data = tripal_network_make_plotly_data($network_items, $layout, $layer_by, $color_by);
 
   drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
@@ -517,18 +522,27 @@ function tripal_network_viewer_network_form_ajax_callback($form, $form_state) {
  *
  */
 function tripal_network_viewer_display_form($form, &$form_state,
-    $network_id = NULL, $layer_by = NULL, $color_by = NULL) {
+    $network_id = NULL, $layer_by = NULL, $color_by = NULL,
+    $limit = 1000, $limit_by = NULL) {
 
   if (array_key_exists('values', $form_state)) {
     $network_id = array_key_exists('network_id', $form_state['values']) ? $form_state['values']['network_id'] : $network_id;
     $layer_by = array_key_exists('layer_by', $form_state['values']) ? $form_state['values']['layer_by'] : $layer_by;
     $color_by = array_key_exists('color_by', $form_state['values']) ? $form_state['values']['color_by'] : $color_by;
+    $limit = array_key_exists('limit', $form_state['values']) ? $form_state['values']['limit'] : $limit;
+    $limit_by = array_key_exists('limit_by', $form_state['values']) ? $form_state['values']['limit_by'] : $limit_by;
   }
   if (!$layer_by) {
     $layer_by = 'SWO:0000425';
   }
   if (!$color_by) {
     $color_by = 'SWO:0000425';
+  }
+  if (!$limit_by) {
+    $limit_by = 'SWO:0000425';
+  }
+  if (!$limit) {
+    $limit = 1000;
   }
   $props = [];
   if ($network_id) {
@@ -571,6 +585,20 @@ function tripal_network_viewer_display_form($form, &$form_state,
     '#default_value' => $color_by,
     '#description' => t('Select a property to color edges.'),
   ];
+  $form['limit'] = [
+    '#type' => 'textfield',
+    '#title' => 'Limit Number of Edges',
+    '#size' => 10,
+    '#default_value' => $limit,
+    '#description' => t('Limit the number of edges displayed.'),
+  ];
+  $form['limit_by'] = [
+    '#type' => 'select',
+    '#title' => 'Limit By',
+    '#options' => $props,
+    '#default_value' => $limit_by,
+    '#description' => t('Select a property to limit the best edges (only works for numerical properties).'),
+  ];
   $form['button'] = [
     '#type' => 'submit',
     '#value' => 'Update Display',
@@ -600,16 +628,22 @@ function tripal_network_viewer_display_form_ajax_callback($form, $form_state) {
   $network_id = NULL;
   $layer_by = NULL;
   $color_by = NULL;
+  $limit = NULL;
+  $limit_by = NULL;
   if (array_key_exists('values', $form_state)) {
     $network_id = array_key_exists('network_id', $form_state['values']) ? $form_state['values']['network_id'] : NULL;
     $layer_by = array_key_exists('layer_by', $form_state['values']) ? $form_state['values']['layer_by'] : NULL;
     $color_by = array_key_exists('color_by', $form_state['values']) ? $form_state['values']['color_by'] : NULL;
+    $limit = array_key_exists('limit', $form_state['values']) ? $form_state['values']['limit'] : NULL;
+    $limit_by = array_key_exists('limit_by', $form_state['values']) ? $form_state['values']['limit_by'] : NULL;
   }
 
   $args = [
     'network_id' => $network_id,
     'layer_by' => $layer_by,
     'color_by' => $color_by,
+    'limit' => $limit,
+    'limit_by' => $limit_by,
   ];
 
   // Tell Drupal to update the network

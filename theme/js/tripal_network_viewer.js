@@ -113,6 +113,8 @@
     var network_id = args['network_id'];
     var layer_by = args['layer_by'];
     var color_by = args['color_by'];
+    var limit = args['limit'];
+    var limit_by = args['limit_by'];
     
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
@@ -123,7 +125,9 @@
       data: {
          'network_id': network_id, 
          'layer_by': layer_by, 
-         'color_by': color_by
+         'color_by': color_by,
+         'limit': limit,
+         'limit_by': limit_by
       },
       success: function(response) {
         $('#tripal-network-viewer-display-details form').replaceWith(response);
@@ -180,6 +184,8 @@
     var network_id = args['network_id'];
     var layer_by = args['layer_by'];
     var color_by = args['color_by'];
+    var limit = args['limit'];
+    var limit_by = args['limit_by'];
     
     $('#tripal-network-viewer-loading').show()
 
@@ -192,7 +198,9 @@
       data: {
          'network_id': network_id, 
          'layer_by': layer_by, 
-         'color_by': color_by
+         'color_by': color_by,
+         'limit': limit,
+         'limit_by': limit_by
       },
       success: function(json) {
         response = json;
@@ -229,7 +237,9 @@
         $.fn.updateDisplayForm({
           'network_id': network_id, 
           'layer_by': layer_by, 
-          'color_by': color_by
+          'color_by': color_by,
+          'limit': limit,
+          'limit_by': limit_by
         });
         
         // Update the network details

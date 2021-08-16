@@ -13,7 +13,8 @@
  * @return
  *   An associative array of edges with the keys 'edges' and 'nodes'.
  */
-function tripal_network_get_network_elements($network_id, $feature_id = NULL, $limit = 0, $offset = 0) {
+function tripal_network_get_network_elements($network_id, $feature_id = NULL,
+    $limit_term = NULL, $limit = 0, $offset = 0) {
 
   if ($offset and !$limit) {
     throw new Exception('tripal_network_get_edges: if an offset is provided a limit must also be provided.');
@@ -34,17 +35,34 @@ function tripal_network_get_network_elements($network_id, $feature_id = NULL, $l
       INNER JOIN {network_node} NNT on NNT.network_node_id = NE.target_id
       INNER JOIN {feature} FS on FS.feature_id = NNS.feature_id
       INNER JOIN {feature} FT on FT.feature_id = NNT.feature_id
+  ";
+  $where = "
     WHERE NE.network_id = :network_id
   ";
+  if ($limit_term) {
+    $term = chado_get_cvterm(['id' => $limit_term]);
+    $sql .= "
+      INNER JOIN {network_edgeprop} NEP on NEP.network_edge_id = NE.network_edge_id
+    ";
+    $where .= " AND NEP.type_id = :cvterm_id";
+    $params[':cvterm_id'] = $term->cvterm_id;
+  }
   if ($feature_id) {
-    $sql .= " AND (NNS.feature_id = :feature_id OR NNT.feature_id = :feature_id)";
+    $where .= " AND (NNS.feature_id = :feature_id OR NNT.feature_id = :feature_id)";
     $params[':feature_id'] = $feature_id;
   }
+  $limit_sql = '';
+  $order_sql = '';
   if ($limit) {
-    $sql .= " LIMIT :limit OFFSET :offset";
+    $limit_sql = " LIMIT :limit OFFSET :offset";
+    // TODO: we need to know if this is a numerical value so we can sort
+    // properly and if we should sort ascending or descending.
+    $order_sql = " ORDER BY NEP.value DESC";
     $params[':limit'] = $limit;
     $params[':offset'] = $offset;
   }
+  $sql = $sql . $where . $order_sql . $limit_sql;
+
 
   // Execute the query and return the parsed results.
   $results = chado_query($sql, $params);
