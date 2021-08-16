@@ -348,6 +348,7 @@ function tripal_network_color_edges($edge_ids, $color_term) {
   $num_layers = count($layers['layers']);
 
   // Convert the layer bin into a color
+  $labels = [];
   foreach ($layers['item_layer'] as $network_edge_id => $layer) {
     $ci = floor($layer * ($num_colors / $num_layers));
 
@@ -356,9 +357,16 @@ function tripal_network_color_edges($edge_ids, $color_term) {
       $ci = ($num_colors - 1) - $ci;
     }
     $colors[$network_edge_id] = $virdis_colors[$ci];
+    $labels[$virdis_colors[$ci]] = $layers['layer_labels'][$layer];
   }
 
-  return $colors;
+  return [
+    'item_color' => $colors,
+    'labels' => $labels,
+    'is_categorical' => $layers['is_categorical'],
+    'is_quantitative' => $layers['is_quantitative'],
+    'is_ordinal' => $layers['is_ordinal'],
+  ];
 }
 /**
  * Retreives properties of one or more networks.

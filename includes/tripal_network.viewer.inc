@@ -802,8 +802,8 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
 
     // Get the z-coord, bin and color for this edge.
     $layer = array_key_exists($network_edge_id, $layers['item_layer']) ? $layers['item_layer'][$network_edge_id] : 0;
-    $layer_name = $layers['layer_labels'][$layer];
-    $color = array_key_exists($network_edge_id, $colors) ? $colors[$network_edge_id] : 0;
+    $color = array_key_exists($network_edge_id, $colors['item_color']) ? $colors['item_color'][$network_edge_id] : 0;
+    $layer_name = $colors['labels'][$color];
 
     $z = 0;
     if ($layers['is_quantitative']) {
@@ -817,6 +817,7 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
     if (!array_key_exists($layer_name, $traces)) {
       $traces[$layer_name] = $edge_trace_defaults;
       $traces[$layer_name]['name'] = $layer_name;
+      $traces[$layer_name]['line']['color'] = $color;
     }
 
     $source_feature_id = $edge['source_feature_id'];
@@ -840,11 +841,6 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
     $traces[$layer_name]['text'][] = $text;
     $traces[$layer_name]['text'][] = $text;
     $traces[$layer_name]['text'][] = $text;
-
-    // Set the line color.
-    $traces[$layer_name]['line']['color'][] = $color;
-    $traces[$layer_name]['line']['color'][] = $color;
-    $traces[$layer_name]['line']['color'][] = $color;
 
     // Set the line ids.
     $traces[$layer_name]['ids'][] = $network_edge_id;
@@ -875,7 +871,7 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
     }
   }
 
-  if ($layers['is_categorical']) {
+  if ($colors['is_categorical']) {
     ksort($traces);
   }
   else {
