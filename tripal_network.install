@@ -10,6 +10,7 @@ function tripal_network_install() {
 
   tripal_network_add_network_table($schema);
   tripal_network_add_networkprop_table($schema);
+  tripal_network_add_networkpropprop_table($schema);
   tripal_network_add_network_cvterm_table($schema);
   tripal_network_add_network_file_table($schema);
 
@@ -237,7 +238,73 @@ function tripal_network_add_terms() {
     'cv_name' => 'INO',
     'definition' => 'Interaction is a processual entity that has two or more participants (i.e., interactors) that have an effect upon one another.',
   ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'SIO:000400',
+    'name' => 'x cartesian coordinate',
+    'cv_name' => 'SIO',
+    'definition' => 'An x cartesian coordinate is the coordinate of an object onto the x-axis of a cartesian coordinate system.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'SIO:000401',
+    'name' => 'y cartesian coordinate',
+    'cv_name' => 'SIO',
+    'definition' => 'An y cartesian coordinate is the coordinate of an object onto the x-axis of a cartesian coordinate system.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'SIO:000402',
+    'name' => 'z cartesian coordinate',
+    'cv_name' => 'SIO',
+    'definition' => 'An z cartesian coordinate is the coordinate of an object onto the x-axis of a cartesian coordinate system.',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'SIO:000614',
+    'name' => 'attribute',
+    'cv_name' => 'SIO',
+    'definition' => 'An attribute is a characteristic of some entity.',
+  ]);
 
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C142192',
+    'name' => 'Study Variable',
+    'cv_name' => 'NCIT',
+    'definition' => 'A variable identified as relevant to a particular clinical study. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C142658',
+    'name' => 'Quantitative Variable',
+    'cv_name' => 'NCIT',
+    'definition' => 'A variable that can be expressed with numeric values. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT":C142657',
+    'name' => 'Qualitative Variable',
+    'cv_name' => 'NCIT',
+    'definition' => 'Variables that cannot be represent by a number, used to describe data that fits into categories. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C47797',
+    'name' => 'Ordinal Scale',
+    'cv_name' => 'NCIT',
+    'definition' => 'A scale that uses ordered numbers where the difference between successive designations may not be constant. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C25570',
+    'name' => 'Minimum',
+    'cv_name' => 'NCIT',
+    'definition' => 'The smallest possible quantity. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C25564',
+    'name' => 'Maximum',
+    'cv_name' => 'NCIT',
+    'definition' => 'The largest possible quantity or degree. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C44185',
+    'name' => 'P-Value',
+    'cv_name' => 'NCIT',
+    'definition' => 'A measure of the probability that a result happened by chance. The lower the p-value, the more likely it is that the result was caused by phenomenon of interest. [ NCI ]',
+  ]);
 
 
   // Network Analysis Types
@@ -286,24 +353,7 @@ function tripal_network_add_terms() {
     'cv_name' => 'obi',
     'definition' => 'A node quality calculation in which an input data set describing object nodes and relationship edges between object nodes is used to enumerate the number of unique relationships of an individual object node.',
   ]);
-  $term = tripal_insert_cvterm([
-    'id' => 'SIO:000400',
-    'name' => 'x cartesian coordinate',
-    'cv_name' => 'SIO',
-    'definition' => 'An x cartesian coordinate is the coordinate of an object onto the x-axis of a cartesian coordinate system.',
-  ]);
-  $term = tripal_insert_cvterm([
-    'id' => 'SIO:000401',
-    'name' => 'y cartesian coordinate',
-    'cv_name' => 'SIO',
-    'definition' => 'An y cartesian coordinate is the coordinate of an object onto the x-axis of a cartesian coordinate system.',
-  ]);
-  $term = tripal_insert_cvterm([
-    'id' => 'SIO:000402',
-    'name' => 'z cartesian coordinate',
-    'cv_name' => 'SIO',
-    'definition' => 'An z cartesian coordinate is the coordinate of an object onto the x-axis of a cartesian coordinate system.',
-  ]);
+
 
 
   // Terms for fields
@@ -354,6 +404,7 @@ function tripal_network_add_terms() {
   ]);
 
 }
+
 
 /**
  *
@@ -505,6 +556,10 @@ function tripal_network_add_networkprop_table(&$schema) {
         'type' => 'text',
         'not null' => FALSE,
       ],
+      'numvalue' => [
+        'type' => 'float',
+        'not null' => FALSE,
+      ],
       'rank' => [
         'type' => 'int',
         'not null' => TRUE,
@@ -540,6 +595,77 @@ function tripal_network_add_networkprop_table(&$schema) {
         'table' => 'network',
         'columns' => [
           'network_id' => 'network_id',
+        ],
+      ],
+    ],
+  ];
+}
+/**
+ *
+ */
+function tripal_network_add_networkpropprop_table(&$schema) {
+
+  $schema['networkpropprop'] = [
+    'table' => 'networkpropprop',
+    'fields' => [
+      'networkpropprop_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'networkprop_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'type_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'value' => [
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+      'numvalue' => [
+        'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'rank' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => [
+      0 => 'networkpropprop_id',
+    ],
+    'unique keys' => [
+      'networkprop_c1' => [
+        0 => 'networkprop_id',
+        1 => 'type_id',
+        2 => 'rank',
+      ],
+    ],
+    'indexes' => [
+      'networkpropprop_idx1' => [
+        0 => 'networkprop_id',
+      ],
+      'networkproprop_idx2' => [
+        0 => 'type_id',
+      ],
+    ],
+    'foreign keys' => [
+      'cvterm' => [
+        'table' => 'cvterm',
+        'columns' => [
+          'type_id' => 'cvterm_id',
+        ],
+      ],
+      'networkprop' => [
+        'table' => 'network',
+        'columns' => [
+          'networkprop_id' => 'networkprop_id',
         ],
       ],
     ],
@@ -632,6 +758,10 @@ function tripal_network_add_network_nodeprop_table(&$schema) {
       ],
       'value' => [
         'type' => 'text',
+        'not null' => FALSE,
+      ],
+      'numvalue' => [
+        'type' => 'float',
         'not null' => FALSE,
       ],
       'rank' => [
@@ -769,6 +899,10 @@ function tripal_network_add_network_edgeprop_table(&$schema) {
       ],
       'value' => [
         'type' => 'text',
+        'not null' => FALSE,
+      ],
+      'numvalue' => [
+        'type' => 'float',
         'not null' => FALSE,
       ],
       'rank' => [
@@ -1142,6 +1276,10 @@ function tripal_network_add_network_analysisprop_table(&$schema) {
       ],
       'value' => [
         'type' => 'text',
+        'not null' => FALSE,
+      ],
+      'numvalue' => [
+        'type' => 'float',
         'not null' => FALSE,
       ],
       'rank' => [
