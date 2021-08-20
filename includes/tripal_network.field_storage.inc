@@ -4,14 +4,7 @@
  * Implements hook_field_storage_info().
  */
 function tripal_network_field_storage_info() {
-  return array(
-    'field_tn_neo4j_storage' => array(
-      'label' => t('Tripal Network Neo4j'),
-      'description' => t('Stores fields realted to networks in a Neo4j database.'),
-      'settings' => array(),
-      'logo_url' => '',
-    ),
-  );
+  return [];
 }
 
 /**

@@ -10,7 +10,8 @@ function tripal_network_install() {
 
   tripal_network_add_network_table($schema);
   tripal_network_add_networkprop_table($schema);
-  tripal_network_add_networkpropprop_table($schema);
+  tripal_network_add_network_attr_table($schema);
+  tripal_network_add_network_attrprop_table($schema);
   tripal_network_add_network_cvterm_table($schema);
   tripal_network_add_network_file_table($schema);
 
@@ -106,6 +107,18 @@ function tripal_network_add_terms() {
   ]);
 
   // Network Parts
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C75914',
+    'name' => 'Mathematical Graph',
+    'cv_name' => 'NCIT',
+    'definition' => 'A set of objects called points, nodes, or vertices connected by a binary relation between vertices called lines or edges. It is a mathematical structure used to model pairwise relations between objects from a certain collection. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C62289',
+    'name' => 'Domain',
+    'cv_name' => 'NCIT',
+    'definition' => 'An area of knowledge considered as a discreet unit for some purpose. [ NCI ]',
+  ]);
   $term = tripal_insert_cvterm([
     'id' => 'NCIT:C75907',
     'name' => 'Graph Node',
@@ -262,7 +275,12 @@ function tripal_network_add_terms() {
     'cv_name' => 'SIO',
     'definition' => 'An attribute is a characteristic of some entity.',
   ]);
-
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C25161',
+    'name' => 'Classification',
+    'cv_name' => 'NCIT',
+    'definition' => 'A method of generalization, the systematic arrangement of entities into classes or groups based on mutual similarity and certain differing characteristics. [ NCI ]',
+  ]);
   $term = tripal_insert_cvterm([
     'id' => 'NCIT:C142192',
     'name' => 'Study Variable',
@@ -276,7 +294,7 @@ function tripal_network_add_terms() {
     'definition' => 'A variable that can be expressed with numeric values. [ NCI ]',
   ]);
   $term = tripal_insert_cvterm([
-    'id' => 'NCIT":C142657',
+    'id' => 'NCIT:C142657',
     'name' => 'Qualitative Variable',
     'cv_name' => 'NCIT',
     'definition' => 'Variables that cannot be represent by a number, used to describe data that fits into categories. [ NCI ]',
@@ -304,6 +322,44 @@ function tripal_network_add_terms() {
     'name' => 'P-Value',
     'cv_name' => 'NCIT',
     'definition' => 'A measure of the probability that a result happened by chance. The lower the p-value, the more likely it is that the result was caused by phenomenon of interest. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C48192',
+    'name' => 'Importance Weight',
+    'cv_name' => 'NCIT',
+    'definition' => 'The relative importance granted to something. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C114464',
+    'name' => 'Category Name',
+    'cv_name' => 'NCIT',
+    'definition' => 'The designation for a collection of related, classified entities. [ NCI ]',
+  ]);
+
+  // Data Types
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C42645',
+    'name' => 'Data Type',
+    'cv_name' => 'SIO',
+    'definition' => 'An indication of the form that a value will have. Examples include string, integer, and character. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C45255',
+    'name' => 'Integer',
+    'cv_name' => 'NCIT',
+    'definition' => 'A number with no fractional part, including the negative and positive numbers as well as zero. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C48150',
+    'name' => 'Float',
+    'cv_name' => 'NCIT',
+    'definition' => 'A number that can have its decimal point in any position. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C45253',
+    'name' => 'String',
+    'cv_name' => 'NCIT',
+    'definition' => 'An expression consisting of a linear sequence of symbols (characters or words or phrases). [ NCI ]',
   ]);
 
 
@@ -411,6 +467,8 @@ function tripal_network_add_terms() {
  */
 function tripal_network_setup_semweb() {
 
+  // TODO: finish adding in term mapping.
+
   // Add controlled vocabulary terms to the new tables.
   $identifier = tripal_get_cvterm(['id' => 'data:0842']);
   tripal_associate_chado_semweb_term('network', 'uniquename', $identifier);
@@ -424,6 +482,15 @@ function tripal_network_setup_semweb() {
   $type = tripal_get_cvterm(['id' => 'schema:additionalType']);
   tripal_associate_chado_semweb_term('network', 'type_id', $type);
 
+  // The network_attr table.
+  $type = tripal_get_cvterm(['id' => 'NCIT:C61377']);
+  tripal_associate_chado_semweb_term('network_attr', 'network_id', $type);
+
+  $type = tripal_get_cvterm(['id' => 'NCIT:C62289']);
+  tripal_associate_chado_semweb_term('network_attr', 'domain_id', $type);
+
+  $type = tripal_get_cvterm(['id' => 'schema:name']);
+  tripal_associate_chado_semweb_term('network_attr', 'attr_id', $type);
 
 }
 /**
@@ -556,8 +623,13 @@ function tripal_network_add_networkprop_table(&$schema) {
         'type' => 'text',
         'not null' => FALSE,
       ],
-      'numvalue' => [
+      'value_num' => [
         'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'value_id' => [
+        'size' => 'big',
+        'type' => 'int',
         'not null' => FALSE,
       ],
       'rank' => [
@@ -583,12 +655,84 @@ function tripal_network_add_networkprop_table(&$schema) {
       'networkprop_idx2' => [
         0 => 'type_id',
       ],
+      'networkprop_idx3' => [
+        0 => 'value_id',
+      ],
     ],
     'foreign keys' => [
       'cvterm' => [
         'table' => 'cvterm',
         'columns' => [
           'type_id' => 'cvterm_id',
+          'value_id' => 'cvterm_id',
+        ],
+      ],
+      'network' => [
+        'table' => 'network',
+        'columns' => [
+          'network_id' => 'network_id',
+        ],
+      ],
+    ],
+  ];
+}
+
+/**
+ *
+ */
+function tripal_network_add_network_attr_table(&$schema) {
+
+  $schema['network_attr'] = [
+    'table' => 'network_attr',
+    'fields' => [
+      'network_attr_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'network_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'domain_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Indicates the domain for this attribute: graph, edge or node.  This ID should be for the controlled vocabulary term for one of those domains.'
+      ],
+      'attr_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'The ID of the controlled vocabulary term for the attribute.'
+
+      ],
+    ],
+    'primary key' => [
+      0 => 'network_attr_id',
+    ],
+    'unique keys' => [
+      'network_attr_c1' => [
+        0 => 'network_id',
+        1 => 'domain_id',
+        2 => 'attr_id',
+      ],
+    ],
+    'indexes' => [
+      'network_attr_idx1' => [
+        0 => 'network_id',
+      ],
+      'network_attr_idx2' => [
+        0 => 'attr_id',
+      ],
+    ],
+    'foreign keys' => [
+      'cvterm' => [
+        'table' => 'cvterm',
+        'columns' => [
+          'domain_id' => 'cvterm_id',
+          'attr_id' => 'cvterm_id'
         ],
       ],
       'network' => [
@@ -603,17 +747,17 @@ function tripal_network_add_networkprop_table(&$schema) {
 /**
  *
  */
-function tripal_network_add_networkpropprop_table(&$schema) {
+function tripal_network_add_network_attrprop_table(&$schema) {
 
-  $schema['networkpropprop'] = [
-    'table' => 'networkpropprop',
+  $schema['network_attrprop'] = [
+    'table' => 'network_attrprop',
     'fields' => [
-      'networkpropprop_id' => [
+      'network_attrprop_id' => [
         'size' => 'big',
         'type' => 'serial',
         'not null' => TRUE,
       ],
-      'networkprop_id' => [
+      'network_attr_id' => [
         'size' => 'big',
         'type' => 'int',
         'not null' => TRUE,
@@ -627,8 +771,13 @@ function tripal_network_add_networkpropprop_table(&$schema) {
         'type' => 'text',
         'not null' => FALSE,
       ],
-      'numvalue' => [
+      'value_num' => [
         'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'value_id' => [
+        'size' => 'big',
+        'type' => 'int',
         'not null' => FALSE,
       ],
       'rank' => [
@@ -638,21 +787,24 @@ function tripal_network_add_networkpropprop_table(&$schema) {
       ],
     ],
     'primary key' => [
-      0 => 'networkpropprop_id',
+      0 => 'network_attrprop_id',
     ],
     'unique keys' => [
-      'networkprop_c1' => [
-        0 => 'networkprop_id',
+      'network_attrprop_c1' => [
+        0 => 'network_attr_id',
         1 => 'type_id',
         2 => 'rank',
       ],
     ],
     'indexes' => [
-      'networkpropprop_idx1' => [
-        0 => 'networkprop_id',
+      'network_attrprop_idx1' => [
+        0 => 'network_attr_id',
       ],
-      'networkproprop_idx2' => [
+      'network_attrpro_idx2' => [
         0 => 'type_id',
+      ],
+      'network_attrpro_idx3' => [
+        0 => 'value_id',
       ],
     ],
     'foreign keys' => [
@@ -660,12 +812,13 @@ function tripal_network_add_networkpropprop_table(&$schema) {
         'table' => 'cvterm',
         'columns' => [
           'type_id' => 'cvterm_id',
+          'value_id' => 'cvterm_id',
         ],
       ],
-      'networkprop' => [
-        'table' => 'network',
+      'network_attr' => [
+        'table' => 'network_attr',
         'columns' => [
-          'networkprop_id' => 'networkprop_id',
+          'network_attr_id' => 'network_attr_id',
         ],
       ],
     ],
@@ -760,8 +913,13 @@ function tripal_network_add_network_nodeprop_table(&$schema) {
         'type' => 'text',
         'not null' => FALSE,
       ],
-      'numvalue' => [
+      'value_num' => [
         'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'value_id' => [
+        'size' => 'big',
+        'type' => 'int',
         'not null' => FALSE,
       ],
       'rank' => [
@@ -787,12 +945,16 @@ function tripal_network_add_network_nodeprop_table(&$schema) {
       'network_nodeprop_idx2' => [
         0 => 'type_id',
       ],
+      'network_nodeprop_idx3' => [
+        0 => 'value_id',
+      ],
     ],
     'foreign keys' => [
       'cvterm' => [
         'table' => 'cvterm',
         'columns' => [
           'type_id' => 'cvterm_id',
+          'value_id' => 'cvterm_id',
         ],
       ],
       'network_node' => [
@@ -901,8 +1063,13 @@ function tripal_network_add_network_edgeprop_table(&$schema) {
         'type' => 'text',
         'not null' => FALSE,
       ],
-      'numvalue' => [
+      'value_num' => [
         'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'value_id' => [
+        'size' => 'big',
+        'type' => 'int',
         'not null' => FALSE,
       ],
       'rank' => [
@@ -928,12 +1095,16 @@ function tripal_network_add_network_edgeprop_table(&$schema) {
       'network_edgeprop_idx2' => [
         0 => 'type_id',
       ],
+      'network_edgeprop_idx3' => [
+        0 => 'value_id',
+      ],
     ],
     'foreign keys' => [
       'cvterm' => [
         'table' => 'cvterm',
         'columns' => [
           'type_id' => 'cvterm_id',
+          'value_id' => 'cvterm_id',
         ],
       ],
       'network_edge' => [
@@ -1278,8 +1449,13 @@ function tripal_network_add_network_analysisprop_table(&$schema) {
         'type' => 'text',
         'not null' => FALSE,
       ],
-      'numvalue' => [
+      'value_num' => [
         'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'value_id' => [
+        'size' => 'big',
+        'type' => 'int',
         'not null' => FALSE,
       ],
       'rank' => [
@@ -1305,12 +1481,16 @@ function tripal_network_add_network_analysisprop_table(&$schema) {
       'network_analysisprop_idx2' => [
         0 => 'type_id',
       ],
+      'network_analysisprop_idx3' => [
+        0 => 'value_id',
+      ],
     ],
     'foreign keys' => [
       'cvterm' => [
         'table' => 'cvterm',
         'columns' => [
           'type_id' => 'cvterm_id',
+          'value_id' => 'cvterm_id',
         ],
       ],
       'network_analysis' => [

@@ -883,7 +883,7 @@ class GraphMLImporter extends TripalImporter {
       // Create the cache file for storing parsed GFF entries.
       $this->openCacheFile();
 
-      $this->logMessage("Step  1 of 10: Finding network size...                             ");
+      $this->logMessage("Step  1 of 11: Finding network size...                             ");
       $this->graphml = new XMLReader();
       $this->graphml->open($this->graphML_file);
       $this->parseNumElements();
@@ -894,37 +894,40 @@ class GraphMLImporter extends TripalImporter {
       $this->graphml = new XMLReader();
       $this->graphml->open($this->graphML_file);
 
-      $this->logMessage("Step  2 of 10: Caching GraphML file...                             ");
+      $this->logMessage("Step  2 of 11: Caching GraphML file...                             ");
       $this->parseGraphML();
       $this->graphml->close();
 
-      $this->logMessage("Step  3 of 10: Insert network ...                                  ");
+      $this->logMessage("Step  3 of 11: Insert network ...                                  ");
       $this->insertNetwork();
 
-      $this->logMessage("Step  4 of 10: Find existing node features...                      ");
+      $this->logMessage("Step  4 of 11: Find existing node features...                      ");
       $this->findFeatures();
 
-      $this->logMessage("Step  5 of 10: Insert network nodes...                             ");
+      $this->logMessage("Step  5 of 11: Insert network nodes...                             ");
       $this->logMessage("               Adding !num_nodes nodes                             ",
           ['!num_nodes' => number_format(count($this->nodes))]);
       $this->insertNodes();
 
-      $this->logMessage("Step  6 of 10: Find network nodes IDs...                           ");
+      $this->logMessage("Step  6 of 11: Find network nodes IDs...                           ");
       $this->findNodes();
 
-      $this->logMessage("Step  7 of 10: Insert node properties...                           ");
+      $this->logMessage("Step  7 of 11: Insert node properties...                           ");
       $this->insertNodeProps();
 
-      $this->logMessage("Step  8 of 10: Insert network edges...                             ");
+      $this->logMessage("Step  8 of 11: Insert network edges...                             ");
       $this->logMessage("               Adding !num_edges edges                             ",
           ['!num_edges' => number_format(count($this->edges))]);
       $this->insertEdges();
 
-      $this->logMessage("Step  9 of 10: Find edge IDs...                                    ");
+      $this->logMessage("Step  9 of 11: Find edge IDs...                                    ");
       $this->findEdges();
 
-      $this->logMessage("Step 10 of 10: Insert edge properties...                           ");
+      $this->logMessage("Step 10 of 11: Insert edge properties...                           ");
       $this->insertEdgeProps();
+
+      $this->logMessage("Step 10 of 11: Collecting stats...                                 ");
+      $this->collectStats();
 
     }
     // On exception, catch the error, clean up the cache file and rethrow
@@ -934,6 +937,177 @@ class GraphMLImporter extends TripalImporter {
       throw $e;
     }
     $this->closeCacheFile();
+  }
+
+  /**
+   *
+   */
+  private function collectStats(){
+
+    // Iterate through the attributes for this graph and insert information
+    // about them.
+    foreach ($this->attr_keys as $key => $attr_info) {
+      if ($attr_info['for'] == 'edge') {
+        $domain_term = chado_get_cvterm(['id' => 'NCIT:C75923']);
+        if (!array_key_exists($key, $this->terms) or !$this->terms[$key]) {
+          continue;
+        }
+        $attr_term = $this->terms[$key];
+        $attr_term_name = $attr_term->dbxref_id->db_id->name . ':' . $attr_term->dbxref_id->accession;
+
+        $edge_ids = [];
+        foreach ($this->edges as $info) {
+          $edge_ids[] = $info['network_edge_id'];
+        }
+        $props = tripal_network_get_edgeprops($edge_ids, $attr_term_name);
+
+        $is_categorical = FALSE;
+        $is_quantitative = FALSE;
+        $is_integer = FALSE;
+        $is_float = FALSE;
+        $is_text = FALSE;
+        $num_numeric = 0;
+        $num_floats = 0;
+        $num_ints = 0;
+        $num_strings = 0;
+        $prop_values = [];
+
+        // Count the number of types of values.
+        foreach ($props as $network_edge_id => $value) {
+          $value = trim($value);
+
+          if (is_numeric($value)) {
+            $num_numeric++;
+            if (preg_match('/^[01234567889]+$/', $value)) {
+              $num_ints++;
+            }
+            else {
+              $num_floats++;
+            }
+          }
+          else {
+            // Exclude missing values.
+            if (preg_match('/^(NA|NaN|null|None)$/i', $value)) {
+              $props[$network_edge_id] = '';
+              continue;
+            }
+            $num_strings++;
+          }
+          $prop_values[$value] = 1;
+        }
+
+
+        // Determine if the property is quantitative, ordinal or categorical.
+        // and if it's text, integer or float.
+        if ($num_strings > 0) {
+          $is_categorical = TRUE;
+          $is_text = TRUE;
+        }
+        else {
+          $is_quantitative = TRUE;
+          if ($num_ints > 0 and $num_floats == 0) {
+            $is_integer = TRUE;
+          }
+          else {
+            $is_float = TRUE;
+          }
+        }
+
+        // Handle quantitiative data.
+        $max = -INF;
+        $min = INF;
+        if ($is_quantitative) {
+
+          // Get the min and max value and take the abs value if requested.
+          foreach ($props as $network_edge_id => $value) {
+            if (!$value) {
+              continue;
+            }
+            if ($value > $max) {
+              $max = $value;
+            }
+            if ($value < $min) {
+              $min = $value;
+            }
+          }
+        }
+
+        // Handle categorical values.
+        $categories = [];
+        if ($is_categorical) {
+
+          // Get the list of categories.
+          $categories = array_keys($prop_values);
+          asort($categories);
+        }
+
+        // Add the network attribute
+        $network_attr = new ChadoRecord('network_attr');
+        $network_attr->setValues([
+          'network_id' => $this->network->getID(),
+          'domain_id' => $domain_term->cvterm_id,
+          'attr_id' => $attr_term->cvterm_id,
+        ]);
+        $network_attr->insert();
+
+        // Indicate the class of variable:  Quantitative or Categorical
+        $var_class = NULL;
+        if ($is_categorical) {
+          $var_class = chado_get_cvterm(['id' => 'NCIT:C142657']);
+        }
+        if ($is_quantitative) {
+          $var_class = chado_get_cvterm(['id' => 'NCIT:C142658']);
+        }
+        $class_term = chado_get_cvterm(['id' => 'NCIT:C25161']);
+
+        $network_attrprop = new ChadoRecord('network_attrprop');
+        $network_attrprop->setValues([
+          'network_attr_id' => $network_attr->getID(),
+          'type_id' => $class_term->cvterm_id,
+          'value_id' => $var_class->cvterm_id,
+          'rank' => 0,
+        ]);
+        $network_attrprop->insert();
+
+
+        // Indicate the type of the variable
+        $var_type = NULL;
+        if ($is_float) {
+          $var_type = chado_get_cvterm(['id' => 'NCIT:C48150']);
+        }
+        if ($is_integer) {
+          $var_type = chado_get_cvterm(['id' => 'NCIT:C45255']);
+        }
+        if ($is_text) {
+          $var_type = chado_get_cvterm(['id' => 'NCIT:C45253']);
+        }
+        $data_type_term = chado_get_cvterm(['id' => 'NCIT:C42645']);
+
+        $network_attrprop = new ChadoRecord('network_attrprop');
+        $network_attrprop->setValues([
+          'network_attr_id' => $network_attr->getID(),
+          'type_id' => $data_type_term->cvterm_id,
+          'value_id' => $var_type->cvterm_id,
+        ]);
+        $network_attrprop->insert();
+
+        // If this is categorical, save all the categories.
+        $rank = 0;
+        foreach ($categories as $category) {
+          $catname_term = chado_get_cvterm(['id' => 'NCIT:C114464']);
+
+          $network_attrprop = new ChadoRecord('network_attrprop');
+          $network_attrprop->setValues([
+            'network_attr_id' => $network_attr->getID(),
+            'type_id' => $catname_term->cvterm_id,
+            'value' => $category,
+            'rank' => $rank,
+          ]);
+          $network_attrprop->insert();
+          $rank++;
+        }
+      }
+    }
   }
 
   /**
@@ -1411,16 +1585,19 @@ class GraphMLImporter extends TripalImporter {
    */
   private function deleteNetworkData($network) {
 
-    $sql = "DELETE from {network_edge} WHERE network_id = :network_id";
     $args = [':network_id' => $network->getID()];
+
+    $sql = "DELETE from {networkprop} WHERE network_id = :network_id";
+    chado_query($sql, $args);
+    $sql = "DELETE from {network_edge} WHERE network_id = :network_id";
+    chado_query($sql, $args);
+    $sql = "DELETE from {network_attr} WHERE network_id = :network_id";
     chado_query($sql, $args);
     $sql = "DELETE from {network_node} WHERE network_id = :network_id";
     chado_query($sql, $args);
     $sql = "DELETE from {network_analysis} WHERE network_id = :network_id";
     chado_query($sql, $args);
     $sql = "DELETE from {network_cvterm} WHERE network_id = :network_id";
-    chado_query($sql, $args);
-    $sql = "DELETE from {networkprop} WHERE network_id = :network_id";
     chado_query($sql, $args);
   }
 
