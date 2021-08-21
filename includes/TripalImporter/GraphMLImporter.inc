@@ -1192,7 +1192,7 @@ class GraphMLImporter extends TripalImporter {
         }
 
         // If this is numerical save the min and max
-        if ($is_quantitative or $is_ordinal) {
+        if ($data_class == 'quantitative' or $data_class == 'ordinal') {
           $min_term = chado_get_cvterm(['id' => 'NCIT:C25570']);
           $network_attrprop = new ChadoRecord('network_attrprop');
           $network_attrprop->setValues([

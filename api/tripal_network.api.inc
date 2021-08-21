@@ -103,7 +103,7 @@ function tripal_network_get_network_elements($network_id, $feature_id = NULL,
  * @param int $num_bins
  *   The total number of bins
  */
-function tripal_network_layer_edges($edge_ids, $layer_term) {
+function tripal_network_layer_edges($network_id, $edge_ids, $layer_term) {
 
   // We want to take the absolute value of some property types.
   $abs = FALSE;
@@ -116,6 +116,43 @@ function tripal_network_layer_edges($edge_ids, $layer_term) {
   // Get the property used for layering for each edge.
   $props = tripal_network_get_edgeprops($edge_ids, $layer_term);
 
+  // Get the
+  $attribute = tripal_network_get_attributes($network_id, $layer_term);
+
+  $data_class = NULL;
+  $data_type = NULL;
+  $smallest = INF;
+  $max = -INF;
+  $min = INF;
+  $categories = [];
+  $num_categories = 0;
+  foreach (array_values($attribute)[0]['properties'] as $property) {
+    if ($property['term'] == 'NCIT:C25161') {
+      if ($property['value_name'] == 'Quantitative Variable') {
+        $data_class = 'quantitative';
+      }
+      if ($property['value_name'] == 'Qualitative Variable') {
+        $data_class = 'categorical';
+      }
+      if ($property['value_name'] == 'Ordinal Scale') {
+        $data_class = 'ordinal';
+      }
+    }
+    if ($property['term'] == 'NCIT:C25570') {
+      $min = $property['value_num'];
+    }
+    if ($property['term'] == 'NCIT:C25564') {
+      $max = $property['value_num'];
+    }
+    if ($property['term'] == 'NCIT:C114464') {
+      $categories[] = $property['value'];
+      $num_categories = count($categories);
+    }
+    if ($property['term'] == 'NCIT:C42645') {
+      $data_type = $property['value_name'];
+    }
+  }
+
   // We only have 20 colors and we don't want to over run plotly, so
   // let's use 20 bins.
   $num_layers = 20;
@@ -124,57 +161,17 @@ function tripal_network_layer_edges($edge_ids, $layer_term) {
   $layer_labels = [];
   $layers = [];
   $adj_values = [];
-
-  // Let's determine if the property is categorical, ordinal or quantitative.
-  $is_ordinal = FALSE;
-  $is_categorical = FALSE;
-  $is_quantitative = FALSE;
   $is_log10_transformed = FALSE;
   $is_abs = FALSE;
-  $num_numeric = 0;
-  $num_floats = 0;
-  $num_ints = 0;
-  $num_strings = 0;
-  $prop_values = [];
 
-  // Count the number of types of values.
-  foreach ($props as $network_edge_id => $value) {
-    $value = trim($value);
-
-    if (is_numeric($value)) {
-      $num_numeric++;
-      if (preg_match('/^[01234567889]+$/', $value)) {
-        $num_ints++;
-      }
-      else {
-        $num_floats++;
-      }
-    }
-    else {
-       $num_strings++;
-    }
-    $prop_values[$value] = 1;
-  }
-
-
-  // Determine if the property is quantitative, ordinal or categorical.
-  if ($num_strings > 0) {
-    $is_categorical = TRUE;
-  }
-  else {
-    if ($num_ints > 0 and $num_floats == 0 and $num_ints <= $num_layers) {
-      $is_ordinal = TRUE;
-    }
-    else {
-      $is_quantitative = TRUE;
-    }
+  // Reset the min/max if we need to take the absolute value.
+  if ($abs == TRUE) {
+    $max = -INF;
+    $min = INF;
   }
 
   // Handle quantitiative data.
-  $smallest = INF;
-  $max = -INF;
-  $min = INF;
-  if ($is_quantitative) {
+  if ($data_class == 'quantitative') {
 
     // Get the min and max value and take the abs value if requested.
     foreach ($props as $network_edge_id => $value) {
@@ -230,10 +227,10 @@ function tripal_network_layer_edges($edge_ids, $layer_term) {
 
     // Set the bin labels.
     for ($i = 0; $i <= 20; $i++){
-      if ($num_floats > 0) {
+      if ($data_type == 'Float') {
         $layer_labels[] = strval(round($min + ($bin_size * $i), 2));
       }
-      else {
+      if ($data_type == 'Integer') {
         $layer_labels[] = strval(round($min + ($bin_size * $i), 0));
       }
       $layers[] = $i;
@@ -241,13 +238,7 @@ function tripal_network_layer_edges($edge_ids, $layer_term) {
   }
 
   // Handle categorical values.
-  $categories = [];
-  if ($is_categorical) {
-
-    // Get the list of categories.
-    $categories = array_keys($prop_values);
-    $num_categories = count($categories);
-    asort($categories);
+  if ($data_class == 'categorical') {
 
     // Set the bin labels.
     if ($num_categories <= $num_layers) {
@@ -275,40 +266,18 @@ function tripal_network_layer_edges($edge_ids, $layer_term) {
     }
   }
 
-  // Handle ordinal data.
-  if ($is_ordinal) {
-    // Get the list of ordinal values.
-    $ordinals = array_keys($prop_values);
-    asort($ordinals);
-
-    // Use the index of the ordinal to set it's bin.
-    foreach ($props as $network_edge_id => $value) {
-      $item_layer[$network_edge_id] = array_search($value, $ordinals);
-    }
-
-    // Set the bin labels.
-    for ($i = 0; $i < count($ordinals); $i++){
-      $layer_labels[] = strval($ordinals[$i]);
-      $layers[] = $i;
-    }
-  }
 
   $title = ucfirst($term->name);
   if ($is_log10_transformed) {
     $title = '-log10 ' . $title;
   }
   if ($is_abs) {
-    $title = 'AV ' . $title;
+    $title = 'Absolute Value  ' . $title;
   }
 
   return [
-    'num_floats' => $num_floats,
-    'num_ints' => $num_ints,
-    'num_numeric' => $num_numeric,
-    'num_strings' => $num_strings,
-    'is_categorical' => $is_categorical,
-    'is_ordinal' => $is_ordinal,
-    'is_quantitative' => $is_quantitative,
+    'data_class' => $data_class,
+    'data_type' => $data_type,
     'is_log10_transformed' => $is_log10_transformed,
     'is_abs' => $is_abs,
     'adj_values' => $adj_values,
@@ -327,7 +296,7 @@ function tripal_network_layer_edges($edge_ids, $layer_term) {
  * @param unknown $color_term
  * @return string[]
  */
-function tripal_network_color_edges($edge_ids, $color_term) {
+function tripal_network_color_edges($network_id, $edge_ids, $color_term) {
 
   // The colros array that will be returned.
   $colors = [];
@@ -362,7 +331,7 @@ function tripal_network_color_edges($edge_ids, $color_term) {
 
   // Get the layers for the color term as this wilh lelp us determine the
   // colors (one for each layer).
-  $layers = tripal_network_layer_edges($edge_ids, $color_term);
+  $layers = tripal_network_layer_edges($network_id, $edge_ids, $color_term);
   $num_layers = count($layers['layers']);
 
   // Convert the layer bin into a color
@@ -381,9 +350,8 @@ function tripal_network_color_edges($edge_ids, $color_term) {
   return [
     'item_color' => $colors,
     'labels' => $labels,
-    'is_categorical' => $layers['is_categorical'],
-    'is_quantitative' => $layers['is_quantitative'],
-    'is_ordinal' => $layers['is_ordinal'],
+    'data_class' => $layers['data_class'],
+    'data_type' => $layers['data_type'],
   ];
 }
 /**
@@ -544,3 +512,135 @@ function tripal_network_get_edgeprops($ids, $term) {
   return $props;
 }
 
+
+/**
+ * Retrieves all infromation about a network attribute.
+ *
+ * @param integer $network_id
+ *   The network ID for which the attributes should be retreived.
+ * @param string $term_id
+ *   The ID of a controlled voabulary term in the form DB:ACCESSION. If not
+ *   provided then all attributes are returend. If included only the specified
+ *   atttribute is returned.
+ */
+function tripal_network_get_attributes($network_id, $attr_id = NULL) {
+
+  $attr_term = chado_get_cvterm(['id' => $attr_id]);
+  $args = [':network_id' => $network_id];
+
+  // Get all the information about this attribute.
+  $sql = "
+      SELECT
+        NA.network_attr_id, CVTD.name as domain,
+        CVTA.name as attr_name, DBA.name as attr_db_name, DBXA.accession as attr_accession,
+        CVTP.name as prop_name, CVTA.definition as attr_desc,
+        DBP.name as prop_db_name, DBXP.accession as prop_accession,
+        NAP.value, NAP.value_num, CVTV.name as value_name, NAP.rank
+      FROM {network_attr} NA
+        INNER JOIN {network} N on N.network_id = NA.network_id
+        INNER JOIN {cvterm} CVTD on CVTD.cvterm_id = NA.domain_id
+        INNER JOIN {cvterm} CVTA on CVTA.cvterm_id = NA.attr_id
+        INNER JOIN {network_attrprop} NAP on NAP.network_attr_id = NA.network_attr_id
+        INNER JOIN {cvterm} CVTP on CVTP.cvterm_id = NAP.type_id
+        INNER JOIN {dbxref} DBXP on DBXP.dbxref_id = CVTP.dbxref_id
+        INNER JOIN {dbxref} DBXA on DBXA.dbxref_id = CVTA.dbxref_id
+        INNER JOIN {db} DBP on DBP.db_id = DBXP.db_id
+        INNER JOIN {db} DBA on DBA.db_id = DBXA.db_id
+        LEFT JOIN {cvterm} CVTV on CVTV.cvterm_id = NAP.value_id
+      WHERE NA.network_id = :network_id
+    ";
+  if ($attr_id) {
+    $sql .= " AND NA.attr_id = :attr_id";
+    $args[':attr_id'] = $attr_term->cvterm_id;
+  }
+
+  // Store the attributes in a handy array keyed by attribute.
+  $attributes = chado_query($sql, $args);
+  $response = [];
+  while ($attribute = $attributes->fetchObject()) {
+    if (!array_key_exists($attribute->network_attr_id, $response)) {
+      $response[$attribute->network_attr_id] = [
+        'name' => $attribute->attr_name,
+        'desc' => $attribute->attr_desc,
+        'domain' => $attribute->domain,
+        'term' => $attribute->attr_db_name . ':' . $attribute->attr_accession,
+        'properties' => [],
+      ];
+    }
+    $response[$attribute->network_attr_id]['properties'][] = [
+      'prop_name'=> $attribute->prop_name,
+      'value' => $attribute->value,
+      'value_num' => $attribute->value_num,
+      'value_name' => $attribute->value_name,
+      'term' => $attribute->prop_db_name . ':' . $attribute->prop_accession,
+    ];
+  }
+  return $response;
+}
+/**
+ * Returns the an options array  of attributes for a given network.
+ *
+ * @param integer $network_id
+ *   The network ID for which attributes should be retreived.
+ * @param boolean $quantitative
+ *   Set to TRUE to retrieve quantitative attributes.
+ * @param boolean $categorical
+ *   set to TRUE to retrieve categorical attributes.
+ * @param boolean $ordinal
+ *   Set to TRUE to retrieve ordinal attributes.
+ * @param boolean $annotation
+ *   Set to TRUE to retrieve annotation attributes.
+ *
+ * @return
+ *   An array of attributes indexed by the term ID and the value the name.
+ */
+function tripal_network_get_attribute_options($network_id, $quantitative = TRUE,
+  $categorical = TRUE, $ordinal = TRUE, $annotation = TRUE) {
+
+  $edge_term = chado_get_cvterm(['id' => 'NCIT:C75923']);
+  $data_class_term = chado_get_cvterm(['id' => 'NCIT:C25161']);
+  $quantitative_term = chado_get_cvterm(['id' => 'NCIT:C142658']);
+  $categorical_term = chado_get_cvterm(['id' => 'NCIT:C142657']);
+  $ordinal_term = chado_get_cvterm(['id' => 'NCIT:C47797']);
+  $annotation_term = chado_get_cvterm(['id' => 'NCIT:C44272']);
+
+  $class_ids = [];
+  if ($quantitative) {
+    $class_ids[] = $quantitative_term->cvterm_id;
+  }
+  if ($categorical) {
+    $class_ids[] = $categorical_term->cvterm_id;
+  }
+  if ($ordinal) {
+    $class_ids[] = $ordinal_term->cvterm_id;
+  }
+  if ($annotation) {
+    $class_ids[] = $annotation_term->cvterm_id;
+  }
+
+  $sql = "
+    SELECT CVT.cvterm_id, CVT.name, DBX.accession, DB.name as db_name
+    FROM {network_attr} NA
+      INNER JOIN {network_attrprop} NAP on NAP.network_attr_id = NA.network_attr_id
+      INNER JOIN {cvterm} CVT on CVT.cvterm_id = NA.attr_id
+      INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
+      INNER JOIN {db} DB on DB.db_id = DBX.db_id
+    WHERE
+      NA.network_id = :network_id AND
+      NA.domain_id = :domain_id AND
+      NAP.type_id = :class_type AND
+      NAP.value_id IN (:class_ids)
+  ";
+  $args = [
+    ':network_id' => $network_id,
+    ':domain_id' => $edge_term->cvterm_id,
+    ':class_type' => $data_class_term->cvterm_id,
+    ':class_ids' => $class_ids
+  ];
+  $results = chado_query($sql, $args);
+  while ($record = $results->fetchObject()) {
+    $term = $record->db_name . ':' . $record->accession;
+    $props[$term] = ucfirst($record->name);
+  }
+  return $props;
+}

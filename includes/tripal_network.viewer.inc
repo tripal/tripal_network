@@ -553,57 +553,7 @@ function tripal_network_viewer_network_form_ajax_callback($form, $form_state) {
 }
 
 
-/**
- *
- * @param unknown $network_id
- * @return string
- */
-function tripal_network_viewer_get_usable_props($network_id, $quantitative = TRUE,
-    $categorical = TRUE, $ordinal = TRUE) {
 
-  $edge_term = chado_get_cvterm(['id' => 'NCIT:C75923']);
-  $data_class_term = chado_get_cvterm(['id' => 'NCIT:C25161']);
-  $quantitative_term = chado_get_cvterm(['id' => 'NCIT:C142658']);
-  $categorical_term = chado_get_cvterm(['id' => 'NCIT:C142657']);
-  $ordinal_term = chado_get_cvterm(['id' => 'NCIT:C47797']);
-
-  $class_ids = [];
-  if ($quantitative) {
-    $class_ids[] = $quantitative_term->cvterm_id;
-  }
-  if ($categorical) {
-    $class_ids[] = $categorical_term->cvterm_id;
-  }
-  if ($ordinal) {
-    $class_ids[] = $ordinal_term->cvterm_id;
-  }
-
-  $sql = "
-    SELECT CVT.cvterm_id, CVT.name, DBX.accession, DB.name as db_name
-    FROM {network_attr} NA
-      INNER JOIN {network_attrprop} NAP on NAP.network_attr_id = NA.network_attr_id
-      INNER JOIN {cvterm} CVT on CVT.cvterm_id = NA.attr_id
-      INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
-      INNER JOIN {db} DB on DB.db_id = DBX.db_id
-    WHERE
-      NA.network_id = :network_id AND
-      NA.domain_id = :domain_id AND
-      NAP.type_id = :class_type AND
-      NAP.value_id IN (:class_ids)
-  ";
-  $args = [
-    ':network_id' => $network_id,
-    ':domain_id' => $edge_term->cvterm_id,
-    ':class_type' => $data_class_term->cvterm_id,
-    ':class_ids' => $class_ids
-  ];
-  $results = chado_query($sql, $args);
-  while ($record = $results->fetchObject()) {
-    $term = $record->db_name . ':' . $record->accession;
-    $props[$term] = ucfirst($record->name);
-  }
-  return $props;
-}
 
 /**
  *
@@ -627,7 +577,7 @@ function tripal_network_viewer_filter_form($form, &$form_state,
 
   $props = [];
   if ($network_id) {
-    $props = tripal_network_viewer_get_usable_props($network_id, TRUE, FALSE, TRUE);
+    $props = tripal_network_get_attribute_options($network_id, TRUE, FALSE, TRUE, FALSE);
   }
 
   $form['network_id'] = [
@@ -686,7 +636,7 @@ function tripal_network_viewer_display_form($form, &$form_state,
   }
   $props = [];
   if ($network_id) {
-    $props = tripal_network_viewer_get_usable_props($network_id);
+    $props = tripal_network_get_attribute_options($network_id, TRUE, TRUE, TRUE, FALSE);
   }
 
   $form['network_id'] = [
@@ -951,8 +901,8 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
 
   // Get the layer and colors for the selected properties.
   $edge_ids = array_keys($edges);
-  $layers = tripal_network_layer_edges($edge_ids, $layer_by);
-  $colors = tripal_network_color_edges($edge_ids, $color_by);
+  $layers = tripal_network_layer_edges($network_items['network_id'], $edge_ids, $layer_by);
+  $colors = tripal_network_color_edges($network_items['network_id'], $edge_ids, $color_by);
 
   // Create the edges trace.
   $traces = [];
@@ -964,7 +914,7 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
     $layer_name = $colors['labels'][$color];
 
     $z = 0;
-    if ($layers['is_quantitative']) {
+    if ($layers['data_class'] == 'quantitative') {
       $z = array_key_exists($network_edge_id, $layers['adj_values']) ? $layers['adj_values'][$network_edge_id] : 0;
     }
     else {
@@ -1006,7 +956,7 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
     $traces[$layer_name]['ids'][] = $network_edge_id;
 
     // Move the node's z-coordinate to the highest value score.
-    if ($layers['is_quantitative'] === TRUE) {
+    if ($layers['data_class'] == 'quantitative') {
       $node_coords[$source_feature_id]['z'] = max($z, $node_coords[$source_feature_id]['z']);
       $node_coords[$target_feature_id]['z'] = max($z, $node_coords[$target_feature_id]['z']);
       $node_coords[$source_feature_id]['layer'] = $layer;
@@ -1029,7 +979,7 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
     }
   }
 
-  if ($colors['is_categorical']) {
+  if ($colors['data_class'] == 'categorical') {
     ksort($traces);
   }
   else {
@@ -1052,7 +1002,7 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
   }
 
   // Now set the tick labels
-  if ($layers['is_categorical']) {
+  if ($layers['data_class'] == 'categorical') {
     $layout['scene']['zaxis']['tickmode'] = "array";
     $layout['scene']['zaxis']['tickvals'] = $layers['layers'];
     $layout['scene']['zaxis']['ticktext'] = $layers['layer_labels'];
