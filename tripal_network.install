@@ -361,6 +361,12 @@ function tripal_network_add_terms() {
     'cv_name' => 'NCIT',
     'definition' => 'An expression consisting of a linear sequence of symbols (characters or words or phrases). [ NCI ]',
   ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C44272',
+    'name' => 'Annotation',
+    'cv_name' => 'NCIT',
+    'definition' => 'An explanatory or critical comment, or other in-context information (e.g., pattern, motif, link), that has been associated with data or other types of information. [ NCI ]',
+  ]);
 
 
   // Network Analysis Types
@@ -438,25 +444,82 @@ function tripal_network_add_terms() {
 
   // Set default property terms
   variable_set('tripal_network_graphml_mapper', [
-    'g_name' => 'schema:name',
-    'g_uname' => 'data:0842',
-    'v_name' => 'schema:name',
-    'v_degree' => 'OBI:0200130',
-    'v_x' => 'SIO:000400',
-    'v_y' => 'SIO:000401',
-    'v_z' => 'SIO:000402',
-    'e_Similarity_Score' => 'SWO:0000425',
-    'e_Interaction' =>  'INO:0000002',
-    'e_Cluster_Index' => 'local:KINC_cluster_index',
-    'e_Cluster_Size' => 'local:KINC_cluster_size',
-    'e_Samples' => 'local:KINC_sample_string',
-    'e_Test_Name' => 'local:KINC_test_name',
-    'e_p_value' => 'local:KINC_pvalue',
-    'e_r_squared' => 'local:KINC_rsquared',
-    'e_rank' => 'NCIT:C48904',
-    'e_WAnova_Max' => 'local:KINC_WAnova_Max',
-    'e_WAnova_Min'  => 'local:KINC_WAnova_Min',
-    'e_MissingTtest' => 'local:KINC_Missing_Ttest',
+    'g_name' => [
+      'term' => 'schema:name',
+      'type' => 'annotation'
+    ],
+    'g_uname' => [
+      'term' => 'data:0842',
+      'type' => 'annotation'
+    ],
+    'v_name' => [
+      'term' => 'schema:name',
+      'type' => 'annotation'
+    ],
+    'v_degree' => [
+      'term' => 'OBI:0200130',
+      'type' => 'quantitative'
+    ],
+    'v_x' => [
+      'term' => 'SIO:000400',
+      'type' => 'quantitative'
+    ],
+    'v_y' => [
+      'term' => 'SIO:000401',
+      'type' => 'quantitative'
+    ],
+    'v_z' => [
+      'term' => 'SIO:000402',
+      'type' => 'quantitative'
+    ],
+    'e_Similarity_Score' => [
+      'term' => 'SWO:0000425',
+      'type' => 'quantitative'
+    ],
+    'e_Interaction' =>  [
+      'term' => 'INO:0000002',
+      'type' => 'annotation'
+    ],
+    'e_Cluster_Index' => [
+      'term' => 'local:KINC_cluster_index',
+      'type' => 'quantitative'
+    ],
+    'e_Cluster_Size' => [
+      'term' => 'local:KINC_cluster_size',
+      'type' => 'quantitative'
+    ],
+    'e_Samples' => [
+      'term' => 'local:KINC_sample_string',
+      'type' => 'annotation'
+    ],
+    'e_Test_Name' => [
+      'term' => 'local:KINC_test_name',
+      'type' => 'categorical'
+    ],
+    'e_p_value' => [
+      'term' => 'local:KINC_pvalue',
+      'type' => 'quantitative'
+    ],
+    'e_r_squared' => [
+      'term' => 'local:KINC_rsquared',
+      'type' => 'quantitative'
+    ],
+    'e_rank' => [
+      'term' => 'NCIT:C48904',
+      'type' => 'quantitative'
+    ],
+    'e_WAnova_Max' => [
+      'term' => 'local:KINC_WAnova_Max',
+      'type' => 'quantitative'
+    ],
+    'e_WAnova_Min'  => [
+      'term' => 'local:KINC_WAnova_Min',
+      'type' => 'quantitative'
+    ],
+    'e_MissingTtest' => [
+      'term' => 'local:KINC_Missing_Ttest',
+      'type' => 'quantitative'
+    ],
   ]);
 
 }

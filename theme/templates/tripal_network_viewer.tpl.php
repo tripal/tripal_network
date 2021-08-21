@@ -11,6 +11,7 @@ drupal_add_js('https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js');
 drupal_add_js($js_path . '/tripal_network_viewer.js');
 drupal_add_css($css_path . '/tripal_network_viewer.css', 'external');
 
+
 if ($network_id) {
 
   // Load the network that was provided if the user has access.
@@ -19,7 +20,14 @@ if ($network_id) {
     $entity = tripal_load_entity('TripalEntity', [$entity_id]);
 
     if (tripal_entity_access('view', $entity[$entity_id], $user, 'TripalEntity')) {
-      drupal_add_js("(function(\$) { $(document).ready(function() { \$.fn.getNetwork({'network_id': $network_id }); }); })(jQuery);", 'inline');
+      drupal_add_js("
+        (function(\$) {
+          $(document).ready(function() {
+            \$.fn.initViewer($network_id);
+            \$.fn.getNetwork({'network_id': $network_id });
+          });
+        })(jQuery);
+      ", 'inline');
     }
     else {
       drupal_set_message(t('You must be granted permission to view this network.'), 'error');
@@ -35,6 +43,9 @@ $network_form = drupal_render($network_form);
 
 $display_form = drupal_get_form('tripal_network_viewer_display_form', $network_id);
 $display_form = drupal_render($display_form);
+
+$filter_form = drupal_get_form('tripal_network_viewer_filter_form', $network_id);
+$filter_form = drupal_render($filter_form);
 
 $network_details = drupal_get_form('tripal_network_viewer_network_details_form', $network_id);
 $network_details = drupal_render($network_details);
@@ -65,10 +76,20 @@ $edge_details = drupal_render($edge_details);
         <div class="tripal-network-viewer-sidebar-box-header">
         	<img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
         	<img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
-        	<h2>Display</h2>
+        	<h2>Layers and Colors</h2>
         </div>
         <div class="tripal-network-viewer-sidebar-box-content">
           <?php print $display_form ?>
+        </div>
+     </div>
+     <div id="tripal-network-viewer-filter-details" class="tripal-network-viewer-sidebar-box">
+        <div class="tripal-network-viewer-sidebar-box-header">
+        	<img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
+        	<img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
+        	<h2>Filters</h2>
+        </div>
+        <div class="tripal-network-viewer-sidebar-box-content">
+          <?php print $filter_form ?>
         </div>
      </div>
      <div id="tripal-network-viewer-network-details" class="tripal-network-viewer-sidebar-box">

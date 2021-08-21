@@ -1,5 +1,8 @@
 (function($) {
    
+   // Holds key/value pairs indicating the current state of the viewer.
+   var state = {};
+   
    var selected_node = null;
    var selected_edge = null;
    var selected_edge_prev_color = null;
@@ -13,6 +16,7 @@
   // executed everytime a page load occurs or when an ajax call returns.
   Drupal.behaviors.tripal_network = {
     attach: function (context, settings) {
+      
     } 
   } 
 
@@ -109,12 +113,7 @@
   /**
    *
    */
-  $.fn.updateDisplayForm = function(args) {
-    var network_id = args['network_id'];
-    var layer_by = args['layer_by'];
-    var color_by = args['color_by'];
-    var limit = args['limit'];
-    var limit_by = args['limit_by'];
+  $.fn.updateDisplayForm = function() {
     
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
@@ -122,13 +121,7 @@
       url: baseurl + '/networks/viewer/form/display',
       type: "GET",
       dataType: 'html',
-      data: {
-         'network_id': network_id, 
-         'layer_by': layer_by, 
-         'color_by': color_by,
-         'limit': limit,
-         'limit_by': limit_by
-      },
+      data: state,
       success: function(response) {
         $('#tripal-network-viewer-display-details form').replaceWith(response);
         Drupal.attachBehaviors();
@@ -142,8 +135,29 @@
    /**
    *
    */
-  $.fn.updateNetworkDetailsForm = function(args) {
-    var network_id = args['network_id'];
+  $.fn.updateFilterForm = function() {
+    
+    $.ajax({
+      // The baseurl is a variable set by Tripal that indicates the
+      // "base" of the URL for this site.
+      url: baseurl + '/networks/viewer/form/filter',
+      type: "GET",
+      dataType: 'html',
+      data: state,
+      success: function(response) {
+        $('#tripal-network-viewer-filter-details form').replaceWith(response);
+        Drupal.attachBehaviors();
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+      }
+    }) 
+   };
+   
+   /**
+   *
+   */
+  $.fn.updateNetworkDetailsForm = function() {
     
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
@@ -151,9 +165,7 @@
       url: baseurl + '/networks/viewer/form/network-details',
       type: "GET",
       dataType: 'html',
-      data: {
-         'network_id': network_id, 
-      },
+      data: state,
       success: function(response) {
         $('#tripal-network-viewer-network-details form').replaceWith(response);
         Drupal.attachBehaviors();
@@ -163,6 +175,34 @@
       }
     }) 
    };
+   
+   /**
+    * Initializes the viewer state by retiieving defaults from the server.
+    */
+   $.fn.initViewer = function(network_id) {
+     $.ajax({
+       // The baseurl is a variable set by Tripal that indicates the
+       // "base" of the URL for this site.
+       url: baseurl + '/networks/viewer/init',
+       type: "GET",
+       dataType: 'json',
+       data: {'network_id': network_id },
+       success: function(json) {
+         response = json;
+         for (var key in json) {
+           state[key] = json[key];
+         }
+         
+         // Now that we have our state, load the display
+         $.fn.getNetwork({'network_id': network_id });
+         $.fn.updateDisplayForm();
+         $.fn.updateFilterForm(); 
+       },
+       error: function(xhr, textStatus, thrownError) {
+         alert(thrownError);
+       }
+     })
+   }
    
    /**
    * Retrieves the network using filtering criteria.
@@ -179,15 +219,14 @@
    * @param args 
    */
   $.fn.getNetwork = function(args) {
-    // The data needed to retreive the network is provided to this function
-    // by the tripal_network module of Drupal via the data function. 
-    var network_id = args['network_id'];
-    var layer_by = args['layer_by'];
-    var color_by = args['color_by'];
-    var limit = args['limit'];
-    var limit_by = args['limit_by'];
-    
+   
     $('#tripal-network-viewer-loading').show()
+    
+    // Update the state variable using input arguments. 
+    for (var key in args) {
+      state[key] = args[key];
+    } 
+
 
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
@@ -195,13 +234,7 @@
       url: baseurl + '/networks/viewer/retrieve',
       type: "GET",
       dataType: 'json',
-      data: {
-         'network_id': network_id, 
-         'layer_by': layer_by, 
-         'color_by': color_by,
-         'limit': limit,
-         'limit_by': limit_by
-      },
+      data: state,
       success: function(json) {
         response = json;
         
@@ -230,21 +263,6 @@
             $.fn.selectEdge(data);     
             $.fn.updateEdgeDetails({'edge_id': id})
           }
-        });
-        
-        // Update the Display form so that it has appropriate items for this
-        // network.
-        $.fn.updateDisplayForm({
-          'network_id': network_id, 
-          'layer_by': layer_by, 
-          'color_by': color_by,
-          'limit': limit,
-          'limit_by': limit_by
-        });
-        
-        // Update the network details
-        $.fn.updateNetworkDetailsForm({
-          'network_id': network_id, 
         });
         
         // If the graph is reloaded we want to preserve the selected 

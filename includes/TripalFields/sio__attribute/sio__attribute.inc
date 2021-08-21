@@ -61,7 +61,8 @@ class sio__attribute extends ChadoField {
       SELECT
         NA.network_attr_id, CVTA.name as attr_name,
         CVTD.name as domain,
-        CVTP.name as prop_name, DBXP.accession, DB.name as db_name,
+        CVTP.name as prop_name, CVTA.definition as attr_desc,
+        DBXP.accession, DB.name as db_name,
         NAP.value, NAP.value_num, CVTV.name as value_name, NAP.rank
       FROM {network_attr} NA
         INNER JOIN {network} N on N.network_id = NA.network_id
@@ -82,6 +83,7 @@ class sio__attribute extends ChadoField {
       if (!array_key_exists($property->network_attr_id, $attributes)) {
         $attributes[$property->network_attr_id] = [
           'name' => $property->attr_name,
+          'desc' => $property->attr_desc,
           'domain' => $property->domain,
           'properties' => [],
         ];
@@ -97,6 +99,7 @@ class sio__attribute extends ChadoField {
 
     $domain_term = chado_get_semweb_term('network_attr', 'domain_id');
     $attr_id = chado_get_semweb_term('network_attr', 'attr_id');
+    $attr_desc = chado_get_semweb_term('cvterm', 'definition');
 
 
     // Now add the attributes to the value array.
@@ -106,6 +109,7 @@ class sio__attribute extends ChadoField {
         'value' => [
           $domain_term => $attribute['domain'],
           $attr_id => $attribute['name'],
+          $attr_desc => $attribute['desc'],
         ]
       ];
       foreach ($attribute['properties'] as $property) {

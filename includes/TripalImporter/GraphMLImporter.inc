@@ -429,7 +429,18 @@ class GraphMLImporter extends TripalImporter {
 
     $this->extractGraphMLpertinents($form_state);
 
-    $expected_terms = theme_item_list([
+    $ranking_terms = theme_item_list([
+      'items' => [
+        'Similarity Score (SWO:0000425)',
+        'Importance Weight (NCIT:C48192)',
+        'Rank (NCIT:C48904)'
+      ],
+      'title' => NULL,
+      'type' => 'ul',
+      'attributes' => [],
+    ]);
+
+    $layout_terms = theme_item_list([
       'items' => [
         'x cartesian coordinate (SIO:000400)',
         'y cartesian coordinate (SIO:000401)'
@@ -442,7 +453,7 @@ class GraphMLImporter extends TripalImporter {
     $form['gml_attributes'] = [
       '#type' => 'item',
       '#title' => 'Instructions',
-      '#markup' => t('All attributes for the graph, nodes and edges in the
+      '#markup' => t('All attributes, that you want loaded, for the graph, nodes and edges in the
          GraphML file must be associated with a controlled
          vocabulary term. Use the form below to make the assocaition with
          attributes that were found in the file provided.
@@ -455,11 +466,16 @@ class GraphMLImporter extends TripalImporter {
          [
            '!here' => l('here', 'http://localhost/admin/tripal/loaders/chado_vocabs/chado_cv/cvterm/add', ['attributes' => ['target' => '_blank']]),
            '!EBI' => l('EBI Ontology Lookup Service' ,'https://www.ebi.ac.uk/ols/index', ['attributes' => ['target' => '_blank']])
-         ]) . '<p>' .
-         t('This loader does create a 2D layout for the nodes in the network viewer.
-            This positions must be provided in the GraphML file. Please use the
-            following terms to indicate which node attributes in the GraphML file
-            provide the x and y coordinates: ') . $expected_terms . '</p>',
+         ]) .
+         '<p><b>Visualizing the Network</b><br>' .
+         t('This loader does not create a 2D layout for the nodes in the network viewer.
+            This x and y positions must be provided as node attributes in the GraphML file. Please use the
+            following terms to indicate which node attributes below
+            provide the x and y coordinates. If these terms are not used or the attributes are not in
+            the GraphML file then node layout will be random. ') . $layout_terms . '</p>' .
+            '<p><b>Ranking Edges in the Network</br></b>' .
+         t('The netework viewer works best with at least one term that end-users can use for ranking edges. The following
+            are examples of possible terms that could be used for ranking: ') . $ranking_terms . '</p>',
       '#weight' => -100,
     ];
 
@@ -481,10 +497,17 @@ class GraphMLImporter extends TripalImporter {
     foreach ($this->attr_keys as $key => $attr_info) {
 
       $default_term_name = '';
+      $default_data_type = 0;
+      $default_missing = '';
 
+      // Get the value from the form state
+      if (array_key_exists('values', $form_state) and array_key_exists('data_class' . $delta, $form_state['values'])) {
+        $default_data_type = $form_state['values']['term_match' . $delta]['data_class' . $delta];
+        $default_missing = $form_state['values']['term_match' . $delta]['missing' . $delta];
+      }
       // Get the default value for this attribute if the the form is being
       // reloaded due to an error.
-      if ($form_state['triggering_element']['#type'] == 'submit' and
+      else if ($form_state['triggering_element']['#type'] == 'submit' and
           $form_state['triggering_element']['#name'] == 'step3' and
           $form_state['triggering_element']['#value'] == 'Next Step') {
         // Do nothing, we dcan't get the $form_state['input'] from the API.
@@ -495,6 +518,8 @@ class GraphMLImporter extends TripalImporter {
               $form_state['triggering_element']['#name'] == 'step2' and
               $form_state['triggering_element']['#value'] == 'Previous Step') {
         if (array_key_exists('graphml_key.' . $key . '.id', $form_state['storage'])) {
+          $default_missing = $form_state['storage']['graphml_key.' . $key . '.missing'];
+          $default_data_type = $form_state['storage']['graphml_key.' . $key . '.class'];
           $default_term_id = $form_state['storage']['graphml_key.' . $key . '.id'];
           $default_term = chado_get_cvterm(['cvterm_id' => $default_term_id]);
           $default_term_name = $default_term->name;
@@ -506,14 +531,15 @@ class GraphMLImporter extends TripalImporter {
               $form_state['triggering_element']['#value'] == 'Lookup Term') {
         // Do nothing, let the API handle it.
       }
-      // If this step was not yet submitted set some defaults for this term.
+      // If we can't set the default value from a form resubmit then
+      // we'll try the global drupal variable that has some defaults.
       else {
-        $term = $default_terms[$key];
-        if (preg_match('/:/', $term)) {
-          list($vocabulary, $accession) = explode(':', $term);
-          $term = tripal_get_term_details($vocabulary, $accession);
+        if (array_key_exists($key, $default_terms)) {
+          $default_data_type = $default_terms[$key]['type'];
+          $term_id = $default_terms[$key]['term'];
+          $term = chado_get_cvterm(['id' => $term_id]);
           if ($term) {
-            $default_term_name = $term['name'];
+            $default_term_name = $term->name;
           }
         }
       }
@@ -525,6 +551,39 @@ class GraphMLImporter extends TripalImporter {
       tripal_get_term_lookup_form($form, $form_state, $default_term_name,
           $title, '', FALSE,  '', $delta,
           'tripal_network_graphml_form_ajax_callback');
+
+      $form['term_match' . $delta]['data_class' . $delta] = [
+        '#type' => 'select',
+        '#options' => [
+          0 => 'Use defaults',
+          'quantitative' => 'Numerical',
+          'ordinal' => 'Numeric ordinal (coded categorical)',
+          'annotation' => 'Text: annotation text (not filterable)',
+          'categorical' => 'Text: categorical variable name',
+        ],
+        '#description' => t('When viewing network relationships, the end-user
+           can perform layering and filtering of nodes and edges using the
+           attributes assigned to them. To support filtering, we need to know the type of
+           data for each attribute because elements with numerical or categorical
+           attributes can be filtered differently.  The GraphML loader will
+           try to guess the data type, however, you can can specify the value
+           here to prevent the loader from guessing incorrectly or to refine
+           the type.  For example, the loader does not know if a numerical
+           attribute is also ordinal or if a text value is categorical. Text
+           attributes that are not specified as categorical will not be
+           filterable.'),
+        '#default_value' => $default_data_type,
+      ];
+      $form['term_match' . $delta]['missing' . $delta] = [
+        '#type' => 'textfield',
+        '#description' => t('If this attribute contains missing values please indicate
+           the text for a missing value. Attributes for nodes or edges
+           with a missing value will be excluded.  This loader automatically
+           recognizes the following as indicators of a missing value:  NA, NaN, null, or None.
+           Override this default by setting your own. You can specify multiple values by
+           separating them with the bar ("|") character:  e.g., NA|NaN|null|None.'),
+        '#default_value' => $default_missing,
+      ];
 
       // Make the form element collapsed.
       $form['term_match' . $delta]['#collapsible'] = TRUE;
@@ -744,6 +803,8 @@ class GraphMLImporter extends TripalImporter {
       else {
         $form_state['storage']['graphml_key.' . $key . '.id'] = NULL;
       }
+      $form_state['storage']['graphml_key.' . $key . '.class'] = $form_state['values']['data_class' . $delta];
+      $form_state['storage']['graphml_key.' . $key . '.missing'] = $form_state['values']['missing' . $delta];
       $delta++;
     }
   }
@@ -755,10 +816,18 @@ class GraphMLImporter extends TripalImporter {
     // Put all of the values in storage back into the values array for
     // job submission.
     $this->extractGraphMLpertinents($form_state);
+    $delta = 0;
     foreach ($this->attr_keys as $key => $attr_info) {
       if (array_key_exists('graphml_key.' . $key . '.id', $form_state['storage'])) {
         $form_state['values']['graphml_key.' . $key . '.id'] = $form_state['storage']['graphml_key.' . $key . '.id'];
       }
+      if (array_key_exists('graphml_key.' . $key . '.class', $form_state['storage'])) {
+        $form_state['values']['graphml_key.' . $key . '.class'] = $form_state['storage']['graphml_key.' . $key . '.class'];
+      }
+      if (array_key_exists('graphml_key.' . $key . '.missing', $form_state['storage'])) {
+        $form_state['values']['graphml_key.' . $key . '.missing'] = $form_state['storage']['graphml_key.' . $key . '.missing'];
+      }
+      $delta++;
     }
     $form_state['values']['graphml_file_local'] = $form_state['storage']['file_local'];
     $form_state['values']['graphml_file_upload'] = $form_state['storage']['file_upload'];
@@ -926,7 +995,7 @@ class GraphMLImporter extends TripalImporter {
       $this->logMessage("Step 10 of 11: Insert edge properties...                           ");
       $this->insertEdgeProps();
 
-      $this->logMessage("Step 10 of 11: Collecting stats...                                 ");
+      $this->logMessage("Step 11 of 11: Collecting stats...                                 ");
       $this->collectStats();
 
     }
@@ -961,11 +1030,6 @@ class GraphMLImporter extends TripalImporter {
         }
         $props = tripal_network_get_edgeprops($edge_ids, $attr_term_name);
 
-        $is_categorical = FALSE;
-        $is_quantitative = FALSE;
-        $is_integer = FALSE;
-        $is_float = FALSE;
-        $is_text = FALSE;
         $num_numeric = 0;
         $num_floats = 0;
         $num_ints = 0;
@@ -997,26 +1061,48 @@ class GraphMLImporter extends TripalImporter {
         }
 
 
-        // Determine if the property is quantitative, ordinal or categorical.
-        // and if it's text, integer or float.
-        if ($num_strings > 0) {
-          $is_categorical = TRUE;
-          $is_text = TRUE;
-        }
-        else {
-          $is_quantitative = TRUE;
+        // Determine if the property is quantitative.
+        $data_class = 'annotation';
+        $data_type = 'string';
+        if ($num_strings == 0) {
+          $data_class = 'quantitative';
           if ($num_ints > 0 and $num_floats == 0) {
-            $is_integer = TRUE;
+            $data_type = 'integer';
           }
           else {
-            $is_float = TRUE;
+            $data_type = 'float';
           }
         }
 
-        // Handle quantitiative data.
+        // Make sure the user didn't request an override in the data class.
+        if (array_key_exists('graphml_key.' . $key . '.class', $this->arguments['run_args'])) {
+
+          $data_class = $this->arguments['run_args']['graphml_key.' . $key . '.class'];
+          if ($data_class == 'annotation') {
+            $data_type = 'string';
+          }
+          else if ($data_class ==  'categorical') {
+            $data_type = 'string';
+          }
+          else if ($data_class ==  'quantitative' and $num_strings == 0) {
+            // No need to make changes.
+          }
+          else if ($data_class ==  'ordinal' and $num_strings == 0) {
+            // No need to make changes.
+          }
+        }
+
+        // Get the list of categories.
+        $categories = [];
+        if ($data_class == 'categorical') {
+          $categories = array_keys($prop_values);
+          asort($categories);
+        }
+
+        // Handle numerical data.
         $max = -INF;
         $min = INF;
-        if ($is_quantitative) {
+        if ($data_class == 'quantitative' or $data_class == 'ordinal') {
 
           // Get the min and max value and take the abs value if requested.
           foreach ($props as $network_edge_id => $value) {
@@ -1032,15 +1118,6 @@ class GraphMLImporter extends TripalImporter {
           }
         }
 
-        // Handle categorical values.
-        $categories = [];
-        if ($is_categorical) {
-
-          // Get the list of categories.
-          $categories = array_keys($prop_values);
-          asort($categories);
-        }
-
         // Add the network attribute
         $network_attr = new ChadoRecord('network_attr');
         $network_attr->setValues([
@@ -1051,15 +1128,23 @@ class GraphMLImporter extends TripalImporter {
         $network_attr->insert();
 
         // Indicate the class of variable:  Quantitative or Categorical
-        $var_class = NULL;
-        if ($is_categorical) {
+        if ($data_class == 'categorical') {
           $var_class = chado_get_cvterm(['id' => 'NCIT:C142657']);
         }
-        if ($is_quantitative) {
+        if ($data_class == 'quantitative') {
           $var_class = chado_get_cvterm(['id' => 'NCIT:C142658']);
         }
+        if ($data_class == 'annotation') {
+          $var_class = chado_get_cvterm(['id' => 'NCIT:C44272']);
+        }
+        if ($data_class == 'ordinal') {
+          $var_class = chado_get_cvterm(['id' => 'NCIT:C47797']);
+        }
+
+        // Get the classification term.
         $class_term = chado_get_cvterm(['id' => 'NCIT:C25161']);
 
+        // Add the network attribute.
         $network_attrprop = new ChadoRecord('network_attrprop');
         $network_attrprop->setValues([
           'network_attr_id' => $network_attr->getID(),
@@ -1072,17 +1157,16 @@ class GraphMLImporter extends TripalImporter {
 
         // Indicate the type of the variable
         $var_type = NULL;
-        if ($is_float) {
+        if ($data_type == 'float') {
           $var_type = chado_get_cvterm(['id' => 'NCIT:C48150']);
         }
-        if ($is_integer) {
+        if ($data_type == 'integer') {
           $var_type = chado_get_cvterm(['id' => 'NCIT:C45255']);
         }
-        if ($is_text) {
+        if ($data_type == 'string') {
           $var_type = chado_get_cvterm(['id' => 'NCIT:C45253']);
         }
         $data_type_term = chado_get_cvterm(['id' => 'NCIT:C42645']);
-
         $network_attrprop = new ChadoRecord('network_attrprop');
         $network_attrprop->setValues([
           'network_attr_id' => $network_attr->getID(),
@@ -1105,6 +1189,27 @@ class GraphMLImporter extends TripalImporter {
           ]);
           $network_attrprop->insert();
           $rank++;
+        }
+
+        // If this is numerical save the min and max
+        if ($is_quantitative or $is_ordinal) {
+          $min_term = chado_get_cvterm(['id' => 'NCIT:C25570']);
+          $network_attrprop = new ChadoRecord('network_attrprop');
+          $network_attrprop->setValues([
+            'network_attr_id' => $network_attr->getID(),
+            'type_id' => $min_term->cvterm_id,
+            'value_num' => $min,
+          ]);
+          $network_attrprop->insert();
+
+          $max_term = chado_get_cvterm(['id' => 'NCIT:C25564']);
+          $network_attrprop = new ChadoRecord('network_attrprop');
+          $network_attrprop->setValues([
+            'network_attr_id' => $network_attr->getID(),
+            'type_id' => $max_term->cvterm_id,
+            'value_num' => $max,
+          ]);
+          $network_attrprop->insert();
         }
       }
     }
@@ -1428,6 +1533,20 @@ class GraphMLImporter extends TripalImporter {
     $this->graphml->read();
     $value = $this->graphml->value;
     $value = trim($value);
+
+    if (array_key_exists('run_args', $this->arguments) and
+        array_key_exists('graphml.' . $key . 'missing', $this->arguments['run_args'])) {
+      $missing_str = filter_xss($this->arguments['run_args']['graphml.' . $key . 'missing']);
+      if (preg_match('/^(' . $missing_str . ')$/i', $value)) {
+        return FALSE;
+      }
+    }
+    // If this is a missing value then skip it.
+    else if (preg_match('/^(NA|NaN|null|None)$/i', $value)) {
+      return FALSE;
+    }
+
+    // Return the data.
     return ['key' => $key, 'value' => $value];
   }
 

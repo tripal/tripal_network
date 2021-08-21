@@ -55,9 +55,14 @@ function tripal_network_get_network_elements($network_id, $feature_id = NULL,
   $order_sql = '';
   if ($limit) {
     $limit_sql = " LIMIT :limit OFFSET :offset";
-    // TODO: we need to know if this is a numerical value so we can sort
-    // properly and if we should sort ascending or descending.
-    $order_sql = " ORDER BY NEP.value DESC";
+    if ($limit_term) {
+      // TODO: we need to know if this is a numerical value so we can sort
+      // properly and if we should sort ascending or descending.
+      $order_sql = " ORDER BY NEP.value DESC";
+    }
+    else {
+      $order_sql = " ORDER BY NE.network_edge_id ASC";
+    }
     $params[':limit'] = $limit;
     $params[':offset'] = $offset;
   }
@@ -146,12 +151,7 @@ function tripal_network_layer_edges($edge_ids, $layer_term) {
       }
     }
     else {
-      // Exclude missing values.
-      if (preg_match('/^(NA|NaN|null|None)$/i', $value)) {
-        $props[$network_edge_id] = '';
-        continue;
-      }
-      $num_strings++;
+       $num_strings++;
     }
     $prop_values[$value] = 1;
   }
