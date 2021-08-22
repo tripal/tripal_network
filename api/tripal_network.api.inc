@@ -14,7 +14,7 @@
  *   An associative array of edges with the keys 'edges' and 'nodes'.
  */
 function tripal_network_get_network_elements($organism_id, $network_id = NULL,
-    $feature_id = NULL, $limit_term = NULL, $limit = 0, $offset = 0) {
+    $feature_ids = [], $limit_term = NULL, $limit = 0, $offset = 0) {
 
   if ($offset and !$limit) {
     throw new Exception('tripal_network_get_edges: if an offset is provided a limit must also be provided.');
@@ -44,6 +44,11 @@ function tripal_network_get_network_elements($organism_id, $network_id = NULL,
     $where .= " AND NE.network_id = :network_id";
     $params[':network_id'] = $network_id;
   }
+  if (is_array($feature_ids) and count($feature_ids) > 0) {
+    $sql .= " AND (FS.feature_id IN (:feature_ids) OR FT.feature_id IN (:feature_ids)) ";
+    $params[':feature_ids'] = $feature_ids;
+  }
+
   if ($limit_term) {
     $term = chado_get_cvterm(['id' => $limit_term]);
     $sql .= "
@@ -51,10 +56,6 @@ function tripal_network_get_network_elements($organism_id, $network_id = NULL,
     ";
     $where .= " AND NEP.type_id = :cvterm_id";
     $params[':cvterm_id'] = $term->cvterm_id;
-  }
-  if ($feature_id) {
-    $where .= " AND (NNS.feature_id = :feature_id OR NNT.feature_id = :feature_id)";
-    $params[':feature_id'] = $feature_id;
   }
   $limit_sql = '';
   $order_sql = '';
@@ -93,7 +94,7 @@ function tripal_network_get_network_elements($organism_id, $network_id = NULL,
   return [
     'organism_id' => $organism_id,
     'network_id' => $network_id,
-    'feature_id' => $feature_id,
+    'feature_ids' => $feature_ids,
     'limit' => $limit,
     'offset' => $offset,
     'edges' => $edges,

@@ -131,6 +131,9 @@ h3 {
 .tripal-network-viewer-sidebar-box select {
   width: 100%;
 }
+.tripal-network-viewer-sidebar-box input.form-text {
+  width: 95%;
+}
 
 #tripal-network-viewer-footer {
   position: absolute;

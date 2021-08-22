@@ -480,6 +480,7 @@ function tripal_network_viewer_ajax_retrieve() {
   $color_by = array_key_exists('color_by', $_GET) ? $_GET['color_by'] : NULL;
   $limit = array_key_exists('limit', $_GET) ? $_GET['limit'] : 1000;
   $limit_by = array_key_exists('limit_by', $_GET) ? $_GET['limit_by'] : NULL;
+  $features = array_key_exists('features', $_GET) ? $_GET['features'] : NULL;
 
   $layout = tripal_network_get_default_layout();
 
@@ -504,9 +505,35 @@ function tripal_network_viewer_ajax_retrieve() {
     return;
   }
 
+  // If the user has request some feature names then limit the network
+  // to only those features.
+  $feature_ids = [];
+  if ($features) {
+    $features = preg_split('/\s+/', $features);
+    $sql = "
+      SELECT DISTINCT F.feature_id
+      FROM {feature} F
+        INNER JOIN {network_node} NN on NN.feature_id = F.feature_id
+        LEFT JOIN {feature_synonym} FS on FS.feature_id = F.feature_id
+        LEFT JOIN {synonym} S on S.synonym_id = FS.synonym_id
+      WHERE
+        lower(F.name) = :name OR
+        lower(F.uniquename) = :name OR
+        lower(S.name) = :name
+    ";
+    foreach ($features as $fname) {
+      $args = [':name' => strtolower($fname)];
+      $feature = chado_query($sql, $args)->fetchObject();
+      if ($feature) {
+        $feature_ids[] = $feature->feature_id;
+      }
+    }
+  }
+
+
   // Get the network Plotly data.
   $network_items = tripal_network_get_network_elements($organism_id, $network_id,
-      NULL, $limit_by, $limit);
+      $feature_ids, $limit_by, $limit);
   $plotly_data = tripal_network_make_plotly_data($network_items, $layout, $layer_by, $color_by);
 
   drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
@@ -520,11 +547,15 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
 
   global $user;
 
+  $features = '';
+
   if (array_key_exists('values', $form_state)) {
+    $features = array_key_exists('features', $form_state['values']) ? $form_state['values']['features'] : $features;
     $network_id = array_key_exists('network_id', $form_state['values']) ? $form_state['values']['network_id'] : $network_id;
     $organism_id = array_key_exists('organism_id', $form_state['values']) ? $form_state['values']['organism_id'] : $organism_id;
   }
   if (array_key_exists('input', $form_state)) {
+    $features = array_key_exists('features', $form_state['input']) ? $form_state['input']['features'] : $features;
     $network_id = array_key_exists('network_id', $form_state['input']) ? $form_state['input']['network_id'] : $network_id;
     $organism_id = array_key_exists('organism_id', $form_state['input']) ? $form_state['input']['organism_id'] : $organism_id;
   }
@@ -595,6 +626,17 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
       '#size' => 5,
     ];
 
+    $form['features'] = [
+      '#type' => 'textarea',
+      '#rows' => 5,
+      '#title' => 'Feature Names',
+      '#default_value' => $features,
+      '#description' => t('Limit the edges to only those that connect
+         features (e.g., gene, transcript, or protein names). Separate each
+         name by a space or carriage return.'),
+      '#multiple' => TRUE,
+    ];
+
     $form['button'] = [
       '#type' => 'submit',
       '#value' => 'Use Selected Networks',
@@ -621,12 +663,16 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
 function tripal_network_viewer_network_form_ajax_callback($form, $form_state) {
   $network_id = $form_state['values']['network_id'];
   $organism_id = $form_state['values']['organism_id'];
+  $features = $form_state['values']['features'];
 
   $args = [];
   $args['organism_id'] = $organism_id;
 
   if ($network_id) {
     $args['network_id'] = implode('|', $network_id);
+  }
+  if ($features) {
+    $args['features'] = $features;
   }
 
   // Tell Drupal to update the network
@@ -721,6 +767,7 @@ function tripal_network_viewer_display_form($form, &$form_state,
   }
   $props = [];
   $props = tripal_network_get_attribute_options($organism_id, $network_id, TRUE, TRUE, TRUE, FALSE);
+
 
   $form['network_id'] = [
     '#type' => 'value',
@@ -1103,7 +1150,7 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
     $traces['nodes']['ids'][] = $node_id;
     $traces['nodes']['text'][] = $node['node_name'];
     $traces['nodes']['marker']['size'][] = max(round(log10($degree[$node_id])*10), 5);
-    $traces['nodes']['marker']['color'][] = $node_id == $network_items['feature_id'] ? '#FF0000': '#AAAAAA';
+    $traces['nodes']['marker']['color'][] = in_array($node_id, $network_items['feature_ids']) ? '#FFFF00': '#AAAAAA';
   }
 
   // Now set the tick labels
