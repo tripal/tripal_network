@@ -478,7 +478,7 @@ function tripal_network_add_terms() {
     ],
     'e_Interaction' =>  [
       'term' => 'INO:0000002',
-      'type' => 'annotation'
+      'type' => 'categorical'
     ],
     'e_Cluster_Index' => [
       'term' => 'local:KINC_cluster_index',

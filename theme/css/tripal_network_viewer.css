@@ -128,6 +128,10 @@ h3 {
   display: none;  
 }
 
+.tripal-network-viewer-sidebar-box select {
+  width: 100%;
+}
+
 #tripal-network-viewer-footer {
   position: absolute;
   bottom: 0px;

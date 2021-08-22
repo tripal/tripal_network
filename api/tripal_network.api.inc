@@ -13,14 +13,15 @@
  * @return
  *   An associative array of edges with the keys 'edges' and 'nodes'.
  */
-function tripal_network_get_network_elements($network_id, $feature_id = NULL,
-    $limit_term = NULL, $limit = 0, $offset = 0) {
+function tripal_network_get_network_elements($organism_id, $network_id = NULL,
+    $feature_id = NULL, $limit_term = NULL, $limit = 0, $offset = 0) {
 
   if ($offset and !$limit) {
     throw new Exception('tripal_network_get_edges: if an offset is provided a limit must also be provided.');
   }
 
-  $params = [':network_id' => $network_id];
+  $params = [];
+  $params[':organism_id'] = $organism_id;
 
   // Get the edges from the network
   $sql = "
@@ -31,14 +32,18 @@ function tripal_network_get_network_elements($network_id, $feature_id = NULL,
       NNT.network_node_id as target_node_id,
       NE.network_edge_id
     FROM {network_edge} NE
+      INNER JOIN {network} N on N.network_id = NE.network_id
       INNER JOIN {network_node} NNS on NNS.network_node_id = NE.source_id
       INNER JOIN {network_node} NNT on NNT.network_node_id = NE.target_id
       INNER JOIN {feature} FS on FS.feature_id = NNS.feature_id
       INNER JOIN {feature} FT on FT.feature_id = NNT.feature_id
   ";
-  $where = "
-    WHERE NE.network_id = :network_id
-  ";
+  $where = " WHERE N.organism_id = :organism_id ";
+
+  if ($network_id) {
+    $where .= " AND NE.network_id = :network_id";
+    $params[':network_id'] = $network_id;
+  }
   if ($limit_term) {
     $term = chado_get_cvterm(['id' => $limit_term]);
     $sql .= "
@@ -86,6 +91,7 @@ function tripal_network_get_network_elements($network_id, $feature_id = NULL,
   }
 
   return [
+    'organism_id' => $organism_id,
     'network_id' => $network_id,
     'feature_id' => $feature_id,
     'limit' => $limit,
@@ -103,7 +109,7 @@ function tripal_network_get_network_elements($network_id, $feature_id = NULL,
  * @param int $num_bins
  *   The total number of bins
  */
-function tripal_network_layer_edges($network_id, $edge_ids, $layer_term) {
+function tripal_network_layer_edges($organism_id, $network_id, $edge_ids, $layer_term) {
 
   // We want to take the absolute value of some property types.
   $abs = FALSE;
@@ -117,7 +123,7 @@ function tripal_network_layer_edges($network_id, $edge_ids, $layer_term) {
   $props = tripal_network_get_edgeprops($edge_ids, $layer_term);
 
   // Get the
-  $attribute = tripal_network_get_attributes($network_id, $layer_term);
+  $attribute = tripal_network_get_attributes($organism_id, $network_id, $layer_term);
 
   $data_class = NULL;
   $data_type = NULL;
@@ -296,7 +302,7 @@ function tripal_network_layer_edges($network_id, $edge_ids, $layer_term) {
  * @param unknown $color_term
  * @return string[]
  */
-function tripal_network_color_edges($network_id, $edge_ids, $color_term) {
+function tripal_network_color_edges($organism_id, $network_id, $edge_ids, $color_term) {
 
   // The colros array that will be returned.
   $colors = [];
@@ -331,7 +337,7 @@ function tripal_network_color_edges($network_id, $edge_ids, $color_term) {
 
   // Get the layers for the color term as this wilh lelp us determine the
   // colors (one for each layer).
-  $layers = tripal_network_layer_edges($network_id, $edge_ids, $color_term);
+  $layers = tripal_network_layer_edges($organism_id, $network_id, $edge_ids, $color_term);
   $num_layers = count($layers['layers']);
 
   // Convert the layer bin into a color
@@ -417,7 +423,7 @@ function tripal_network_get_networkprops($ids, $term) {
  * @return array
  *   The list of properties for the given ids, indexed with the id.
  */
-function tripal_network_get_nodeprops($ids, $id_type = 'feature_id', $network_id, $term) {
+function tripal_network_get_nodeprops($ids, $id_type = 'feature_id', $term, $organism_id = NULL, $network_id = NULL) {
   $column = NULL;
   $props = [];
 
@@ -437,27 +443,34 @@ function tripal_network_get_nodeprops($ids, $id_type = 'feature_id', $network_id
     $column = 'NN.network_node_id';
   }
 
-
+  $args = [
+    ':ids' => $ids,
+    ':db_name' => $term_split[0],
+    ':accession' => $term_split[1],
+  ];
   $sql = "
     SELECT NN.network_node_id, F.feature_id, NNP.value
     FROM {network_nodeprop} NNP
       INNER JOIN {network_node} NN on NN.network_node_id = NNP.network_node_id
+      INNER JOIN {network} N on N.network_id = NN.network_id
       INNER JOIN {feature} F on F.feature_id = NN.feature_id
       INNER JOIN {cvterm} CVT on CVT.cvterm_id = NNP.type_id
       INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
       INNER JOIN {db} DB on DB.db_id = DBX.db_id
     WHERE
-      NN.network_id = :network_id AND
       $column in (:ids) AND
       DB.name = :db_name AND
-      DBX.accession = :accession;
+      DBX.accession = :accession
   ";
-  $args = [
-    ':network_id' => $network_id,
-    ':ids' => $ids,
-    ':db_name' => $term_split[0],
-    ':accession' => $term_split[1],
-  ];
+  if ($network_id) {
+    $sql .= " AND NN.network_id = :network_id ";
+    $args['network_id'] = $network_id;
+  }
+  if ($organism_id) {
+    $sql .= " AND N.organism_id = :organism_id ";
+    $args['organism_id'] = $organism_id;
+  }
+
   $results = chado_query($sql, $args);
   while ($property = $results->fetchObject()) {
     $props[$property->$id_type] = $property->value;
@@ -523,10 +536,10 @@ function tripal_network_get_edgeprops($ids, $term) {
  *   provided then all attributes are returend. If included only the specified
  *   atttribute is returned.
  */
-function tripal_network_get_attributes($network_id, $attr_id = NULL) {
+function tripal_network_get_attributes($organism_id = NULL, $network_id = NULL, $attr_id = NULL) {
 
   $attr_term = chado_get_cvterm(['id' => $attr_id]);
-  $args = [':network_id' => $network_id];
+  $args = [];
 
   // Get all the information about this attribute.
   $sql = "
@@ -547,8 +560,16 @@ function tripal_network_get_attributes($network_id, $attr_id = NULL) {
         INNER JOIN {db} DBP on DBP.db_id = DBXP.db_id
         INNER JOIN {db} DBA on DBA.db_id = DBXA.db_id
         LEFT JOIN {cvterm} CVTV on CVTV.cvterm_id = NAP.value_id
-      WHERE NA.network_id = :network_id
+      WHERE 1=1
     ";
+  if ($network_id) {
+    $sql .= " AND NA.network_id = :network_id";
+    $args[':network_id'] = $network_id;
+  }
+  if ($organism_id) {
+    $sql .= " AND N.organism_id = :organism_id";
+    $args[':organism_id'] = $organism_id;
+  }
   if ($attr_id) {
     $sql .= " AND NA.attr_id = :attr_id";
     $args[':attr_id'] = $attr_term->cvterm_id;
@@ -594,7 +615,7 @@ function tripal_network_get_attributes($network_id, $attr_id = NULL) {
  * @return
  *   An array of attributes indexed by the term ID and the value the name.
  */
-function tripal_network_get_attribute_options($network_id, $quantitative = TRUE,
+function tripal_network_get_attribute_options($organism_id=NULL, $network_id=NULL, $quantitative = TRUE,
   $categorical = TRUE, $ordinal = TRUE, $annotation = TRUE) {
 
   $edge_term = chado_get_cvterm(['id' => 'NCIT:C75923']);
@@ -621,22 +642,29 @@ function tripal_network_get_attribute_options($network_id, $quantitative = TRUE,
   $sql = "
     SELECT CVT.cvterm_id, CVT.name, DBX.accession, DB.name as db_name
     FROM {network_attr} NA
+      INNER JOIN {network} N on N.network_id = NA.network_id
       INNER JOIN {network_attrprop} NAP on NAP.network_attr_id = NA.network_attr_id
       INNER JOIN {cvterm} CVT on CVT.cvterm_id = NA.attr_id
       INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
       INNER JOIN {db} DB on DB.db_id = DBX.db_id
     WHERE
-      NA.network_id = :network_id AND
       NA.domain_id = :domain_id AND
       NAP.type_id = :class_type AND
       NAP.value_id IN (:class_ids)
   ";
   $args = [
-    ':network_id' => $network_id,
     ':domain_id' => $edge_term->cvterm_id,
     ':class_type' => $data_class_term->cvterm_id,
     ':class_ids' => $class_ids
   ];
+  if ($organism_id) {
+    $sql .= " AND N.organism_id = :organism_id";
+    $args[':organism_id'] = $organism_id;
+  }
+  if ($network_id) {
+    $sql .= " AND NA.network_id = :network_id";
+    $args[':network_id'] = $network_id;
+  }
   $results = chado_query($sql, $args);
   while ($record = $results->fetchObject()) {
     $term = $record->db_name . ':' . $record->accession;

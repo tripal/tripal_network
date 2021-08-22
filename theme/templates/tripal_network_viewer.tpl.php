@@ -38,13 +38,13 @@ if ($network_id) {
   }
 }
 
-$network_form = drupal_get_form('tripal_network_viewer_network_form', $network_id);
+$network_form = drupal_get_form('tripal_network_viewer_network_form', $organism_id, $network_id);
 $network_form = drupal_render($network_form);
 
-$display_form = drupal_get_form('tripal_network_viewer_display_form', $network_id);
+$display_form = drupal_get_form('tripal_network_viewer_display_form', $organism_id, $network_id);
 $display_form = drupal_render($display_form);
 
-$filter_form = drupal_get_form('tripal_network_viewer_filter_form', $network_id);
+$filter_form = drupal_get_form('tripal_network_viewer_filter_form', $organism_id, $network_id);
 $filter_form = drupal_render($filter_form);
 
 $network_details = drupal_get_form('tripal_network_viewer_network_details_form', $network_id);
