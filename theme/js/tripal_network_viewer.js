@@ -7,6 +7,11 @@
    var selected_edge = null;
    var selected_edge_prev_color = null;
    
+   var app_width = $(window).width();
+   var sidebar_width = 0;
+   var display_offset = 0;
+   var display_width = 0;
+   
    // Plotly has a bug. When a relayout is called it triggers a click
    // event which causes an eternal loop. So, we'll use this to keep 
    // that loop from happening when nodes and edges are being selected.
@@ -24,44 +29,59 @@
   // goes in this section
   $(document).ready(function() {
    
-    $(".tripal-network-viewer-sidebar-box-header-toggle-on").click(function() {
-      var parent = $(this).parent().parent().attr('id');
-      $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-on").hide();
-      $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-off").show();
-      $("#" + parent + " .tripal-network-viewer-sidebar-box-content").hide();
+    sidebar_width = $('#tripal-network-viewer-sidebar').width();    
+    display_offset = $('#tripal-network-viewer-display').offset();
+    display_width = app_width - display_offset.left;
+    $('#tripal-network-viewer-display').width(display_width);
+      
+    // Show the network box on load
+    $.fn.showBox("tripal-network-viewer-network-box");
+     
+    // If any navbar icons are clicked show the corresponding box.
+    $(".tripal-network-viewer-navbar-icon").click(function() {
+      var id = $(this).attr('id');
+      var box = id.replace('icon', 'box');
+      $.fn.showBox(box);
     })
     
-    $(".tripal-network-viewer-sidebar-box-header-toggle-off").click(function() {
-      var parent = $(this).parent().parent().attr('id');
-      $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-on").show();
-      $("#" + parent + " .tripal-network-viewer-sidebar-box-header-toggle-off").hide();
-      $("#" + parent + " .tripal-network-viewer-sidebar-box-content").show();
+    // Add support for the slide icon.
+    $("#tripal-network-viewer-slide-icon").click(function() {
+      if ($('#tripal-network-viewer-sidebar-header').is(":visible")) {        
+        $.fn.closeSidebar();
+      }
+      else  {
+        $.fn.openSidebar();
+      }
     })
-    
-    $.fn.showBox('#tripal-network-viewer-network-select');
-   
   });
   
-  /**
-   * Hides all of the sidebar box contents and sets the toggle.
-   */
-  $.fn.hideAllBoxes = function() {
-    $(".tripal-network-viewer-sidebar-box-header-toggle-on").hide();
-    $(".tripal-network-viewer-sidebar-box-header-toggle-off").show();
-    $(".tripal-network-viewer-sidebar-box-content").hide();
+  $.fn.showBox = function(id) {
+    $.fn.openSidebar();
+    var icon = id.replace('box', 'icon');
+    $('.tripal-network-viewer-sidebar-box').hide();
+    $('.tripal-network-viewer-navbar-icon').css('opacity', '0.5');
+    $('#' + icon).css('opacity', '1');
+    $('#' + id).show();
   }
   
-  /**
-   * Shows the specified sidebar box and sets the toggle.
-   */
-  $.fn.showBox = function(box, hide_others = true) {
-    if (hide_others) {
-      $.fn.hideAllBoxes();
-    }
-    $(box + " .tripal-network-viewer-sidebar-box-content").show();
-    $(box + " .tripal-network-viewer-sidebar-box-header-toggle-on").show();
-    $(box + " .tripal-network-viewer-sidebar-box-header-toggle-off").hide();
+  $.fn.openSidebar = function() {
+     $('#tripal-network-viewer-sidebar').width(sidebar_width);
+     $('#tripal-network-viewer-sidebar-header').show();
+     $('#tripal-network-viewer-sidebar-boxes').show("fast"); 
+     $('#tripal-network-viewer-display').css({top: 0, left: display_offset.left, position:'absolute'});
+     $('#tripal-network-viewer-display').width(display_width);
+     Plotly.Plots.resize('tripal-network-viewer');
   }
+  
+  $.fn.closeSidebar = function() {
+     $('#tripal-network-viewer-sidebar-boxes').hide("fast");
+     $('#tripal-network-viewer-sidebar-header').hide();
+     $('#tripal-network-viewer-sidebar').width('40');
+     $('#tripal-network-viewer-display').css({top: 0, left: 90, position:'absolute'});
+     $('#tripal-network-viewer-display').width((display_width + sidebar_width) - 40);
+     Plotly.Plots.resize('tripal-network-viewer');
+  }
+  
   
   /**
    *
@@ -157,15 +177,15 @@
    /**
    *
    */
-  $.fn.updateNetworkDetailsForm = function() {
-    
+  $.fn.updateNetworkDetailsForm = function(network_id) {
+       
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
       url: baseurl + '/networks/viewer/form/network-details',
       type: "GET",
       dataType: 'html',
-      data: state,
+      data: {'network_id':  network_id},
       success: function(response) {
         $('#tripal-network-viewer-network-details form').replaceWith(response);
         Drupal.attachBehaviors();

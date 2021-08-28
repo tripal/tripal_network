@@ -678,6 +678,7 @@ function tripal_network_viewer_network_form_ajax_callback($form, $form_state) {
   // Tell Drupal to update the network
   tripal_network_add_ajax_command(ajax_command_invoke(NULL, "getNetwork", [$args]));
 
+
   return $form;
 }
 

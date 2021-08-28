@@ -59,84 +59,72 @@ $edge_details = drupal_render($edge_details);
 ?>
 <div id="tripal-network-viewer-app">
    <div id="tripal-network-viewer-loading"><img src="<?php print $theme_path?>/images/loading.gif"></div>
+   <div id="tripal-network-viewer-navbar">
+     <div><img id="tripal-network-viewer-network-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Network_1571006.png"></div>
+     <div><img id="tripal-network-viewer-layers-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Layers_4177660.png"></div>
+     <div><img id="tripal-network-viewer-filters-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_filter_4186018.png"></div>
+     <div><img id="tripal-network-viewer-node-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Circle_3927915.png"></div>
+     <div><img id="tripal-network-viewer-edge-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_link_2545631.png"></div>
+     <div><img id="tripal-network-viewer-about-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_about_4190914.png"></div>
+   </div>
    <div id="tripal-network-viewer-sidebar">
-     <?php print l('Site Home', '/')?>
-     <h1><?php print $site_name ?> Network Viewer</h1>
-     <div id="tripal-network-viewer-network-select" class="tripal-network-viewer-sidebar-box">
-     	 <div class="tripal-network-viewer-sidebar-box-header">
-     	   <img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
-         <img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
-     	   <h2>Network Selection</h2>
-     	 </div>
-     	 <div class="tripal-network-viewer-sidebar-box-content">
-     	   <?php print $network_form ?>
-     	 </div>
+     <div id="tripal-network-viewer-sidebar-toggle">
+       <img id="tripal-network-viewer-slide-icon" class="tripal-network-viewer-sidebar-icon" src="<?php print $theme_path?>/images/noun_slide_3149648.png">
      </div>
-     <div id="tripal-network-viewer-display-details" class="tripal-network-viewer-sidebar-box">
-        <div class="tripal-network-viewer-sidebar-box-header">
-        	<img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
-        	<img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
-        	<h2>Layers and Colors</h2>
-        </div>
-        <div class="tripal-network-viewer-sidebar-box-content">
-          <?php print $display_form ?>
-        </div>
-     </div>
-     <div id="tripal-network-viewer-filter-details" class="tripal-network-viewer-sidebar-box">
-        <div class="tripal-network-viewer-sidebar-box-header">
-        	<img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
-        	<img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
-        	<h2>Filters</h2>
-        </div>
-        <div class="tripal-network-viewer-sidebar-box-content">
-          <?php print $filter_form ?>
-        </div>
-     </div>
-     <div id="tripal-network-viewer-network-details" class="tripal-network-viewer-sidebar-box">
-        <div class="tripal-network-viewer-sidebar-box-header">
-          <img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
-          <img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
-           	<h2>Network</h2>
-      	</div>
-        <div class="tripal-network-viewer-sidebar-box-content">
-        <?php print $network_details ?>
-        </div>
-     </div>
-     <div id="tripal-network-viewer-node-details" class="tripal-network-viewer-sidebar-box">
-        <div class="tripal-network-viewer-sidebar-box-header">
-          <img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
-          <img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
+     <div id="tripal-network-viewer-sidebar-boxes">
+       <div id="tripal-network-viewer-sidebar-header">
+         <h1>Network Viewer</h1>
+         <?php print l('Site Home', '/')?>
+       </div>
+       <div id="tripal-network-viewer-network-box" class="tripal-network-viewer-sidebar-box">
+    	   <h2>Network Selection</h2>
+       	 <div class="tripal-network-viewer-sidebar-box-content">
+       	   <?php print $network_form ?>
+       	 </div>
+       </div>
+       <div id="tripal-network-viewer-layers-box" class="tripal-network-viewer-sidebar-box">
+         	<h2>Layers and Colors</h2>
+           <?php print $display_form ?>
+       </div>
+       <div id="tripal-network-viewer-filters-box" class="tripal-network-viewer-sidebar-box">
+         	<h2>Filters</h2>
+           <?php print $filter_form ?>
+       </div>
+       <div id="tripal-network-viewer-node-box" class="tripal-network-viewer-sidebar-box">
         	<h2>Node</h2>
-        </div>
-        <div class="tripal-network-viewer-sidebar-box-content">
           <?php print $node_details ?>
-        </div>
-     </div>
-     <div id="tripal-network-viewer-edge-details" class="tripal-network-viewer-sidebar-box">
-        <div class="tripal-network-viewer-sidebar-box-header">
-          <img class="tripal-network-viewer-sidebar-box-header-toggle-on" src="<?php print $theme_path?>/images/toggle-on.png">
-          <img class="tripal-network-viewer-sidebar-box-header-toggle-off" src="<?php print $theme_path?>/images/toggle-off.png">
-        	<h2>Edge</h2>
-      </div>
-        <div class="tripal-network-viewer-sidebar-box-content">
-        <?php print $edge_details ?>
-        </div>
+       </div>
+       <div id="tripal-network-viewer-edge-box" class="tripal-network-viewer-sidebar-box">
+         	<h2>Edge</h2>
+          <?php print $edge_details ?>
+       </div>
+       <div id="tripal-network-viewer-about-box" class="tripal-network-viewer-sidebar-box">
+          <h2>About</h2>
+          <div class="tripal-network-viewer-sidebar-box-content">
+            <p>The Tripal Network Viewer was created by the <a href="http://ficklinlab.cahnrs.wsu.edu">Ficklin
+              Computational Biology Team</a> at <a href="http://www.wsu.edu">Washington State University</a
+              and is an open-source plugin for Tripal-based sites</p>
+            <p>Powered by <?php print l('Tripal', 'https://tripal.info')?><br>
+            <img src="<?php print $theme_path?>/images/powered_by_tripal_small.png"></p>
+            <p>Inspired by <?php print l('KINC', 'https://kinc.readthedocs.io/')?><br>
+            <img src="<?php print $theme_path?>/images/inspired_by_KINC_small.png"></p>
+            <p>
+              <b>Icons Attribution</b>
+              <ul>
+                <li>Network icon by Three Six Five from the Noun Project</li>
+                <li>Layers icon by Thomas from the Noun Project</li>
+                <li>Filter icon by Adam Baihaqi from the Noun Project</li>
+                <li>Circle by Lars Meiertoberens from the Noun Project</li>
+                <li>Link icon by Alex Burte from the Noun Project</li>
+                <li>About icon by andika from the Noun Project</li>
+                <li>Slide icon by Alebaer from the Noun Project</li>
+              </ul>
+            </p>
+          </div>
+       </div>
      </div>
    </div>
    <div id="tripal-network-viewer-display">
      <div id="tripal-network-viewer"></div>
-   </div>
-   <div id="tripal-network-viewer-footer">
-      <div class="tripal-network-viewer-footer-item-left">
-        <br>This viewer is provided by the <br><?php print l('Tripal Network Module', 'https://github.com/tripal/tripal_network')?>
-      </div>
-      <div class="tripal-network-viewer-footer-item tripal-network-viewer-footer-item-right">
-        <img src="<?php print $theme_path?>/images/powered_by_tripal_small.png"><br>
-        Powered by <?php print l('Tripal', 'https://tripal.info')?>
-      </div>
-      <div class="tripal-network-viewer-footer-item tripal-network-viewer-footer-item-right">
-        <img src="<?php print $theme_path?>/images/inspired_by_KINC_small.png"><br>
-         Inspired by <?php print l('KINC', 'https://kinc.readthedocs.io/')?>
-      </div>
    </div>
 </div>
