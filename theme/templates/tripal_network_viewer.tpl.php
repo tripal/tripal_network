@@ -66,6 +66,7 @@ $edge_details = drupal_render($edge_details);
      <div><img id="tripal-network-viewer-node-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Circle_3927915.png"></div>
      <div><img id="tripal-network-viewer-edge-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_link_2545631.png"></div>
      <div><img id="tripal-network-viewer-about-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_about_4190914.png"></div>
+     <div><img id="tripal-network-viewer-help-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_help_2302539.png"></div>
    </div>
    <div id="tripal-network-viewer-sidebar">
      <div id="tripal-network-viewer-sidebar-toggle">
@@ -118,11 +119,18 @@ $edge_details = drupal_render($edge_details);
                 <li>Link icon by Alex Burte from the Noun Project</li>
                 <li>About icon by andika from the Noun Project</li>
                 <li>Slide icon by Alebaer from the Noun Project</li>
+                <li>Help icon by Rainbow Designs from the Noun Project</li>
               </ul>
             </p>
           </div>
        </div>
+       <div id="tripal-network-viewer-help-box" class="tripal-network-viewer-sidebar-box">
+         <h2>Help</h2>
+         <div class="tripal-network-viewer-sidebar-box-content">
+         </div>
+       </div>
      </div>
+
    </div>
    <div id="tripal-network-viewer-display">
      <div id="tripal-network-viewer"></div>

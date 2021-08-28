@@ -53,7 +53,7 @@
     })
     
     // Add support for the slide icon.
-    $("#tripal-network-viewer-slide-icon").click(function() {
+    $("#tripal-network-viewer-sidebar-toggle").click(function() {
       if ($('#tripal-network-viewer-sidebar-header').is(":visible")) {        
         $.fn.closeSidebar();
       }
@@ -104,9 +104,10 @@
       dataType: 'html',
       data: {'node_id': node_id},
       success: function(response) {
-        $('#tripal-network-viewer-node-details form').replaceWith(response);
+        $.fn.showBox('tripal-network-viewer-node-box');
+        $('#tripal-network-viewer-node-box form').replaceWith(response);
         Drupal.attachBehaviors();
-        $.fn.showBox('#tripal-network-viewer-node-details');
+
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
@@ -127,9 +128,9 @@
       dataType: 'html',
       data: {'edge_id': edge_id},
       success: function(response) {
-        $('#tripal-network-viewer-edge-details form').replaceWith(response);
-        Drupal.attachBehaviors();
-        $.fn.showBox('#tripal-network-viewer-edge-details');
+         $.fn.showBox('tripal-network-viewer-edge-box');
+         $('#tripal-network-viewer-edge-box form').replaceWith(response);
+         Drupal.attachBehaviors();
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
