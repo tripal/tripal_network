@@ -91,15 +91,15 @@ $edge_details = drupal_render($edge_details);
            <?php print $filter_form ?>
        </div>
        <div id="tripal-network-viewer-node-box" class="tripal-network-viewer-sidebar-box">
-        	<h2>Node</h2>
+        	<h2>Selected Node Details</h2>
           <?php print $node_details ?>
        </div>
        <div id="tripal-network-viewer-edge-box" class="tripal-network-viewer-sidebar-box">
-         	<h2>Edge</h2>
+         	<h2>Selected Edge Details</h2>
           <?php print $edge_details ?>
        </div>
        <div id="tripal-network-viewer-about-box" class="tripal-network-viewer-sidebar-box">
-          <h2>About</h2>
+          <h2>About this Network Viewer</h2>
           <div class="tripal-network-viewer-sidebar-box-content">
             <p>The Tripal Network Viewer was created by the <a href="http://ficklinlab.cahnrs.wsu.edu">Ficklin
               Computational Biology Team</a> at <a href="http://www.wsu.edu">Washington State University</a

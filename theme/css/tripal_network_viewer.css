@@ -116,6 +116,7 @@ body {
     z-index: 110;
     margin: 10px 15px 15px 15px;
     opacity: 0.5;
+    cursor: pointer; 
   }
   
   #tripal-network-viewer-sidebar-toggle {
@@ -132,6 +133,7 @@ body {
     width: 20px;
     z-index: 120;
     margin: 10px 10px 10px 10px;
+    cursor: pointer; 
   }
   
   #tripal-network-viewer-sidebar {

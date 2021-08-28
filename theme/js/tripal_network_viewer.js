@@ -7,7 +7,6 @@
    var selected_edge = null;
    var selected_edge_prev_color = null;
    
-   var app_width = $(window).width();
    var sidebar_width = 0;
    var display_offset = 0;
    var display_width = 0;
@@ -29,10 +28,19 @@
   // goes in this section
   $(document).ready(function() {
    
+    // Get the size of the elements so we can resize things when
+    // closing the sidebar.
     sidebar_width = $('#tripal-network-viewer-sidebar').width();    
     display_offset = $('#tripal-network-viewer-display').offset();
-    display_width = app_width - display_offset.left;
+    display_width = $(window).width() - display_offset.left;
     $('#tripal-network-viewer-display').width(display_width);
+    
+    // If the window size changes we need to update the size variables.
+    $( window ).resize(function() {
+      display_width = $(window).width() - display_offset.left;
+      $('#tripal-network-viewer-display').width(display_width);
+      Plotly.Plots.resize('tripal-network-viewer');
+    });
       
     // Show the network box on load
     $.fn.showBox("tripal-network-viewer-network-box");
