@@ -63,6 +63,12 @@
     })
   });
   
+  $.fn.setState = function(args) {
+    for (var key in args) {
+      state[key] = args[key];
+    } 
+  }
+  
   $.fn.showBox = function(id) {
     $.fn.openSidebar();
     var icon = id.replace('box', 'icon');
@@ -96,13 +102,15 @@
    */
   $.fn.updateNodeDetails = function(args) {
      var node_id = args['node_id'];
+     var data = state;
+     data['node_id'] = node_id;
      $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
       url: baseurl + '/networks/viewer/details/node',
       type: "GET",
       dataType: 'html',
-      data: {'node_id': node_id},
+      data: data,
       success: function(response) {
         $.fn.showBox('tripal-network-viewer-node-box');
         $('#tripal-network-viewer-node-box form').replaceWith(response);
@@ -142,17 +150,17 @@
   /**
    *
    */
-  $.fn.updateDisplayForm = function() {
+  $.fn.updateLayersForm = function() {
     
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
-      url: baseurl + '/networks/viewer/form/display',
+      url: baseurl + '/networks/viewer/form/layers',
       type: "GET",
       dataType: 'html',
       data: state,
       success: function(response) {
-        $('#tripal-network-viewer-display-details form').replaceWith(response);
+        $('#tripal-network-viewer-layers-box form').replaceWith(response);
         Drupal.attachBehaviors();
       },
       error: function(xhr, textStatus, thrownError) {
@@ -174,7 +182,7 @@
       dataType: 'html',
       data: state,
       success: function(response) {
-        $('#tripal-network-viewer-filter-details form').replaceWith(response);
+        $('#tripal-network-viewer-filters-box form').replaceWith(response);
         Drupal.attachBehaviors();
       },
       error: function(xhr, textStatus, thrownError) {
@@ -218,14 +226,7 @@
        data: {'network_id': network_id },
        success: function(json) {
          response = json;
-         for (var key in json) {
-           state[key] = json[key];
-         }
-         
-         // Now that we have our state, load the display
-         $.fn.getNetwork({'network_id': network_id });
-         $.fn.updateDisplayForm();
-         $.fn.updateFilterForm(); 
+         $.fn.getNetwork(json);
        },
        error: function(xhr, textStatus, thrownError) {
          alert(thrownError);
@@ -251,11 +252,7 @@
    
     $('#tripal-network-viewer-loading').show()
     
-    // Update the state variable using input arguments. 
-    for (var key in args) {
-      state[key] = args[key];
-    } 
-
+    $.fn.setState(args);
 
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the

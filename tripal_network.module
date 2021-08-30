@@ -77,8 +77,8 @@ function tripal_network_menu() {
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
   ];
-  $items['networks/viewer/form/display'] = [
-    'page callback' => 'tripal_network_viewer_ajax_get_display_form',
+  $items['networks/viewer/form/layers'] = [
+    'page callback' => 'tripal_network_viewer_ajax_get_layers_form',
     'page arguments' => [],
     'access arguments' => ['view ' . $bundle->name],
     'file' => '/includes/tripal_network.viewer.inc',

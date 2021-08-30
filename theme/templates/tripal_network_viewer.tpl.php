@@ -11,44 +11,32 @@ drupal_add_js('https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js');
 drupal_add_js($js_path . '/tripal_network_viewer.js');
 drupal_add_css($css_path . '/tripal_network_viewer.css', 'external');
 
-
-if ($network_id) {
-
-  // Load the network that was provided if the user has access.
-  $entity_id = chado_get_record_entity_by_table('network', $network_id);
-  if ($entity_id){
-    $entity = tripal_load_entity('TripalEntity', [$entity_id]);
-
-    if (tripal_entity_access('view', $entity[$entity_id], $user, 'TripalEntity')) {
-      drupal_add_js("
-        (function(\$) {
-          $(document).ready(function() {
-            \$.fn.initViewer($network_id);
-            \$.fn.getNetwork({'network_id': $network_id });
-          });
-        })(jQuery);
-      ", 'inline');
-    }
-    else {
-      drupal_set_message(t('You must be granted permission to view this network.'), 'error');
-    }
-  }
-  else {
-    drupal_set_message(t('The requested network does not exist.'), 'error');
+$args = [];
+if ($organism_id) {
+  $args['organism_id'] = $oragnism_id;
+  if ($network_id) {
+    $args['network_id'] = $network_id;
   }
 }
+
+drupal_add_js("
+  (function(\$) {
+    $(document).ready(function() {
+      \$.fn.initViewer(" . json_encode($args) . ");
+      \$.fn.getNetwork({});
+    });
+  })(jQuery);
+", 'inline');
+
 
 $network_form = drupal_get_form('tripal_network_viewer_network_form', $organism_id, $network_id);
 $network_form = drupal_render($network_form);
 
-$display_form = drupal_get_form('tripal_network_viewer_display_form', $organism_id, $network_id);
-$display_form = drupal_render($display_form);
+$layers_form = drupal_get_form('tripal_network_viewer_layers_form', $organism_id, $network_id);
+$layers_form = drupal_render($layers_form);
 
 $filter_form = drupal_get_form('tripal_network_viewer_filter_form', $organism_id, $network_id);
 $filter_form = drupal_render($filter_form);
-
-$network_details = drupal_get_form('tripal_network_viewer_network_details_form', $network_id);
-$network_details = drupal_render($network_details);
 
 $node_details = drupal_get_form('tripal_network_viewer_node_details_form');
 $node_details = drupal_render($node_details);
@@ -85,7 +73,7 @@ $edge_details = drupal_render($edge_details);
        </div>
        <div id="tripal-network-viewer-layers-box" class="tripal-network-viewer-sidebar-box">
          	<h2>Layers and Colors</h2>
-           <?php print $display_form ?>
+           <?php print $layers_form ?>
        </div>
        <div id="tripal-network-viewer-filters-box" class="tripal-network-viewer-sidebar-box">
          	<h2>Filters</h2>
