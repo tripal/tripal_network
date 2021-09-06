@@ -3,18 +3,17 @@
 /**
  * Retrieves the edges of a network.
  *
- * @param $network_id
- *   The network ID.
- * @param number $limit
- *   A number indicating the max number of edges to retrieve.
- * @param $offset
- *   A number indicating the offset in the edge list to retreive.
- *
  * @return
  *   An associative array of edges with the keys 'edges' and 'nodes'.
  */
-function tripal_network_get_network_elements($organism_id, $network_id = NULL,
-    $feature_ids = [], $limit_term = NULL, $limit = 0, $offset = 0) {
+function tripal_network_get_network_elements($selection = []) {
+  $organism_id = array_key_exists('organism_id', $selection) ? $selection['organism_id'] : NULL;
+  $network_id = array_key_exists('network_id', $selection) ? $selection['network_id'] : NULL;
+  $feature_ids = array_key_exists('feature_ids', $selection) ? $selection['feature_ids'] : [];
+  $term_ids = array_key_exists('term_ids', $selection) ? $selection['term_ids'] : [];
+  $limit_term = array_key_exists('limit_term', $selection) ? $selection['limit_term'] : NULL;
+  $limit = array_key_exists('limit', $selection) ? $selection['limit'] : 0;
+  $offset = array_key_exists('offset', $selection) ? $selection['offset'] : 0;
 
   if ($offset and !$limit) {
     throw new Exception('tripal_network_get_edges: if an offset is provided a limit must also be provided.');
@@ -45,8 +44,14 @@ function tripal_network_get_network_elements($organism_id, $network_id = NULL,
     $params[':network_id'] = $network_id;
   }
   if (is_array($feature_ids) and count($feature_ids) > 0) {
-    $sql .= " AND (FS.feature_id IN (:feature_ids) OR FT.feature_id IN (:feature_ids)) ";
+    $where .= " AND (FS.feature_id IN (:feature_ids) OR FT.feature_id IN (:feature_ids)) ";
     $params[':feature_ids'] = $feature_ids;
+  }
+  if (is_array($term_ids) and count($term_ids) > 0) {
+    $sql .= "  LEFT JOIN {feature_cvterm} FCVTS on FCVTS.feature_id = FS.feature_id ";
+    $sql .= "  LEFT JOIN {feature_cvterm} FCVTT on FCVTT.feature_id = FT.feature_id ";
+    $where .= " AND (FCVTS.cvterm_id IN (:term_ids) OR FCVTT.cvterm_id IN (:term_ids)) ";
+    $params[':term_ids'] = $term_ids;
   }
 
   if ($limit_term) {

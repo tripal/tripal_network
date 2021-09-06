@@ -25,6 +25,7 @@ function tripal_network_install() {
   tripal_network_add_network_analysisprop_table($schema);
   tripal_network_add_network_pub_table($schema);
 
+  tripal_network_add_network_layout_table($schema);
 
   foreach ($schema as $table_name => $table_schema){
     chado_create_custom_table($table_name, $table_schema, TRUE, NULL, FALSE);
@@ -42,7 +43,7 @@ function tripal_network_install() {
  */
 function tripal_network_add_bulk_loader() {
 
-  $template = stripslashes('{"1":{"table":"organism","record_id":"Organism","mode":"select_once","fields":[{"type":"constant","title":"Genus","field":"genus","required":1,"constant value":"","exposed":1,"exposed_validate":1},{"type":"constant","title":"Species","field":"species","required":1,"constant value":"","exposed":1,"exposed_validate":1}]},"2":{"table":"cv","record_id":"Feature Type CV","mode":"select_once","fields":[{"type":"constant","title":"CV Name","field":"name","required":1,"constant value":"sequence","exposed":0,"exposed_validate":1}]},"3":{"table":"cvterm","record_id":"Feature Type CVTerm","mode":"select_once","fields":[{"type":"constant","title":"Feature Term (e.g. gene, mRNA, protein)","field":"name","required":1,"constant value":"","exposed":1,"exposed_validate":1}]},"4":{"table":"feature","record_id":"Feature","mode":"select","fields":[{"type":"table field","title":"Feature Name","field":"name","required":1,"spreadsheet column":"1","exposed":0,"exposed_description":""},{"type":"foreign key","title":"Feature Organism","field":"organism_id","show_all_records":0,"foreign key":"Organism","foreign field":"organism_id","required":1},{"type":"foreign key","title":"Feature type","field":"type_id","show_all_records":0,"foreign key":"Feature Type CVTerm","foreign field":"cvterm_id","required":1}],"select_if_duplicate":0,"update_if_duplicate":0,"select_optional":1,"disable":0,"optional":1},"5":{"table":"db","record_id":"Term DB","mode":"insert","fields":[{"type":"table field","title":"Term DB Name","field":"name","required":1,"spreadsheet column":"5","exposed":0,"exposed_description":""}],"select_if_duplicate":1,"update_if_duplicate":0,"select_optional":0,"disable":0,"optional":0},"6":{"table":"cv","record_id":"Term CV","mode":"insert","fields":[{"type":"table field","title":"Term CV Name","field":"name","required":1,"spreadsheet column":"4","exposed":0,"exposed_description":""}],"select_if_duplicate":1,"update_if_duplicate":0,"select_optional":0,"disable":0,"optional":0},"7":{"table":"dbxref","record_id":"Term DBxref","mode":"insert","fields":[{"type":"table field","title":"Term Accession","field":"accession","required":1,"spreadsheet column":"2","exposed":0,"exposed_description":"","regex":{"pattern":["\/\\w+:(\\w+)\/"],"replace":["\\1"]}},{"type":"foreign key","title":"Term DB ID","field":"db_id","show_all_records":0,"foreign key":"Term DB","foreign field":"db_id","required":1}],"select_if_duplicate":1,"update_if_duplicate":0,"select_optional":0,"disable":0,"optional":0},"8":{"table":"cvterm","record_id":"Term CVTerm","mode":"insert","fields":[{"type":"table field","title":"Term Definition","field":"definition","required":0,"spreadsheet column":"6","exposed":0,"exposed_description":""},{"type":"foreign key","title":"Term DBXref ID","field":"dbxref_id","show_all_records":0,"foreign key":"Term DBxref","foreign field":"dbxref_id","required":1},{"type":"table field","title":"Term Name","field":"name","required":1,"spreadsheet column":"3","exposed":0,"exposed_description":""},{"type":"foreign key","title":"Term CV","field":"cv_id","show_all_records":0,"foreign key":"Term CV","foreign field":"cv_id","required":1}],"select_if_duplicate":1,"update_if_duplicate":0,"select_optional":0,"disable":0,"optional":0},"9":{"table":"feature_cvterm","record_id":"Feature CVTerm","mode":"insert","fields":[{"type":"foreign key","title":"Feature CVTerm","field":"cvterm_id","show_all_records":0,"foreign key":"Term CVTerm","foreign field":"cvterm_id","required":1},{"type":"foreign key","title":"Feature","field":"feature_id","show_all_records":0,"foreign key":"Feature","foreign field":"feature_id","required":1},{"type":"foreign key","title":"Pub","field":"pub_id","show_all_records":0,"foreign key":"Publication","foreign field":"pub_id","required":1}],"select_if_duplicate":1,"update_if_duplicate":0,"select_optional":0,"disable":0,"optional":1},"10":{"table":"pub","record_id":"Publication","mode":"select_once","fields":[{"type":"constant","title":"","field":"uniquename","required":1,"constant value":"null","exposed":0,"exposed_validate":0}]}}');
+  $template = stripslashes('[{"table":"organism","record_id":"Organism","mode":"select_once","fields":[{"type":"constant","title":"Genus","field":"genus","required":1,"constant value":"","exposed":1,"exposed_validate":1},{"type":"constant","title":"Species","field":"species","required":1,"constant value":"","exposed":1,"exposed_validate":1}]},{"table":"cv","record_id":"Feature Type CV","mode":"select_once","fields":[{"type":"constant","title":"CV Name","field":"name","required":1,"constant value":"sequence","exposed":0,"exposed_validate":1}]},{"table":"cvterm","record_id":"Feature Type CVTerm","mode":"select_once","fields":[{"type":"constant","title":"Feature Term (e.g. gene, mRNA, protein)","field":"name","required":1,"constant value":"","exposed":1,"exposed_validate":1}]},{"table":"feature","record_id":"Feature","mode":"select","fields":[{"type":"table field","title":"Feature Name","field":"name","required":1,"spreadsheet column":"1","exposed":0,"exposed_description":""},{"type":"foreign key","title":"Feature Organism","field":"organism_id","show_all_records":0,"foreign key":"Organism","foreign field":"organism_id","required":1},{"type":"foreign key","title":"Feature type","field":"type_id","show_all_records":0,"foreign key":"Feature Type CVTerm","foreign field":"cvterm_id","required":1}],"select_if_duplicate":0,"update_if_duplicate":0,"select_optional":1,"disable":0,"optional":0},{"table":"db","record_id":"Term DB","mode":"insert","fields":[{"type":"table field","title":"Term DB Name","field":"name","required":1,"spreadsheet column":"5","exposed":0,"exposed_description":""}],"select_if_duplicate":1,"update_if_duplicate":0,"select_optional":0,"disable":0,"optional":0},{"table":"cv","record_id":"Term CV","mode":"insert","fields":[{"type":"table field","title":"Term CV Name","field":"name","required":1,"spreadsheet column":"4","exposed":0,"exposed_description":""}],"select_if_duplicate":1,"update_if_duplicate":0,"select_optional":0,"disable":0,"optional":0},{"table":"dbxref","record_id":"Term DBxref","mode":"insert","fields":[{"type":"table field","title":"Term Accession","field":"accession","required":1,"spreadsheet column":"2","exposed":0,"exposed_description":"","regex":{"pattern":["\/w+:(w+)\/"],"replace":["1"]}},{"type":"foreign key","title":"Term DB ID","field":"db_id","show_all_records":0,"foreign key":"Term DB","foreign field":"db_id","required":1}],"select_if_duplicate":1,"update_if_duplicate":0,"select_optional":0,"disable":0,"optional":0},{"table":"cvterm","record_id":"Term CVTerm","mode":"insert","fields":[{"type":"table field","title":"Term Definition","field":"definition","required":0,"spreadsheet column":"6","exposed":0,"exposed_description":""},{"type":"foreign key","title":"Term DBXref ID","field":"dbxref_id","show_all_records":0,"foreign key":"Term DBxref","foreign field":"dbxref_id","required":1},{"type":"table field","title":"Term Name","field":"name","required":1,"spreadsheet column":"3","exposed":0,"exposed_description":""},{"type":"foreign key","title":"Term CV","field":"cv_id","show_all_records":0,"foreign key":"Term CV","foreign field":"cv_id","required":1}],"select_if_duplicate":1,"update_if_duplicate":0,"select_optional":0,"disable":0,"optional":0},{"table":"pub","record_id":"Publication","mode":"select_once","fields":[{"type":"constant","title":"","field":"uniquename","required":1,"constant value":"null","exposed":0,"exposed_validate":0}]},{"table":"feature_cvterm","record_id":"Feature CVTerm","mode":"insert","fields":[{"type":"foreign key","title":"Feature CVTerm","field":"cvterm_id","show_all_records":0,"foreign key":"Term CVTerm","foreign field":"cvterm_id","required":1},{"type":"foreign key","title":"Feature","field":"feature_id","show_all_records":0,"foreign key":"Feature","foreign field":"feature_id","required":1},{"type":"foreign key","title":"Pub","field":"pub_id","show_all_records":0,"foreign key":"Publication","foreign field":"pub_id","required":1}],"select_if_duplicate":1,"update_if_duplicate":0,"select_optional":0,"disable":0,"optional":0}]');
 
   // If the template doesn't already exist then add it.
   $template_id = db_select('tripal_bulk_loader_template', 'tblt')
@@ -908,6 +909,71 @@ function tripal_network_add_network_attrprop_table(&$schema) {
         'table' => 'network_attr',
         'columns' => [
           'network_attr_id' => 'network_attr_id',
+        ],
+      ],
+    ],
+  ];
+}
+
+function tripal_network_add_network_layout_table(&$schema) {
+  $schema['network_layout'] = [
+    'table' => 'network_layout',
+    'fields' => [
+      'network_layout_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ],
+      'network_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE
+      ],
+      'feature_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE
+      ],
+      'x_coord' => [
+        'type' => 'float',
+        'not null' => TRUE
+      ],
+      'y_coord' => [
+        'type' => 'float',
+        'not null' => TRUE
+      ],
+    ],
+    'primary key' => ['network_layout_id'],
+    'indexes' => [
+      'network_node_idx1' => [
+        0 => 'network_id',
+      ],
+      'network_node_idx2' => [
+        0 => 'feature_id',
+      ],
+      'network_node_idx3' => [
+        0 => 'network_id',
+        1 => 'feature_id',
+      ],
+    ],
+    'unique keys' => [
+      'network_node_c1' => [
+        0 => 'network_id',
+        1 => 'feature_id',
+      ],
+    ],
+    'foreign keys' => [
+      'network' => [
+        'table' => 'network',
+        'columns' => [
+          'network_id' => 'network_id',
+        ],
+      ],
+      'feature' => [
+        'table' => 'feature',
+        'columns' => [
+          'feature_id' => 'feature_id',
         ],
       ],
     ],

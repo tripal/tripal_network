@@ -496,6 +496,7 @@ function tripal_network_viewer_ajax_retrieve() {
   $limit = array_key_exists('limit', $_GET) ? $_GET['limit'] : 1000;
   $limit_by = array_key_exists('limit_by', $_GET) ? $_GET['limit_by'] : NULL;
   $features = array_key_exists('features', $_GET) ? $_GET['features'] : NULL;
+  $vocab_terms = array_key_exists('vocab_terms', $_GET) ? $_GET['vocab_terms'] : NULL;
 
   $layout = tripal_network_get_default_layout();
 
@@ -545,10 +546,23 @@ function tripal_network_viewer_ajax_retrieve() {
     }
   }
 
+  $term_ids = [];
+  if ($vocab_terms) {
+    $terms = preg_split('/\s+/', $vocab_terms);
+    foreach ($terms as $term) {
+      $cvterm = chado_get_cvterm(['id' => $term]);
+      if ($cvterm) {
+        $term_ids[] = $cvterm->cvterm_id;
+      }
+    }
+  }
+
 
   // Get the network Plotly data.
-  $network_items = tripal_network_get_network_elements($organism_id, $network_id,
-      $feature_ids, $limit_by, $limit);
+  $network_items = tripal_network_get_network_elements([
+    'organism_id' => $organism_id, 'network_id' => $network_id,
+    'feature_ids' => $feature_ids, 'term_ids' => $term_ids,
+    'limit_by' => $limit_by, 'limit' => $limit]);
   $plotly_data = tripal_network_make_plotly_data($network_items, $layout, $layer_by, $color_by);
 
   drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
@@ -563,14 +577,17 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
   global $user;
 
   $features = '';
+  $vocab_terms = '';
 
   if (array_key_exists('values', $form_state)) {
     $features = array_key_exists('features', $form_state['values']) ? $form_state['values']['features'] : $features;
+    $vocab_terms = array_key_exists('vocab_terms', $form_state['values']) ? $form_state['values']['vocab_terms'] : $vocab_terms;
     $network_id = array_key_exists('network_id', $form_state['values']) ? $form_state['values']['network_id'] : $network_id;
     $organism_id = array_key_exists('organism_id', $form_state['values']) ? $form_state['values']['organism_id'] : $organism_id;
   }
   if (array_key_exists('input', $form_state)) {
     $features = array_key_exists('features', $form_state['input']) ? $form_state['input']['features'] : $features;
+    $vocab_terms = array_key_exists('vocab_terms', $form_state['input']) ? $form_state['input']['vocab_terms'] : $vocab_terms;
     $network_id = array_key_exists('network_id', $form_state['input']) ? $form_state['input']['network_id'] : $network_id;
     $organism_id = array_key_exists('organism_id', $form_state['input']) ? $form_state['input']['organism_id'] : $organism_id;
   }
@@ -643,7 +660,7 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
 
     $form['features'] = [
       '#type' => 'textarea',
-      '#rows' => 5,
+      '#rows' => 3,
       '#title' => 'Feature Names',
       '#default_value' => $features,
       '#description' => t('Limit the edges to only those that connect
@@ -651,10 +668,20 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
          name by a space or carriage return.'),
       '#multiple' => TRUE,
     ];
+    $form['vocab_terms'] = [
+      '#type' => 'textarea',
+      '#rows' => 3,
+      '#title' => 'Vocabulary Terms',
+      '#default_value' => $vocab_terms,
+      '#description' => t('Limit the edges to only those whose nodes are
+         annotated with sepcific controlled vocabulary terms (e.g. GO Terms,
+         IPR, KEGG ,etc).'),
+      '#multiple' => TRUE,
+    ];
 
     $form['button'] = [
       '#type' => 'submit',
-      '#value' => 'Use Selected Networks',
+      '#value' => 'Update Network View',
       '#ajax' => array(
         'callback' => 'tripal_network_viewer_network_form_ajax_callback',
         'wrapper'  => 'tripal-network-viewer-network-form',
@@ -679,15 +706,26 @@ function tripal_network_viewer_network_form_ajax_callback($form, $form_state) {
   $network_id = $form_state['values']['network_id'];
   $organism_id = $form_state['values']['organism_id'];
   $features = $form_state['values']['features'];
+  $vocab_terms = $form_state['values']['vocab_terms'];
 
-  $args = [];
-  $args['organism_id'] = $organism_id;
+  $args = [
+    'organism_id' => NULL,
+    'network_id' => NULL,
+    'features' => NULL,
+    'vocab_terms' => NULL,
+  ];
+  if ($organism_id) {
+    $args['organism_id'] = $organism_id;
+  }
 
   if ($network_id) {
     $args['network_id'] = implode('|', $network_id);
   }
   if ($features) {
     $args['features'] = $features;
+  }
+  if ($vocab_terms) {
+    $args['vocab_terms'] = $vocab_terms;
   }
 
   // Tell Drupal to update the network
@@ -1002,7 +1040,9 @@ function tripal_network_neighborhood_viewer_ajax_retrieve() {
       return;
     }
 
-    $network_items = tripal_network_get_network_elements($organism_id, $network_id, $feature_id);
+    $network_items = tripal_network_get_network_elements([
+      'organism_id' => $organism_id, 'network_id' => $network_id,
+      'feature_ids' => [$feature_id]]);
     $plotly_data = tripal_network_make_plotly_data($network_items, $layout, $layer_by, $color_by);
     drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
   }
