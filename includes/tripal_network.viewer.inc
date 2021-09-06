@@ -550,6 +550,7 @@ function tripal_network_viewer_ajax_retrieve() {
   if ($vocab_terms) {
     $terms = preg_split('/\s+/', $vocab_terms);
     foreach ($terms as $term) {
+      // TODO: add support for children temr
       $cvterm = chado_get_cvterm(['id' => $term]);
       if ($cvterm) {
         $term_ids[] = $cvterm->cvterm_id;
@@ -1005,8 +1006,9 @@ function tripal_network_neighborhood_viewer_ajax_retrieve() {
   global $user;
 
   // Get the fitering variables requested by the user.
-  $network_id = $_GET['network_id'];
-  $feature_id = $_GET['feature_id'];
+  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : 0;
+  $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : 0;
+  $feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : 0;
 
   // Set the Plotly layout sepcifications.
   // Set the Plotly layout sepcifications.
@@ -1093,13 +1095,12 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
     'text' => [],
   ];
 
-  $network_id = $network_items['network_id'];
-  $organism_id = $network_items['organism_id'];
-
   if ($is_empty) {
     return [$edge_trace_defaults, $node_trace_defaults];
   }
 
+  $network_id = array_key_exists('network_id', $network_items) ? $network_items['network_id'] : NULL;
+  $organism_id = array_key_exists('organism_id', $network_items) ? $network_items['organism_id'] : NULL;
   $edges = $network_items['edges'];
   $nodes = $network_items['nodes'];
 

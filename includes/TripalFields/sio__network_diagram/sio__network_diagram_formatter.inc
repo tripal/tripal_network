@@ -36,6 +36,7 @@ class sio__network_diagram_formatter extends ChadoFieldFormatter {
    */
   private function buildNeighborhoodViewer($record){
     $feature_id = $record->feature_id;
+    $organism_id = $record->organism_id->organism_id;
     $network_id = 0;
     $viewer_id = "tripal-network-neighborhood-viewer";
 
@@ -45,9 +46,6 @@ class sio__network_diagram_formatter extends ChadoFieldFormatter {
     drupal_add_js('https://cdn.plot.ly/plotly-2.3.0.min.js');
     drupal_add_js('https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js');
     drupal_add_js($js_path . '/tripal_network_neighborhood_viewer.js');
-
-    // Make Drupal call the JS function for initializing the Plotly viewer.
-    drupal_add_js("(function(\$) {\$.fn.getNetworkNeighborhood({'feature_id': $feature_id, 'network_id': $network_id, 'viewer_id': '$viewer_id'}); })(jQuery);", 'inline');
 
     // Get the form for specifying the network to view.
     $network_form = drupal_get_form('tripal_network_neighborhood_viewer_form', $feature_id, $network_id);
