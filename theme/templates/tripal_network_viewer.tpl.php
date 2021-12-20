@@ -13,7 +13,7 @@ drupal_add_css($css_path . '/tripal_network_viewer.css', 'external');
 
 $args = [];
 if ($organism_id) {
-  $args['organism_id'] = $oragnism_id;
+  $args['organism_id'] = $organism_id;
   if ($network_id) {
     $args['network_id'] = $network_id;
   }

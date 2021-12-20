@@ -176,7 +176,7 @@ function tripal_network_viewer_node_details_form($form, &$form_state, $node_id =
       }
 
       // Set the title for the panel.
-      $node_name = '<h3>Node: ' . $entity->title . '</h3>';
+      $node_name = $entity->title;
     }
 
     $details = '';
@@ -241,7 +241,8 @@ function tripal_network_viewer_node_details_form($form, &$form_state, $node_id =
       '#prefix' => '<div id="tripal-network-viewer-node-details-form">',
     ];
     $form['feature_name'] = [
-      '#type' => 'markup',
+      '#type' => 'item',
+      '#title' => 'Node Name',
       '#markup' => $node_name,
     ];
     $form['field_name'] = [
@@ -317,11 +318,13 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
   }
 
   $edge_name = 'Click an edge to view its details';
+  $net_name = '';
   $details = '';
   if ($edge_id) {
     $sql = "
-      SELECT FS.name as source, FT.name as target
+      SELECT N.name as net_name, FS.name as source, FT.name as target
       FROM {network_edge} NE
+        INNER JOIN {network} N on NE.network_id = N.network_id
         INNER JOIN {network_node} NNS on NNS.network_node_id = NE.source_id
         INNER JOIN {network_node} NNT on NNT.network_node_id = NE.target_id
         INNER JOIN {feature} FS on FS.feature_id = NNS.feature_id
@@ -331,7 +334,8 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
     $args[':network_edge_id'] = $edge_id;
     $results = chado_query($sql, $args);
     $edge = $results->fetchObject();
-    $edge_name = '<h3>Edge: ' . $edge->source . ' (-) ' . $edge->target . '</h3>';
+    $edge_name = $edge->source . ' (-) ' . $edge->target;
+    $net_name = $edge->net_name;
 
     $sql = "
       SELECT CVT.name, NEP.value, DBX.accession, DB.name as db_name
@@ -375,8 +379,14 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
     '#value' => $edge_id,
   ];
   $form['edge_name'] = [
-    '#type' => 'markup',
+    '#type' => 'item',
+    '#title' => 'Edge Name',
     '#markup' => $edge_name,
+  ];
+  $form['net_name'] = [
+    '#type' => 'item',
+    '#title' => 'Network Name',
+    '#markup' => $net_name,
   ];
   $form['details'] = [
     '#type' => 'markup',
@@ -579,6 +589,8 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
 
   $features = '';
   $vocab_terms = '';
+  $network_id = 0;
+  $organism_id = 0;
 
   if (array_key_exists('values', $form_state)) {
     $features = array_key_exists('features', $form_state['values']) ? $form_state['values']['features'] : $features;
@@ -592,35 +604,60 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
     $network_id = array_key_exists('network_id', $form_state['input']) ? $form_state['input']['network_id'] : $network_id;
     $organism_id = array_key_exists('organism_id', $form_state['input']) ? $form_state['input']['organism_id'] : $organism_id;
   }
-
-  // Get the list of modules
-  $sql = '';
-  $args = [];
-  $sql = "
-    SELECT
-      N.name, N.network_id,
-      O.organism_id, O.genus, O.species,
-      CVT.name as cv_name
-    FROM {network} N
-      INNER JOIN {organism} O on O.organism_id = N.organism_id
-      INNER JOIN {cvterm} CVT on CVT.cvterm_id = N.type_id
-    ORDER BY N.name
-  ";
-  $networks = [
-    0 => '-- Select --',
-  ];
+  
+  $organism = NULL;
+  if ($organism_id) {
+    $organism = new ChadoRecord('organism');
+    $organism->setValues(['organism_id' => $organism_id]);
+    $organism->find();
+  }
+  
+  $networks = [];
   $organisms = [
     0 => '-- Select --',
   ];
+  
+  // Get the list of organisms with networks.
+  $args = [];
+  $sql = "
+      SELECT O.organism_id, O.genus, O.species
+      FROM {network} N
+        INNER JOIN {organism} O on O.organism_id = N.organism_id
+      ORDER BY O.genus, O.species
+  ";
   $results = chado_query($sql, $args);
   while ($record = $results->fetchObject()) {
     // Show networks that have been published and that the user has acces to.
-    $entity_id = chado_get_record_entity_by_table('network', $record->network_id);
+    $entity_id = chado_get_record_entity_by_table('organism', $record->organism_id);
     if ($entity_id){
       $entity = tripal_load_entity('TripalEntity', [$entity_id]);
       if (tripal_entity_access('view', $entity[$entity_id], $user, 'TripalEntity')) {
         $organisms[$record->organism_id] = $record->genus . ' ' . $record->species;
-        if ($organism_id and $record->organism_id = $organism_id) {
+      }
+    }
+  }
+
+  // Get the list of all networks
+  if ($organism) {    
+    $sql = '';
+    $args = [];
+    $sql = "
+      SELECT
+        N.name, N.network_id,
+        CVT.name as cv_name
+      FROM {network} N
+        INNER JOIN {cvterm} CVT on CVT.cvterm_id = N.type_id
+      WHERE N.organism_id = :organism_id
+      ORDER BY N.name
+    ";
+    $args[':organism_id'] = $organism->getID();
+    $results = chado_query($sql, $args);
+    while ($record = $results->fetchObject()) {
+      // Show networks that have been published and that the user has acces to.
+      $entity_id = chado_get_record_entity_by_table('network', $record->network_id);
+      if ($entity_id){
+        $entity = tripal_load_entity('TripalEntity', [$entity_id]);
+        if (tripal_entity_access('view', $entity[$entity_id], $user, 'TripalEntity')) {
           $networks[$record->cv_name][$record->network_id] = $record->name;
         }
       }
@@ -643,54 +680,51 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
   ];
 
   $title = 'Available Networks';
-  if ($organism_id) {
-    $organism = new ChadoRecord('organism');
-    $organism->setValues(['organism_id' => $organism_id]);
-    $organism->find();
+  if ($organism) {
     $title = 'Available ' . $organism->getValue('genus') . ' ' . $organism->getValue('species') . ' Networks';
-
-    $form['network_id'] = [
-      '#type' => 'select',
-      '#title' => $title,
-      '#options' => $networks,
-      '#default_value' => $network_id,
-      '#description' => t('Limit the edges to only the selected networks.'),
-      '#multiple' => TRUE,
-      '#size' => 5,
-    ];
-
-    $form['features'] = [
-      '#type' => 'textarea',
-      '#rows' => 3,
-      '#title' => 'Feature Names',
-      '#default_value' => $features,
-      '#description' => t('Limit the edges to only those that connect
-         features (e.g., gene, transcript, or protein names). Separate each
-         name by a space or carriage return.'),
-      '#multiple' => TRUE,
-    ];
-    $form['vocab_terms'] = [
-      '#type' => 'textarea',
-      '#rows' => 3,
-      '#title' => 'Vocabulary Terms',
-      '#default_value' => $vocab_terms,
-      '#description' => t('Limit the edges to only those whose nodes are
-         annotated with sepcific controlled vocabulary terms (e.g. GO Terms,
-         IPR, KEGG ,etc).'),
-      '#multiple' => TRUE,
-    ];
-
-    $form['button'] = [
-      '#type' => 'submit',
-      '#value' => 'Update Network View',
-      '#ajax' => array(
-        'callback' => 'tripal_network_viewer_network_form_ajax_callback',
-        'wrapper'  => 'tripal-network-viewer-network-form',
-        'effect'   => 'fade',
-        'method'   => 'replace',
-      ),
-    ];
   }
+
+  $form['network_id'] = [
+    '#type' => 'select',
+    '#title' => $title,
+    '#options' => $networks,
+    '#default_value' => $network_id,
+    '#description' => t('Limit the edges to only the selected networks.'),
+    '#multiple' => TRUE,
+    '#size' => 5,
+  ];
+
+  $form['features'] = [
+    '#type' => 'textarea',
+    '#rows' => 3,
+    '#title' => 'Feature Names',
+    '#default_value' => $features,
+    '#description' => t('Limit the edges to only those that connect
+       features (e.g., gene, transcript, or protein names). Separate each
+       name by a space or new line.'),
+    '#multiple' => TRUE,
+  ];
+  $form['vocab_terms'] = [
+    '#type' => 'textarea',
+    '#rows' => 3,
+    '#title' => 'Vocabulary Terms',
+    '#default_value' => $vocab_terms,
+    '#description' => t('Limit the edges to only those whose nodes are
+       annotated with sepcific controlled vocabulary terms (e.g. GO Terms,
+       IPR, KEGG ,etc).'),
+    '#multiple' => TRUE,
+  ];
+
+  $form['button'] = [
+    '#type' => 'submit',
+    '#value' => 'Update Network View',
+    '#ajax' => array(
+      'callback' => 'tripal_network_viewer_network_form_ajax_callback',
+      'wrapper'  => 'tripal-network-viewer-network-form',
+      'effect'   => 'fade',
+      'method'   => 'replace',
+    ),
+  ];
 
   $form['done'] = [
     '#type' => 'markup',
@@ -1006,9 +1040,9 @@ function tripal_network_neighborhood_viewer_ajax_retrieve() {
   global $user;
 
   // Get the fitering variables requested by the user.
-  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : 0;
-  $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : 0;
-  $feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : 0;
+  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
+  $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
+  $feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : NULL;
 
   // Set the Plotly layout sepcifications.
   // Set the Plotly layout sepcifications.

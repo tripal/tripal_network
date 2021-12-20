@@ -284,13 +284,7 @@ class GraphMLImporter extends TripalImporter {
     ];
 
     // get the list of organisms
-    $sql = "SELECT * FROM {organism} ORDER BY genus, species";
-    $org_rset = chado_query($sql);
-    $organisms = [];
-    $organisms[''] = '';
-    while ($organism = $org_rset->fetchObject()) {
-      $organisms[$organism->organism_id] = "$organism->genus $organism->species ($organism->common_name)";
-    }
+    $organisms = chado_get_organism_select_options(FALSE);
     $form['organism_id'] = [
       '#title' => t('Organism'),
       '#type' => 'select',
@@ -300,13 +294,7 @@ class GraphMLImporter extends TripalImporter {
     ];
 
     // get the list of analyses
-    $sql = "SELECT * FROM {analysis} ORDER BY name";
-    $org_rset = chado_query($sql);
-    $analyses = [];
-    $analyses[''] = '';
-    while ($analysis = $org_rset->fetchObject()) {
-      $analyses[$analysis->analysis_id] = "$analysis->name ($analysis->program $analysis->programversion, $analysis->sourcename)";
-    }
+    $analyses = chado_get_analysis_select_options(FALSE);
     $form['analysis_id'] = [
       '#title' => t('Analysis'),
       '#type' => t('select'),
@@ -552,6 +540,7 @@ class GraphMLImporter extends TripalImporter {
           $title, '', FALSE,  '', $delta,
           'tripal_network_graphml_form_ajax_callback');
 
+      // Add a few more items to the fieldset.
       $form['term_match' . $delta]['data_class' . $delta] = [
         '#type' => 'select',
         '#options' => [
@@ -853,7 +842,7 @@ class GraphMLImporter extends TripalImporter {
       return drupal_realpath($file->uri);
     }
     if (array_key_exists('grapml_file_upload', $arguments) and
-        $arguments['grapml_file_upload']) {
+        $arguments['graphml_file_upload']) {
       $file = file_load($arguments['grapml_file_upload']);
       return  drupal_realpath($file->uri);
     }
