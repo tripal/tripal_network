@@ -57,7 +57,8 @@ class sio__network_diagram extends ChadoField {
       $sql = "
          SELECT NN.network_id
          FROM {network_node} NN
-           INNER JOIN {feature} F ON F.feature_id = NN.feature_id
+           INNER JOIN {network_feature} NF on NF.network_node_id = NN.network_node_id
+           INNER JOIN {feature} F ON F.feature_id = NF.feature_id
          WHERE F.feature_id = :feature_id
       ";
       $results = chado_query($sql, [':feature_id' => $record->feature_id]);

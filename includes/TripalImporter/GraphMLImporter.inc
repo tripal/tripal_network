@@ -139,6 +139,12 @@ class GraphMLImporter extends TripalImporter {
    * The network type id.
    */
   private $network_type_id = NULL;
+  
+  
+  /**
+   * The network type object.
+   */
+  private $network_type = NULL;
 
 
   /**
@@ -917,6 +923,10 @@ class GraphMLImporter extends TripalImporter {
     $this->organism_id = $arguments['organism_id'];
     $this->analysis_id = $arguments['analysis_id'];
     $this->network_type_id = $arguments['network_type'];
+    
+    $this->network_type = new ChadoRecord('cvterm');
+    $this->network_type->setValues(['cvterm_id' => $this->network_type_id]);
+    $this->network_type->find();
 
     $type_term = chado_get_cvterm(['cv_id' => ['name' => "sequence"], 'name' => $arguments['node_type']]);
     $this->node_type_id = $type_term->cvterm_id;
@@ -941,7 +951,7 @@ class GraphMLImporter extends TripalImporter {
       // Create the cache file for storing parsed GFF entries.
       $this->openCacheFile();
 
-      $this->logMessage("Step  1 of 11: Finding network size...                             ");
+      $this->logMessage("Step  1 of 12: Finding network size...                             ");
       $this->graphml = new XMLReader();
       $this->graphml->open($this->graphML_file);
       $this->parseNumElements();
@@ -952,39 +962,42 @@ class GraphMLImporter extends TripalImporter {
       $this->graphml = new XMLReader();
       $this->graphml->open($this->graphML_file);
 
-      $this->logMessage("Step  2 of 11: Caching GraphML file...                             ");
+      $this->logMessage("Step  2 of 12: Caching GraphML file...                             ");
       $this->parseGraphML();
       $this->graphml->close();
 
-      $this->logMessage("Step  3 of 11: Insert network ...                                  ");
+      $this->logMessage("Step  3 of 12: Insert network...                                   ");
       $this->insertNetwork();
 
-      $this->logMessage("Step  4 of 11: Find existing node features...                      ");
-      $this->findFeatures();
+      $this->logMessage("Step  4 of 12: Find existing node links...                         ");
+      $this->findNodeLinks();         
 
-      $this->logMessage("Step  5 of 11: Insert network nodes...                             ");
+      $this->logMessage("Step  5 of 12: Insert network nodes...                             ");
       $this->logMessage("               Adding !num_nodes nodes                             ",
           ['!num_nodes' => number_format(count($this->nodes))]);
       $this->insertNodes();
 
-      $this->logMessage("Step  6 of 11: Find network nodes IDs...                           ");
+      $this->logMessage("Step  6 of 12: Find network nodes IDs...                           ");
       $this->findNodes();
+      
+      $this->logMessage("Step  7 of 12: Linking nodes to features...                        ");
+      $this->insertNodeLinks();
 
-      $this->logMessage("Step  7 of 11: Insert node properties...                           ");
+      $this->logMessage("Step  8 of 12: Insert node properties...                           ");
       $this->insertNodeProps();
 
-      $this->logMessage("Step  8 of 11: Insert network edges...                             ");
+      $this->logMessage("Step  9 of 12: Insert network edges...                             ");
       $this->logMessage("               Adding !num_edges edges                             ",
           ['!num_edges' => number_format(count($this->edges))]);
       $this->insertEdges();
 
-      $this->logMessage("Step  9 of 11: Find edge IDs...                                    ");
+      $this->logMessage("Step 10 of 12: Find edge IDs...                                    ");
       $this->findEdges();
 
-      $this->logMessage("Step 10 of 11: Insert edge properties...                           ");
+      $this->logMessage("Step 11 of 12: Insert edge properties...                           ");
       $this->insertEdgeProps();
 
-      $this->logMessage("Step 11 of 11: Collecting stats...                                 ");
+      $this->logMessage("Step 12 of 12: Collecting stats...                                 ");
       $this->collectStats();
 
     }
@@ -1207,7 +1220,7 @@ class GraphMLImporter extends TripalImporter {
   /**
    * Check if the features exist in the database.
    */
-  private function findFeatures() {
+  private function findNodeLinks() {
     $batch_size = 1000;
     $num_nodes = count(array_keys($this->nodes));
     $num_batches = (int) ($num_nodes / $batch_size) + 1;
@@ -1219,22 +1232,29 @@ class GraphMLImporter extends TripalImporter {
     if ($this->match_type == 1) {
       $name_column = 'uniquename';
     }
+    
+    $node_table = 'feature';
+    $node_table_id = 'feature_id';
+    if ($this->network->getValue('name') == 'MCN') {
+      $node_table = 'compound';
+      $node_table_id = 'compound_id';
+    }
 
     $sql = "
-      SELECT uniquename, name, type_id, organism_id, feature_id
-      FROM {feature}
+      SELECT *
+      FROM {" . $node_table . "}
       WHERE $name_column in (:names)";
     $i = 0;
     $total = 0;
     $batch_num = 1;
     $names = [];
-    foreach ($this->nodes as $uniquename => $info) {
-      $feature_id = $info['feature_id'];
+    foreach ($this->nodes as $name => $info) {
+      $fc_id = $info[$node_table_id];
       $total++;
 
-      if (!$feature_id) {
+      if (!$fc_id) {
         $i++;
-        $names[] = $uniquename;
+        $names[] = $name;
       }
 
       // If we've reached the size of the batch then let's do the select.
@@ -1244,10 +1264,15 @@ class GraphMLImporter extends TripalImporter {
           $results = chado_query($sql, $args);
           while ($f = $results->fetchObject()) {
             if (array_key_exists($f->$name_column, $this->nodes)) {
-              $matched_findex = $this->nodes[$f->$name_column]['findex'];
-              $matched_node = $this->getCachedElement($matched_findex);
-              if ($matched_node['type_id'] == $f->type_id and $matched_node['organism_id'] == $f->organism_id) {
-                $this->nodes[$f->$name_column]['feature_id'] = $f->feature_id;
+              if ($node_table == 'feature') {
+                $matched_findex = $this->nodes[$f->$name_column]['findex'];
+                $matched_node = $this->getCachedElement($matched_findex);
+                if ($matched_node['type_id'] == $f->type_id and $matched_node['organism_id'] == $f->organism_id) {
+                  $this->nodes[$f->$name_column][$node_table_id] = $f->$node_table_id;               
+                }
+              }
+              else {
+                $this->nodes[$f->$name_column][$node_table_id] = $f->$node_table_id;
               }
             }
           }
@@ -1261,6 +1286,7 @@ class GraphMLImporter extends TripalImporter {
       }
     }
   }
+  
   /**
    * Check if the features exist in the database.
    */
@@ -1272,35 +1298,30 @@ class GraphMLImporter extends TripalImporter {
     $this->setItemsHandled(0);
     $this->setTotalItems($num_batches);
 
-    $name_column = 'name';
-    if ($this->match_type == 1) {
-      $name_column = 'uniquename';
-    }
-
     $sql = "
-      SELECT NN.network_node_id, F.name, F.uniquename
-      FROM {network_node} NN
-        INNER JOIN {feature} F on F.feature_id = NN.feature_id
-      WHERE NN.network_id = :network_id and F.feature_id IN (:ids)";
+        SELECT NN.network_node_id, NN.name
+        FROM {network_node} NN
+        WHERE NN.network_id = :network_id and name IN (:names)
+    ";
+    
     $i = 0;
     $total = 0;
     $batch_num = 1;
     $ids = [];
     $network_id = $this->network->getID();
-    foreach ($this->nodes as $info) {
-      $feature_id = $info['feature_id'];
+    foreach ($this->nodes as $name => $info) {
       $total++;
       $i++;
-      $ids[] = $feature_id;
+      $names[] = $name;
 
       // If we've reached the size of the batch then let's do the select.
       if ($i == $batch_size or $total == $num_nodes) {
-        if (count($ids) > 0) {
-          $args = [':network_id' => $network_id, ':ids' => $ids];
+        if (count($names) > 0) {
+          $args = [':network_id' => $network_id, ':names' => $names];
           $results = chado_query($sql, $args);
           while ($n = $results->fetchObject()) {
-            if (array_key_exists($n->$name_column, $this->nodes)) {
-              $this->nodes[$n->$name_column]['network_node_id'] = $n->network_node_id;
+            if (array_key_exists($n->name, $this->nodes)) {
+              $this->nodes[$n->name]['network_node_id'] = $n->network_node_id;
             }
           }
         }
@@ -1330,6 +1351,13 @@ class GraphMLImporter extends TripalImporter {
       $source_name_column = 'source_uniquename';
       $target_name_column = 'target_uniquename';
     }
+    
+    $node_table = 'feature';
+    $node_table_id = 'feature_id';
+    if ($this->network->getValue('name') == 'MCN') {
+      $node_table = 'compound';
+      $node_table_id = 'compound_id';
+    }
 
     $init_sql = "
       SELECT
@@ -1339,8 +1367,10 @@ class GraphMLImporter extends TripalImporter {
       FROM {network_edge} NE
         INNER JOIN {network_node} NNS ON NNS.network_node_id = NE.source_id
         INNER JOIN {network_node} NNT ON NNT.network_node_id = NE.target_id
-        INNER JOIN {feature} FS on NNS.feature_id = FS.feature_id
-        INNER JOIN {feature} FT on NNT.feature_id = FT.feature_id
+        INNER JOIN {network_$node_table} NFS on NNS.network_node_id = NFS.network_node_id
+        INNER JOIN {network_$node_table} NFT on NNT.network_node_id = NFT.network_node_id
+        INNER JOIN {". $node_table . "} FS on NFS.$node_table_id = FS.$node_table_id 
+        INNER JOIN {". $node_table . "} FT on NFT.$node_table_id = FT.$node_table_id
       WHERE NE.network_id = :network_id
       ORDER BY network_edge_id\n";
     $network_id = $this->network->getID();
@@ -1701,6 +1731,10 @@ class GraphMLImporter extends TripalImporter {
     chado_query($sql, $args);
     $sql = "DELETE from {network_attr} WHERE network_id = :network_id";
     chado_query($sql, $args);
+    $sql = "DELETE from {network_feature} WHERE network_node_id IN (SELECT network_node_id FROM network_node WHERE network_id = :network_id)";
+    chado_query($sql, $args);
+    $sql = "DELETE from {network_compound} WHERE network_node_id IN (SELECT network_node_id FROM network_node WHERE network_id = :network_id)";
+    chado_query($sql, $args);
     $sql = "DELETE from {network_node} WHERE network_id = :network_id";
     chado_query($sql, $args);
     $sql = "DELETE from {network_analysis} WHERE network_id = :network_id";
@@ -1824,26 +1858,23 @@ class GraphMLImporter extends TripalImporter {
     $num_batches = (int) ($num_nodes / $batch_size) + 1;
 
     $this->setItemsHandled(0);
-    $this->setTotalItems($num_batches);
+    $this->setTotalItems($num_batches);    
 
-    $init_sql = "INSERT INTO {network_node} (network_id, feature_id) VALUES\n";
+    $init_sql = "INSERT INTO {network_node} (network_id, name) VALUES\n";
     $i = 0;
     $total = 0;
     $batch_num = 1;
     $sql = '';
     $args = [];
     $network_id = $this->network->getID();
-    foreach ($this->nodes as $uniquename => $info) {
-      $findex = $info['findex'];
-      $feature_id = $info['feature_id'];
-      $node = $this->getCachedElement($findex);
+    foreach ($this->nodes as $name => $info) {
 
       $total++;
       $i++;
 
-      $sql .= "(:network_id_$i, :feature_id_$i),\n";
+      $sql .= "(:network_id_$i, :name_$i),\n";
       $args[":network_id_$i"] = $network_id;
-      $args[":feature_id_$i"] = $feature_id;
+      $args[":name_$i"] = $name;
 
       // If we've reached the size of the batch then let's do the insert.
       if ($i == $batch_size or $total == $num_nodes) {
@@ -1855,6 +1886,56 @@ class GraphMLImporter extends TripalImporter {
         $this->setItemsHandled($batch_num);
         $batch_num++;
 
+        // Now reset all of the varables for the next batch.
+        $sql = '';
+        $i = 0;
+        $args = [];
+      }
+    }
+  }
+  
+  /**
+   * Inserts the node records.
+   */
+  private function insertNodeLinks() {
+    $batch_size = 100;
+    $num_nodes = count(array_keys($this->nodes));
+    $num_batches = (int) ($num_nodes / $batch_size) + 1;
+    
+    $this->setItemsHandled(0);
+    $this->setTotalItems($num_batches);
+    
+    $node_table = 'feature';
+    $node_table_id = 'feature_id';
+    if ($this->network->getValue('name') == 'MCN') {
+      $node_table = 'compound';
+      $node_table_id = 'compound_id';
+    }
+    
+    $init_sql = "INSERT INTO {network_$node_table} (network_node_id, $node_table_id) VALUES\n";
+    $i = 0;
+    $total = 0;
+    $batch_num = 1;
+    $sql = '';
+    $args = [];
+    foreach ($this->nodes as $info) {
+      $total++;
+      $i++;
+      
+      $sql .= "(:network_node_id_$i, :${$node_table_id}_$i),\n";
+      $args[":network_node_id_$i"] = $info['network_node_id'];
+      $args[":${$node_table_id}_$i"] = $info[$node_table_id];
+      
+      // If we've reached the size of the batch then let's do the insert.
+      if ($i == $batch_size or $total == $num_nodes) {
+        if (count($args) > 0) {
+          $sql = rtrim($sql, ",\n");
+          $sql = $init_sql . $sql;
+          chado_query($sql, $args);
+        }
+        $this->setItemsHandled($batch_num);
+        $batch_num++;
+        
         // Now reset all of the varables for the next batch.
         $sql = '';
         $i = 0;
@@ -1942,8 +2023,8 @@ class GraphMLImporter extends TripalImporter {
         if (array_key_exists($key, $this->terms) and preg_match('/:/', $key)) {
 
 
-          // Donj't save the name as a property because the name is
-          // wikth the feature recrod.
+          // Don't save the name as a property because the name is
+          // with the feature record.
           if ($key == 'schema:name') {
             continue;
           }

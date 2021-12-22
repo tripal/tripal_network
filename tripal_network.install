@@ -7,7 +7,27 @@ function tripal_network_install() {
 
   // Add the new Chado tables.
   $schema = [];
+  
+  // Tables for storing compounds
+  tripal_network_add_compound_table($schema);
+  tripal_network_add_compoundprop_table($schema);
+  tripal_network_add_compound_dbxref_table($schema);
+  tripal_network_add_compound_synonymn_table($schema);
+  
+  // Tables for storing reactions
+  tripal_network_add_reaction_table($schema);
+  tripal_network_add_reactionprop_table($schema);
+  tripal_network_add_reaction_substrate_table($schema);
+  tripal_network_add_reaction_product_table($schema);
+  
+  // Tables for storing pathways
+  tripal_network_add_pathway_table($schema);
+  tripal_network_add_pathwayprop_table($schema);
+  tripal_network_add_pathway_dbxref_table($schema);
+  tripal_network_add_pathway_reaction_table($schema);
+  tripal_network_add_pathway_feature_table($schema);
 
+  // Tables for storing the network.
   tripal_network_add_network_table($schema);
   tripal_network_add_networkprop_table($schema);
   tripal_network_add_network_attr_table($schema);
@@ -15,17 +35,24 @@ function tripal_network_install() {
   tripal_network_add_network_cvterm_table($schema);
   tripal_network_add_network_file_table($schema);
 
+  // Tables for storing the network nodes.
   tripal_network_add_network_node_table($schema);
   tripal_network_add_network_nodeprop_table($schema);
+  tripal_network_add_network_feature_table($schema);
+  tripal_network_add_network_compound_table($schema);
 
+  // Tables for storing network edges.
   tripal_network_add_network_edge_table($schema);
   tripal_network_add_network_edgeprop_table($schema);
-
+  
+  // Linker tables for the network.
   tripal_network_add_network_analysis_table($schema);
   tripal_network_add_network_analysisprop_table($schema);
   tripal_network_add_network_pub_table($schema);
 
+  // Layout information for the networks.
   tripal_network_add_network_layout_table($schema);
+  
 
   foreach ($schema as $table_name => $table_schema){
     chado_create_custom_table($table_name, $table_schema, TRUE, NULL, FALSE);
@@ -979,6 +1006,120 @@ function tripal_network_add_network_layout_table(&$schema) {
     ],
   ];
 }
+
+function tripal_network_add_network_feature_table(&$schema) {
+  $schema['network_feature'] = [
+    'table' => 'network_feature',
+    'fields' => [
+      'network_feature_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ],
+      'network_node_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE
+      ],
+      'feature_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => FALSE
+      ],
+    ],
+    'primary key' => ['network_node_id'],
+    'indexes' => [
+      'network_feature_idx1' => [
+        0 => 'network_node_id',
+      ],
+      'network_feature_idx2' => [
+        0 => 'feature_id',
+      ],
+      'network_feature_idx3' => [
+        0 => 'network_node_id',
+        1 => 'feature_id',
+      ],
+    ],
+    'unique keys' => [
+      'network_feature_c1' => [
+        0 => 'network_node_id',
+        1 => 'feature_id',
+      ],
+    ],
+    'foreign keys' => [
+      'network_node' => [
+        'table' => 'network_node',
+        'columns' => [
+          'network_node_id' => 'network_node_id',
+        ],
+      ],
+      'feature' => [
+        'table' => 'feature',
+        'columns' => [
+          'feature_id' => 'feature_id',
+        ],
+      ],
+    ],
+  ];
+}
+
+function tripal_network_add_network_compound_table(&$schema) {
+  $schema['network_compound'] = [
+    'table' => 'network_compound',
+    'fields' => [
+      'network_compound_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ],
+      'network_node_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE
+      ],
+      'compound_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => FALSE
+      ],
+    ],
+    'primary key' => ['network_compound_id'],
+    'indexes' => [
+      'network_compound_idx1' => [
+        0 => 'network_node_id',
+      ],
+      'network_compound_idx2' => [
+        0 => 'compound_id',
+      ],
+      'network_compound_idx3' => [
+        0 => 'network_node_id',
+        1 => 'compound_id',
+      ],
+    ],
+    'unique keys' => [
+      'network_compound_c1' => [
+        0 => 'network_node_id',
+        1 => 'compound_id',
+      ],
+    ],
+    'foreign keys' => [
+      'network_node' => [
+        'table' => 'network_node',
+        'columns' => [
+          'network_node_id' => 'network_node_id',
+        ],
+      ],
+      'compound' => [
+        'table' => 'compound',
+        'columns' => [
+          'compound_id' => 'compound_id',
+        ],
+      ],
+    ],
+  ];
+}
 /**
  *
  */
@@ -998,29 +1139,24 @@ function tripal_network_add_network_node_table(&$schema) {
         'type' => 'int',
         'not null' => TRUE
       ],
-      'feature_id' => [
-        'size' => 'big',
-        'type' => 'int',
-        'not null' => TRUE
-      ],
+      'name' => [
+        'type' => 'text'
+      ]
     ],
     'primary key' => ['network_node_id'],
     'indexes' => [
       'network_node_idx1' => [
         0 => 'network_id',
       ],
-      'network_node_idx2' => [
-        0 => 'feature_id',
-      ],
       'network_node_idx3' => [
         0 => 'network_id',
-        1 => 'feature_id',
+        1 => 'name',
       ],
     ],
     'unique keys' => [
       'network_node_c1' => [
         0 => 'network_id',
-        1 => 'feature_id',
+        1 => 'name',
       ],
     ],
     'foreign keys' => [
@@ -1029,13 +1165,7 @@ function tripal_network_add_network_node_table(&$schema) {
         'columns' => [
           'network_id' => 'network_id',
         ],
-      ],
-      'feature' => [
-        'table' => 'feature',
-        'columns' => [
-          'feature_id' => 'feature_id',
-        ],
-      ],
+      ],      
     ],
     'referring_tables' => [
       0 => 'network_nodeprop',
@@ -1660,3 +1790,886 @@ function tripal_network_add_network_analysisprop_table(&$schema) {
 }
 
 
+
+/**
+ *
+ */
+function tripal_network_add_compound_table(&$schema) {
+  
+  $schema['compound'] = [
+    'table' => 'compound',
+    'fields' => [
+      'compound_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE
+      ],
+      'name' => [
+        'type' => 'text',
+      ],
+      'uniquename' => [
+        'type' => 'text',
+      ],
+    ],
+    'primary key' => ['compound_id'],
+    'indexes' => [
+      'compound_name_ind1' => [
+        0 => 'name',
+      ],
+    ],
+    'unique keys' => [
+      'pathway_c1' => [
+        1 => 'name',
+      ],
+    ],
+    'referring_tables' => [
+      'compoundprop',
+      'compound_dbxref',
+      'compound_synonym'
+    ],
+  ];
+}
+
+
+/**
+ *
+ */
+function tripal_network_add_compoundprop_table(&$schema) {
+  
+  $schema['compoundprop'] = [
+    'table' => 'compoundprop',
+    'fields' => [
+      'compoundprop_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'compound_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'type_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'value' => [
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+      'value_num' => [
+        'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'value_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'rank' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => [
+      0 => 'compoundprop_id',
+    ],
+    'unique keys' => [
+      'compoundprop_c1' => [
+        0 => 'compound_id',
+        1 => 'type_id',
+        2 => 'rank',
+      ],
+    ],
+    'indexes' => [
+      'compoundprop_idx1' => [
+        0 => 'compound_id',
+      ],
+      'compoundprop_idx2' => [
+        0 => 'type_id',
+      ],
+      'compoundprop_idx3' => [
+        0 => 'value_id',
+      ],
+    ],
+    'foreign keys' => [
+      'cvterm' => [
+        'table' => 'cvterm',
+        'columns' => [
+          'type_id' => 'cvterm_id',
+          'value_id' => 'cvterm_id',
+        ],
+      ],
+      'compound' => [
+        'table' => 'compound',
+        'columns' => [
+          'compound_id' => 'compound_id',
+        ],
+      ],
+    ],
+  ];
+}
+
+function tripal_network_add_compound_dbxref_table(&$schema) {
+  
+  $schema['compound_dbxref'] = [
+    'table' => 'compound_dbxref',
+    'fields' => [
+      'compound_dbxref_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'compound_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'dbxref_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'is_current' => [
+        'size' => 'tiny',
+        'type' => 'boolean',
+        'pgsql_type' => 'boolean',
+        'not null' => TRUE,
+        'default' => 'false',
+      ],
+    ],
+    'unique keys' => [
+      'compound_dbxref_c1' => [
+        0 => 'compound_id',
+        1 => 'dbxref_id',
+      ],
+    ],
+    'indexes' => [
+      'compound_dbxref_idx1' => [
+        0 => 'compound_id',
+      ],
+      'compound_dbxref_idx2' => [
+        0 => 'dbxref_id',
+      ],
+    ],
+    'primary key' => [
+      0 => 'compound_dbxref_id',
+    ],
+    'foreign keys' => [
+      'compound' => [
+        'table' => 'compound',
+        'columns' => [
+          'compound_id' => 'compound_id',
+        ],
+      ],
+      'dbxref' => [
+        'table' => 'dbxref',
+        'columns' => [
+          'dbxref_id' => 'dbxref_id',
+        ],
+      ],
+    ],
+    'referring_tables' => [
+    ],
+  ];
+}
+
+function tripal_network_add_compound_synonymn_table(&$schema) {
+  
+  $schema['compound_synonym'] = [
+    'description' => '',
+    'table' => 'compound_synonym',
+    'fields' => [
+      'compound_synonym_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'synonym_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'compound_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'pub_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'is_current' => [
+        'size' => 'tiny',
+        'type' => 'boolean',
+        'pgsql_type' => 'boolean',
+        'not null' => TRUE,
+        'default' => 'false',
+      ],
+      'is_internal' => [
+        'size' => 'tiny',
+        'type' => 'boolean',
+        'pgsql_type' => 'boolean',
+        'not null' => TRUE,
+        'default' => 'false',
+      ],
+    ],
+    'unique keys' => [
+      'feature_synonym_c1' => [
+        0 => 'synonym_id',
+        1 => 'compound_id',
+        2 => 'pub_id',
+      ],
+    ],
+    'indexes' => [
+      'compound_synonym_idx1' => [
+        0 => 'synonym_id',
+      ],
+      'compound_synonym_idx2' => [
+        0 => 'compound_id',
+      ],
+      'compound_synonym_idx3' => [
+        0 => 'pub_id',
+      ],
+    ],
+    'primary key' => [
+      0 => 'compound_synonym_id',
+    ],
+    'foreign keys' => [
+      'synonym' => [
+        'table' => 'synonym',
+        'columns' => [
+          'synonym_id' => 'synonym_id',
+        ],
+      ],
+      'compound' => [
+        'table' => 'compound',
+        'columns' => [
+          'compound_id' => 'compound_id',
+        ],
+      ],
+      'pub' => [
+        'table' => 'pub',
+        'columns' => [
+          'pub_id' => 'pub_id',
+        ],
+      ],
+    ],
+    'referring_tables' => [
+    ],
+  ];
+}
+
+/**
+ *
+ */
+function tripal_network_add_reaction_table(&$schema) {
+  
+  $schema['reaction'] = [
+    'table' => 'reaction',
+    'fields' => [
+      'reaction_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE
+      ],
+      'name' => [
+        'type' => 'text',
+      ],
+      'definition' => [
+        'type' => 'text',
+      ],
+      'enzyme_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE
+      ],
+    ],
+    'primary key' => ['reaction_id'],
+    'indexes' => [
+      'reaction_idx1' => [
+        0 => 'name',
+      ],
+    ],
+    'unique keys' => [
+      'reaction_c1' => [
+        0 => 'name',
+      ],
+    ],
+    'foreign keys' => [
+      'feature' => [
+        'table' => 'feature',
+        'columns' => [
+          'enzyme_id' => 'feature_id',
+        ],
+      ],
+    ],
+    'referring_tables' => [
+      'reactionprop',
+      'reaction_substrate',
+      'reaction_product'
+    ],
+  ];
+}
+
+/**
+ *
+ */
+function tripal_network_add_reactionprop_table(&$schema) {
+  
+  $schema['reactionprop'] = [
+    'table' => 'reactionprop',
+    'fields' => [
+      'reactionprop_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'reaction_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'type_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'value' => [
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+      'value_num' => [
+        'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'value_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'rank' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => [
+      0 => 'reactionprop_id',
+    ],
+    'unique keys' => [
+      'reactionprop_c1' => [
+        0 => 'reaction_id',
+        1 => 'type_id',
+        2 => 'rank',
+      ],
+    ],
+    'indexes' => [
+      'reactionprop_idx1' => [
+        0 => 'reaction_id',
+      ],
+      'reactionprop_idx2' => [
+        0 => 'type_id',
+      ],
+      'reactionprop_idx3' => [
+        0 => 'value_id',
+      ],
+    ],
+    'foreign keys' => [
+      'cvterm' => [
+        'table' => 'cvterm',
+        'columns' => [
+          'type_id' => 'cvterm_id',
+          'value_id' => 'cvterm_id',
+        ],
+      ],
+      'reaction' => [
+        'table' => 'reaction',
+        'columns' => [
+          'reaction_id' => 'reaction_id',
+        ],
+      ],
+    ],
+  ];
+}
+
+/**
+ *
+ */
+function tripal_network_add_reaction_substrate_table(&$schema) {
+  
+  $schema['reaction_substrate'] = [
+    'table' => 'reaction_substrate',
+    'fields' => [
+      'reaction_substrate_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE
+      ],
+      'reaction_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'compound_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'quantity' => [
+        'size' => 'normal',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ],
+      'rank' => [
+        'size' => 'normal',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['reaction_substrate_id'],
+    'indexes' => [
+      'reaction_substrate_idx1' => [
+        0 => 'reaction_id',
+      ],
+      'reaction_substrate_idx2' => [
+        0 => 'compound_id',
+      ],
+    ],
+    'unique keys' => [
+      'pathway_c1' => [
+        0 => 'reaction_id',
+        1 => 'compound_id',
+      ],
+    ],
+    'foreign keys' => [
+      'reaction' => [
+        'table' => 'reaction',
+        'columns' => [
+          'reaction_id' => 'reaction_id',
+        ],
+      ],
+      'compound' => [
+        'table' => 'compound',
+        'columns' => [
+          'compound_id' => 'compound_id',
+        ],
+      ],
+    ],
+    'referring_tables' => [
+    ],
+  ];
+}
+/**
+ *
+ */
+function tripal_network_add_reaction_product_table(&$schema) {
+  
+  $schema['reaction_product'] = [
+    'table' => 'reaction_product',
+    'fields' => [
+      'reaction_product_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE
+      ],
+      'reaction_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'compound_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'quantity' => [
+        'size' => 'normal',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ],
+      'rank' => [
+        'size' => 'normal',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['reaction_product_id'],
+    'indexes' => [
+      'reaction_product_idx1' => [
+        0 => 'reaction_id',
+      ],
+      'reaction_product_idx2' => [
+        0 => 'compound_id',
+      ],
+    ],
+    'unique keys' => [
+      'pathway_c1' => [
+        0 => 'reaction_id',
+        1 => 'compound_id',
+      ],
+    ],
+    'foreign keys' => [
+      'reaction' => [
+        'table' => 'reaction',
+        'columns' => [
+          'reaction_id' => 'reaction_id',
+        ],
+      ],
+      'compound' => [
+        'table' => 'compound',
+        'columns' => [
+          'compound_id' => 'compound_id',
+        ],
+      ],
+    ],
+    'referring_tables' => [
+    ],
+  ];
+}
+/**
+ *
+ */
+function tripal_network_add_pathway_table(&$schema) {
+  
+  $schema['pathway'] = [
+    'table' => 'pathway',
+    'fields' => [
+      'pathway_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE
+      ],
+      'uniquename' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE
+      ],
+      'name' => [
+        'type' => 'text',
+      ],
+      'description' => [
+        'type' => 'text',
+      ],
+      'organism_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => FALSE
+      ],
+      'dbxref_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'description' => 'An optional primary public stable identifier for this feature. Secondary identifiers and external dbxrefs go in the table feature_dbxref.'
+      ],
+    ],
+    'primary key' => ['pathway_id'],
+    'indexes' => [
+      'pathway_idx1' => [
+        0 => 'organism_id',
+      ],
+      'pathway_idx2' => [
+        0 => 'uniquename',
+      ],
+      'pathway_idx3' => [
+        0 => 'name',
+      ],
+    ],
+    'unique keys' => [
+      'pathway_c1' => [
+        0 => 'organism_id',
+        1 => 'uniquename',
+      ],
+    ],
+    'foreign keys' => [
+      'organism' => [
+        'table' => 'organism',
+        'columns' => [
+          'organism_id' => 'organism_id',
+        ],
+      ],
+    ],
+    'referring_tables' => [
+      'pathwayprop',
+      'pathway_dbxref',
+      'pathway_feature',
+      'pathway_compound',
+      'pathway_reaction'
+    ],
+  ];
+}
+
+/**
+ *
+ */
+function tripal_network_add_pathwayprop_table(&$schema) {
+  
+  $schema['pathwayprop'] = [
+    'table' => 'pathwayprop',
+    'fields' => [
+      'pathwayprop_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'pathway_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'type_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'value' => [
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+      'value_num' => [
+        'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'value_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'rank' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => [
+      0 => 'pathwayprop_id',
+    ],
+    'unique keys' => [
+      'pathwayprop_c1' => [
+        0 => 'pathway_id',
+        1 => 'type_id',
+        2 => 'rank',
+      ],
+    ],
+    'indexes' => [
+      'pathwayprop_idx1' => [
+        0 => 'pathway_id',
+      ],
+      'pathwayprop_idx2' => [
+        0 => 'type_id',
+      ],
+      'pathwayprop_idx3' => [
+        0 => 'value_id',
+      ],
+    ],
+    'foreign keys' => [
+      'cvterm' => [
+        'table' => 'cvterm',
+        'columns' => [
+          'type_id' => 'cvterm_id',
+          'value_id' => 'cvterm_id',
+        ],
+      ],
+      'pathway' => [
+        'table' => 'pathway',
+        'columns' => [
+          'pathway_id' => 'pathway_id',
+        ],
+      ],
+    ],
+  ];
+}
+
+/**
+ *
+ */
+function tripal_network_add_pathway_dbxref_table(&$schema) {
+  
+  $schema['pathway_dbxref'] = [
+    'table' => 'pathway_dbxref',
+    'fields' => [
+      'pathway_dbxref_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'pathway_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'dbxref_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'is_current' => [
+        'size' => 'tiny',
+        'type' => 'boolean',
+        'pgsql_type' => 'boolean',
+        'not null' => TRUE,
+        'default' => 'false',
+      ],
+    ],
+    'unique keys' => [
+      'pathway_dbxref_c1' => [
+        0 => 'pathway_id',
+        1 => 'dbxref_id',
+      ],
+    ],
+    'indexes' => [
+      'pathway_dbxref_idx1' => [
+        0 => 'pathway_id',
+      ],
+      'pathway_dbxref_idx2' => [
+        0 => 'dbxref_id',
+      ],
+    ],
+    'primary key' => [
+      0 => 'pathway_dbxref_id',
+    ],
+    'foreign keys' => [
+      'pathway' => [
+        'table' => 'pathway',
+        'columns' => [
+          'pathway_id' => 'pathway_id',
+        ],
+      ],
+      'dbxref' => [
+        'table' => 'dbxref',
+        'columns' => [
+          'dbxref_id' => 'dbxref_id',
+        ],
+      ],
+    ],
+    'referring_tables' => [
+    ],
+  ];
+}
+
+/**
+ *
+ */
+function tripal_network_add_pathway_feature_table(&$schema) {
+  
+  $schema['pathway_feature'] = [
+    'description' => '',
+    'table' => 'pathway_feature',
+    'fields' => [
+      'pathway_feature_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'pathway_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'feature_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'For linking genes, proteins ane enzymes to a pathway'
+      ],
+    ],
+    'unique keys' => [
+      'pathway_feature_c1' => [
+        0 => 'pathway_id',
+        1 => 'feature_id',
+      ],
+    ],
+    'indexes' => [
+      'pathway_feature_idx1' => [
+        0 => 'pathway_id',
+      ],
+      'pathway_feature_idx2' => [
+        0 => 'feature_id',
+      ],
+    ],
+    'primary key' => [
+      0 => 'pathway_feature_id',
+    ],
+    'foreign keys' => [
+      'pathway' => [
+        'table' => 'pathway',
+        'columns' => [
+          'pathway_id' => 'pathway_id',
+        ],
+      ],
+      'feature' => [
+        'table' => 'feature',
+        'columns' => [
+          'feature_id' => 'feature_id',
+        ],
+      ],
+    ],
+    'referring_tables' => [
+      0 => 'pathway_featureprop',
+    ],
+  ];
+}
+
+function tripal_network_add_pathway_reaction_table(&$schema) {
+  
+  $schema['pathway_feature'] = [
+    'description' => '',
+    'table' => 'pathway_reaction',
+    'fields' => [
+      'pathway_reaction_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'pathway_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'reaction_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+    ],
+    'unique keys' => [
+      'pathway_feature_c1' => [
+        0 => 'pathway_id',
+        1 => 'reaction_id',
+      ],
+    ],
+    'indexes' => [
+      'pathway_feature_idx1' => [
+        0 => 'pathway_id',
+      ],
+      'pathway_feature_idx2' => [
+        0 => 'reaction_id',
+      ],
+    ],
+    'primary key' => [
+      0 => 'pathway_reaction_id',
+    ],
+    'foreign keys' => [
+      'pathway' => [
+        'table' => 'pathway',
+        'columns' => [
+          'pathway_id' => 'pathway_id',
+        ],
+      ],
+      'reaction' => [
+        'table' => 'reaction',
+        'columns' => [
+          'reaction_id' => 'reaction_id',
+        ],
+      ],
+    ],
+    'referring_tables' => [
+    ],
+  ];
+}

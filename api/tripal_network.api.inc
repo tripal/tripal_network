@@ -34,8 +34,10 @@ function tripal_network_get_network_elements($selection = []) {
       INNER JOIN {network} N on N.network_id = NE.network_id
       INNER JOIN {network_node} NNS on NNS.network_node_id = NE.source_id
       INNER JOIN {network_node} NNT on NNT.network_node_id = NE.target_id
-      INNER JOIN {feature} FS on FS.feature_id = NNS.feature_id
-      INNER JOIN {feature} FT on FT.feature_id = NNT.feature_id
+      INNER JOIN {network_feature} NFS on NFS.network_node_id = NNS.network_node_id
+      INNER JOIN {network_feature} NFT on NFT.network_node_id = NNT.network_node_id
+      INNER JOIN {feature} FS on FS.feature_id = NFS.feature_id
+      INNER JOIN {feature} FT on FT.feature_id = NFT.feature_id
   ";
   $where = " WHERE N.organism_id = :organism_id ";
 
@@ -458,8 +460,9 @@ function tripal_network_get_nodeprops($ids, $id_type = 'feature_id', $term, $org
     SELECT NN.network_node_id, F.feature_id, NNP.value
     FROM {network_nodeprop} NNP
       INNER JOIN {network_node} NN on NN.network_node_id = NNP.network_node_id
+      INNER JOIN {network_feature} NF on NF.network_node_id = NN.network_node_id
       INNER JOIN {network} N on N.network_id = NN.network_id
-      INNER JOIN {feature} F on F.feature_id = NN.feature_id
+      INNER JOIN {feature} F on F.feature_id = NF.feature_id
       INNER JOIN {cvterm} CVT on CVT.cvterm_id = NNP.type_id
       INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
       INNER JOIN {db} DB on DB.db_id = DBX.db_id

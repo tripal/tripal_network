@@ -327,8 +327,10 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
         INNER JOIN {network} N on NE.network_id = N.network_id
         INNER JOIN {network_node} NNS on NNS.network_node_id = NE.source_id
         INNER JOIN {network_node} NNT on NNT.network_node_id = NE.target_id
-        INNER JOIN {feature} FS on FS.feature_id = NNS.feature_id
-        INNER JOIN {feature} FT on FT.feature_id = NNT.feature_id
+        INNER JOIN {network_feature} NFS on NNS.network_node_id = NFS.network_node_id
+        INNER JOIN {network_feature} NFT on NNT.network_node_id = NFT.network_node_id
+        INNER JOIN {feature} FS on FS.feature_id = NFS.feature_id
+        INNER JOIN {feature} FT on FT.feature_id = NFT.feature_id
      WHERE NE.network_edge_id = :network_edge_id
     ";
     $args[':network_edge_id'] = $edge_id;
@@ -539,7 +541,7 @@ function tripal_network_viewer_ajax_retrieve() {
     $sql = "
       SELECT DISTINCT F.feature_id
       FROM {feature} F
-        INNER JOIN {network_node} NN on NN.feature_id = F.feature_id
+        INNER JOIN {network_feature} NN on NN.feature_id = F.feature_id
         LEFT JOIN {feature_synonym} FS on FS.feature_id = F.feature_id
         LEFT JOIN {synonym} S on S.synonym_id = FS.synonym_id
       WHERE
@@ -642,9 +644,7 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
     $sql = '';
     $args = [];
     $sql = "
-      SELECT
-        N.name, N.network_id,
-        CVT.name as cv_name
+      SELECT N.name, N.network_id, CVT.name as cv_name
       FROM {network} N
         INNER JOIN {cvterm} CVT on CVT.cvterm_id = N.type_id
       WHERE N.organism_id = :organism_id
@@ -1290,7 +1290,8 @@ function tripal_network_neighborhood_viewer_form($form, &$form_state,
   $sql = "
     SELECT * FROM {network} N
       INNER JOIN {network_node} NN on NN.network_id = N.network_id
-    WHERE NN.feature_id = :feature_id
+      INNER JOIN {network_feature} NF on NF.network_node_id = NN.network_node_id
+    WHERE NF.feature_id = :feature_id
     ORDER BY N.name
   ";
   $networks = [
