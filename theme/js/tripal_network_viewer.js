@@ -104,6 +104,7 @@
      var node_id = args['node_id'];
      var data = state;
      data['node_id'] = node_id;
+     $('#tripal-network-viewer-loading').show()
      $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
@@ -115,10 +116,12 @@
         $.fn.showBox('tripal-network-viewer-node-box');
         $('#tripal-network-viewer-node-box form').replaceWith(response);
         Drupal.attachBehaviors();
+		$('#tripal-network-viewer-loading').hide();
 
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
+		$('#tripal-network-viewer-loading').hide();
       }
     }) 
   }
@@ -127,6 +130,8 @@
    *
    */
   $.fn.updateEdgeDetails = function(args) {
+	 $('#tripal-network-viewer-loading').show()
+	
      var edge_id = args['edge_id'];
      $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
@@ -139,9 +144,11 @@
          $.fn.showBox('tripal-network-viewer-edge-box');
          $('#tripal-network-viewer-edge-box form').replaceWith(response);
          Drupal.attachBehaviors();
+         $('#tripal-network-viewer-loading').hide();
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
+		$('#tripal-network-viewer-loading').hide();
       }
     }) 
   }
@@ -151,7 +158,7 @@
    *
    */
   $.fn.updateLayersForm = function() {
-    
+    $('#tripal-network-viewer-loading').show()
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
@@ -162,9 +169,11 @@
       success: function(response) {
         $('#tripal-network-viewer-layers-box form').replaceWith(response);
         Drupal.attachBehaviors();
+		$('#tripal-network-viewer-loading').hide();
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
+		$('#tripal-network-viewer-loading').hide();
       }
     }) 
    };
@@ -173,7 +182,7 @@
    *
    */
   $.fn.updateFilterForm = function() {
-    
+    $('#tripal-network-viewer-loading').show()
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
@@ -184,9 +193,11 @@
       success: function(response) {
         $('#tripal-network-viewer-filters-box form').replaceWith(response);
         Drupal.attachBehaviors();
+		$('#tripal-network-viewer-loading').hide();
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
+		$('#tripal-network-viewer-loading').hide();
       }
     }) 
    };
@@ -195,7 +206,7 @@
    *
    */
   $.fn.updateNetworkDetailsForm = function(network_id) {
-       
+    $('#tripal-network-viewer-loading').show()
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
@@ -206,9 +217,11 @@
       success: function(response) {
         $('#tripal-network-viewer-network-details form').replaceWith(response);
         Drupal.attachBehaviors();
+		$('#tripal-network-viewer-loading').hide();
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
+		$('#tripal-network-viewer-loading').hide();
       }
     }) 
    };
@@ -312,6 +325,8 @@
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
+        // Turn off the spinner.
+        $('#tripal-network-viewer-loading').hide();
       }
     })
   };
