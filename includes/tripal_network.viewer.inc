@@ -136,7 +136,9 @@ function tripal_network_viewer_node_details_form($form, &$form_state, $node_id =
 
   $node_name = 'Click a node to view its details';
   if ($node_id) {
-    $entity_id = chado_get_record_entity_by_table('feature', $node_id);
+    $feature = tripal_network_get_nodes([$node_id])[$node_id];
+    
+    $entity_id = chado_get_record_entity_by_table('feature', $feature->feature_id);
     $entities = tripal_load_entity('TripalEntity', [$entity_id]);
     field_attach_load('TripalEntity', $entities);
     $entity = NULL;
@@ -235,7 +237,7 @@ function tripal_network_viewer_node_details_form($form, &$form_state, $node_id =
     }
 
 
-    $form['feature_id'] = [
+    $form['node_id'] = [
       '#type' => 'value',
       '#value' => $node_id,
       '#prefix' => '<div id="tripal-network-viewer-node-details-form">',
@@ -1000,7 +1002,7 @@ function tripal_network_get_default_layout(){
         'showbackground' => FALSE,
         'showline' => FALSE,
         'zeroline' => FALSE,
-        'showgrid' => FALSE,
+        'showgrid' => TRUE  ,
         'showticklabels' => FALSE,
         'title' => '',
         'showspikes' => FALSE,
@@ -1011,7 +1013,7 @@ function tripal_network_get_default_layout(){
         'zeroline' => FALSE,
         'showline' => FALSE,
         'zeroline' => FALSE,
-        'showgrid' => FALSE,
+        'showgrid' => TRUE,
         'showticklabels' => FALSE,
         'title' => '',
         'showspikes' => FALSE,
@@ -1022,7 +1024,7 @@ function tripal_network_get_default_layout(){
         'zeroline' => FALSE,
         'showline' => FALSE,
         'zeroline' => FALSE,
-        'showgrid' => FALSE,
+        'showgrid' => TRUE,
         'showticklabels' => TRUE,
         'showspikes' => FALSE,
         'title' => '',
@@ -1084,6 +1086,7 @@ function tripal_network_neighborhood_viewer_ajax_retrieve() {
   }
 }
 
+
 /**
  *
  */
@@ -1137,26 +1140,55 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
   $organism_id = array_key_exists('organism_id', $network_items) ? $network_items['organism_id'] : NULL;
   $edges = $network_items['edges'];
   $nodes = $network_items['nodes'];
-
-  // Get properties of the nodes used for the viewer.
-  $x_coords = tripal_network_get_nodeprops(array_keys($nodes), 'feature_id',
-      'SIO:000400', $organism_id, $network_id);
-  $y_coords = tripal_network_get_nodeprops(array_keys($nodes), 'feature_id',
-      'SIO:000401', $organism_id, $network_id);
-  $degree = tripal_network_get_nodeprops(array_keys($nodes), 'feature_id',
-      'OBI:0200130', $organism_id, $network_id);
+  
+  // Add in the degree as it needed by the fa2 layout.
+  $degree = tripal_network_get_nodeprops(array_keys($nodes), 'network_node_id', 'OBI:0200130');
+  foreach ($nodes as $node_id => $node) {
+    $nodes[$node_id]['degree'] = 1;
+    if (array_key_exists($node_id, $degree)) {
+      $nodes[$node_id]['degree'] = $degree[$node_id];
+    }
+  }
+  
+  module_load_include("inc", "tripal_network", "api/tripal_network.fa2.api");
+  $fa2_options = [
+    'ticks' => 100,
+    'repusion_coefficient' => 4.0,
+    'gravity_coefficient' => 1.0,
+    'barnes_hut_optimize' => TRUE,
+    'barnes_hut_theta' => 1.2,
+    'edge_weight_influence' => 1.0,
+    'distribute_attraction' => TRUE,
+    'jitter_tolderance' => 1.0, 
+    
+  ];
+  tripal_network_apply_fa2_layout($nodes, $edges, $fa2_options);
+  
+//   $x_coords = tripal_network_get_nodeprops(array_keys($nodes), 'network_node_id',
+//       'SIO:000400', $organism_id, $network_id);
+//   $y_coords = tripal_network_get_nodeprops(array_keys($nodes), 'network_node_id',
+//       'SIO:000401', $organism_id, $network_id);
+//   $degree = tripal_network_get_nodeprops(array_keys($nodes), 'network_node_id',
+//       'OBI:0200130', $organism_id, $network_id);  
+  
 
   // Calculate teh x,y,z coordianates for nodes.
   $node_coords = [];
-  foreach ($nodes as $node_id => $node_name) {
-    $x = array_key_exists($node_id, $x_coords) ? $x_coords[$node_id] : mt_rand(0, 10);
-    $y = array_key_exists($node_id, $y_coords) ? $y_coords[$node_id] : mt_rand(0, 10);
+  foreach ($nodes as $node_id => $node) {
+    $x = $node['x'];
+    $y = $node['y'];
+//    $x = array_key_exists($node_id, $x_coords) ? $x_coords[$node_id] : mt_rand(0, 10);
+//    $y = array_key_exists($node_id, $y_coords) ? $y_coords[$node_id] : mt_rand(0, 10);
+//    $nodes[$node_id]['degree'] = $degree[$node_id];
+//    $nodes[$node_id]['x'] = $x;
+//    $nodes[$node_id]['y'] = $y;
     $node_coords[$node_id] = [
       'x' => $x,
       'y' => $y,
       'z' => 0
     ];
-  }
+    
+  }  
 
   // Get the layer and colors for the selected properties.
   $edge_ids = array_keys($edges);
@@ -1187,15 +1219,15 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
       $traces[$layer_name]['line']['color'] = $color;
     }
 
-    $source_feature_id = $edge['source_feature_id'];
-    $target_feature_id = $edge['target_feature_id'];
+    $source_node_id = $edge['source_node_id'];
+    $target_node_id = $edge['target_node_id'];
 
     // Set the line x,y,z coordinates
-    $traces[$layer_name]['x'][] = $node_coords[$source_feature_id]['x'];
-    $traces[$layer_name]['y'][] = $node_coords[$source_feature_id]['y'];
+    $traces[$layer_name]['x'][] = $node_coords[$source_node_id]['x'];
+    $traces[$layer_name]['y'][] = $node_coords[$source_node_id]['y'];
     $traces[$layer_name]['z'][] = $z;
-    $traces[$layer_name]['x'][] = $node_coords[$target_feature_id]['x'];
-    $traces[$layer_name]['y'][] = $node_coords[$target_feature_id]['y'];
+    $traces[$layer_name]['x'][] = $node_coords[$target_node_id]['x'];
+    $traces[$layer_name]['y'][] = $node_coords[$target_node_id]['y'];
     $traces[$layer_name]['z'][] = $z;
 
     // Add an empty entry to keep Plotly from adding an extra line.
@@ -1216,25 +1248,25 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
 
     // Move the node's z-coordinate to the highest value score.
     if ($layers['data_class'] == 'quantitative') {
-      $node_coords[$source_feature_id]['z'] = max($z, $node_coords[$source_feature_id]['z']);
-      $node_coords[$target_feature_id]['z'] = max($z, $node_coords[$target_feature_id]['z']);
-      $node_coords[$source_feature_id]['layer'] = $layer;
-      $node_coords[$target_feature_id]['layer'] = $layer;
+      $node_coords[$source_node_id]['z'] = max($z, $node_coords[$source_node_id]['z']);
+      $node_coords[$target_node_id]['z'] = max($z, $node_coords[$target_node_id]['z']);
+      $node_coords[$source_node_id]['layer'] = $layer;
+      $node_coords[$target_node_id]['layer'] = $layer;
 
       // If the layer by is "rank" then put nodes at the lowest rank they
       // first appear. Otherwise, use the highest.
-      if ($layer_by == 'NCIT:C48904' and $node_coords[$source_feature_id]['z'] != 0) {
-        $node_coords[$source_feature_id]['z'] = min($z, $node_coords[$source_feature_id]['z']);
-        $node_coords[$target_feature_id]['z'] = min($z, $node_coords[$target_feature_id]['z']);
-        $node_coords[$source_feature_id]['layer'] = $layer;
-        $node_coords[$target_feature_id]['layer'] = $layer;
+      if ($layer_by == 'NCIT:C48904' and $node_coords[$source_node_id]['z'] != 0) {
+        $node_coords[$source_node_id]['z'] = min($z, $node_coords[$source_node_id]['z']);
+        $node_coords[$target_node_id]['z'] = min($z, $node_coords[$target_node_id]['z']);
+        $node_coords[$source_node_id]['layer'] = $layer;
+        $node_coords[$target_node_id]['layer'] = $layer;
       }
     }
     else {
-      $node_coords[$source_feature_id]['z'] = $z;
-      $node_coords[$target_feature_id]['z'] = $z;
-      $node_coords[$source_feature_id]['layer'] = $layer;
-      $node_coords[$target_feature_id]['layer'] = $layer;
+      $node_coords[$source_node_id]['z'] = $z;
+      $node_coords[$target_node_id]['z'] = $z;
+      $node_coords[$source_node_id]['layer'] = $layer;
+      $node_coords[$target_node_id]['layer'] = $layer;
     }
   }
 
@@ -1256,7 +1288,7 @@ function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $c
     $traces['nodes']['z'][] = $node_coords[$node_id]['z'];
     $traces['nodes']['ids'][] = $node_id;
     $traces['nodes']['text'][] = $node['node_name'];
-    $traces['nodes']['marker']['size'][] = max(round(log10($degree[$node_id])*10), 5);
+    $traces['nodes']['marker']['size'][] = max(round(log10($nodes[$node_id]['degree'])*10), 5);
     $traces['nodes']['marker']['color'][] = in_array($node_id, $network_items['feature_ids']) ? '#FFFF00': '#AAAAAA';
   }
 

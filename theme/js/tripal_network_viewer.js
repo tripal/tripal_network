@@ -286,6 +286,7 @@
              'scale' : 10
            }
         };
+
         Plotly.newPlot('tripal-network-viewer', response['data'], response['layout'], settings);
         
         // Add event handlers. We don't use Jquery because it's not fully

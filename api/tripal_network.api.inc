@@ -88,12 +88,12 @@ function tripal_network_get_network_elements($selection = []) {
   $nodes = [];
   while ($record = $results->fetchAssoc()) {
     $edges[$record['network_edge_id']] = $record;
-    $nodes[$record['source_feature_id']] = [
-      'network_node_id' => $record['source_node_id'],
+    $nodes[$record['source_node_id']] = [
+      'feature_id' => $record['source_feature_id'],
       'node_name' => $record['source_name'],
     ];
-    $nodes[$record['target_feature_id']] = [
-      'network_node_id' => $record['target_node_id'],
+    $nodes[$record['target_node_id']] = [
+      'feature_id' => $record['target_feature_id'],
       'node_name' => $record['target_name'],
     ];
   }
@@ -368,6 +368,8 @@ function tripal_network_color_edges($organism_id, $network_id, $edge_ids, $color
     'data_type' => $layers['data_type'],
   ];
 }
+
+
 /**
  * Retreives properties of one or more networks.
  *
@@ -412,6 +414,41 @@ function tripal_network_get_networkprops($ids, $term) {
 }
 
 /**
+ * Retreives one or more nodes.
+ *
+ * This function accepts either feature IDs or network node IDs.
+ *
+ * @param $ids
+ *   An array of feature IDs or network node IDs.
+ * @param $id_type
+ *   The type of IDs either 'feature_id' or 'network_node_id',
+ */
+function tripal_network_get_nodes($ids, $id_type = 'network_node_id') {  
+  $nodes = [];
+    
+  if ($id_type == 'feature_id') {
+    $column = 'F.feature_id';
+  }
+  else {
+    $column = 'NN.network_node_id';
+  }
+   
+  $sql = "
+    SELECT NN.network_node_id, F.*
+    FROM {network_node} NN
+      INNER JOIN {network_feature} NF on NF.network_node_id = NN.network_node_id
+      INNER JOIN {feature} F on F.feature_id = NF.feature_id
+    WHERE
+      $column in (:ids) 
+  ";
+  $args = [':ids' => $ids];
+  $results = chado_query($sql, $args);
+  while ($node = $results->fetchObject()) {
+    $nodes[$node->$id_type] = $node;
+  }
+  return $nodes;
+}
+/**
  * Retreives properties of one or more nodes.
  *
  * This function accepts either feature IDs or network node IDs.  If
@@ -431,7 +468,7 @@ function tripal_network_get_networkprops($ids, $term) {
  * @return array
  *   The list of properties for the given ids, indexed with the id.
  */
-function tripal_network_get_nodeprops($ids, $id_type = 'feature_id', $term, $organism_id = NULL, $network_id = NULL) {
+function tripal_network_get_nodeprops($ids, $id_type = 'network_node_id', $term, $organism_id = NULL, $network_id = NULL) {
   $column = NULL;
   $props = [];
 
