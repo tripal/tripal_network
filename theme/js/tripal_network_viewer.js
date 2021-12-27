@@ -229,14 +229,18 @@
    /**
     * Initializes the viewer state by retiieving defaults from the server.
     */
-   $.fn.initViewer = function(network_id) {
+   $.fn.initViewer = function(args) {
      $.ajax({
        // The baseurl is a variable set by Tripal that indicates the
        // "base" of the URL for this site.
        url: baseurl + '/networks/viewer/init',
        type: "GET",
        dataType: 'json',
-       data: {'network_id': network_id },
+       data: {
+	     'network_id': args['network_id'] ,
+         'organism_id': args['organism_id'],
+         'feature_id': args['feature_id']
+	   },
        success: function(json) {
          response = json;
          $.fn.getNetwork(json);

@@ -718,3 +718,31 @@ function tripal_network_get_attribute_options($organism_id=NULL, $network_id=NUL
   }
   return $props;
 }
+
+/**
+ * Calcualtes the degree of each node in a network.
+ * 
+ * Adds a 'degree' attrbitue to the 'nodes' element of the $network_items.
+ * 
+ * @param $network_items
+ *   An array of elements selected using the tripal_network_get_network_elements
+ *   function.
+ */
+function tripal_network_calculate_degree(&$network_items) {
+  
+  $edges = $network_items['edges'];
+  $nodes = $network_items['nodes'];
+  
+  // Add the degree attrbute to the node.
+  foreach ($nodes as $node_id => $node) {
+    $network_items['nodes'][$node_id]['degree'] = 1;
+  }
+  
+  foreach ($edges as $edge) {
+    $node1_id = $edge['source_node_id'];
+    $node2_id = $edge['target_node_id'];
+    
+    $network_items['nodes'][$node1_id]['degree']++;
+    $network_items['nodes'][$node2_id]['degree']++;
+  }
+} 

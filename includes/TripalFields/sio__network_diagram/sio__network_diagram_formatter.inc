@@ -36,8 +36,6 @@ class sio__network_diagram_formatter extends ChadoFieldFormatter {
    */
   private function buildNeighborhoodViewer($record){
     $feature_id = $record->feature_id;
-    $organism_id = $record->organism_id->organism_id;
-    $network_id = 0;
     $viewer_id = "tripal-network-neighborhood-viewer";
 
     // Load the necessary JS and CSS files.
@@ -48,7 +46,7 @@ class sio__network_diagram_formatter extends ChadoFieldFormatter {
     drupal_add_js($js_path . '/tripal_network_neighborhood_viewer.js');
 
     // Get the form for specifying the network to view.
-    $network_form = drupal_get_form('tripal_network_neighborhood_viewer_form', $feature_id, $network_id);
+    $network_form = drupal_get_form('tripal_network_neighborhood_viewer_form', $feature_id);
 
     // Return the page.
     return [

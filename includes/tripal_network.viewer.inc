@@ -14,10 +14,12 @@ function tripal_network_viewer_ajax_init() {
 
   $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
   $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
+  $feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : NULL;
 
   $init_state = [
     'network_id' => $network_id,
     'organism_id' => $organism_id,
+    'feature_id' => $feature_id,
     'selected_node' => null,
     'selected_edge' => null,
     'layer_by' => 'SWO:0000425',
@@ -505,6 +507,7 @@ function tripal_network_viewer_ajax_retrieve() {
   // Get the fitering variables requested by the user.
   $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
   $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
+  $feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : NULL;
   $layer_by = array_key_exists('layer_by', $_GET) ? $_GET['layer_by'] : NULL;
   $color_by = array_key_exists('color_by', $_GET) ? $_GET['color_by'] : NULL;
   $limit = array_key_exists('limit', $_GET) ? $_GET['limit'] : 1000;
@@ -512,7 +515,7 @@ function tripal_network_viewer_ajax_retrieve() {
   $features = array_key_exists('features', $_GET) ? $_GET['features'] : NULL;
   $vocab_terms = array_key_exists('vocab_terms', $_GET) ? $_GET['vocab_terms'] : NULL;
 
-  $layout = tripal_network_get_default_layout();
+  $layout = tripal_network_get_plotly_default_layout();
 
   // TODO: this shoulnd't be hardcoded.
   if (!$layer_by) {
@@ -530,14 +533,19 @@ function tripal_network_viewer_ajax_retrieve() {
   // If we don't have a organism ID then return an empty scene.
   $plotly_data = NULL;
   if (!$organism_id) {
-    $plotly_data = tripal_network_make_plotly_data(NULL, $layout, $layer_by, $color_by, TRUE);
+    $plotly_data = tripal_network_get_plotly_data(NULL, $layout, $layer_by, $color_by, TRUE);
     drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
     return;
   }
 
-  // If the user has request some feature names then limit the network
-  // to only those features.
+  // If teh viewer was pre-loaded with a feature then add it to the list. 
   $feature_ids = [];
+  if ($feature_id) {
+    $feature_ids[] = $feature_id;
+  }
+  
+  // If the user has request some feature names then limit the network
+  // to only those features.  
   if ($features) {
     $features = preg_split('/\s+/', $features);
     $sql = "
@@ -578,7 +586,13 @@ function tripal_network_viewer_ajax_retrieve() {
     'organism_id' => $organism_id, 'network_id' => $network_id,
     'feature_ids' => $feature_ids, 'term_ids' => $term_ids,
     'limit_by' => $limit_by, 'limit' => $limit]);
-  $plotly_data = tripal_network_make_plotly_data($network_items, $layout, $layer_by, $color_by);
+  
+  
+  // Add in the degree to the nodes.
+  tripal_network_calculate_degree($network_items);
+  
+  // Generate the plotly data.
+  $plotly_data = tripal_network_get_plotly_data($network_items, $layout, $layer_by, $color_by);
 
   drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
 }
@@ -587,14 +601,21 @@ function tripal_network_viewer_ajax_retrieve() {
  *
  */
 function tripal_network_viewer_network_form($form, &$form_state, $organism_id = NULL,
-    $network_id = NULL) {
+    $network_id = NULL, $feature_id = NULl) {
 
   global $user;
-
+  
   $features = '';
+  if ($feature_id) {
+    $feature = new ChadoRecord('feature');
+    $feature->setValue('feature_id', $feature_id);
+    if ($feature->find()) {
+      $features = $feature->getValue('name');
+    }
+  }
+
+  
   $vocab_terms = '';
-  $network_id = 0;
-  $organism_id = 0;
 
   if (array_key_exists('values', $form_state)) {
     $features = array_key_exists('features', $form_state['values']) ? $form_state['values']['features'] : $features;
@@ -686,16 +707,6 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
     $title = 'Available ' . $organism->getValue('genus') . ' ' . $organism->getValue('species') . ' Networks';
   }
 
-  $form['network_id'] = [
-    '#type' => 'select',
-    '#title' => $title,
-    '#options' => $networks,
-    '#default_value' => $network_id,
-    '#description' => t('Limit the edges to only the selected networks.'),
-    '#multiple' => TRUE,
-    '#size' => 5,
-  ];
-
   $form['features'] = [
     '#type' => 'textarea',
     '#rows' => 3,
@@ -717,9 +728,20 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
     '#multiple' => TRUE,
   ];
 
-  $form['button'] = [
+  $form['network_id'] = [
+    '#type' => 'select',
+    '#title' => $title,
+    '#options' => $networks,
+    '#default_value' => $network_id,
+    '#description' => t('Limit the edges to only the selected networks.'),
+    '#multiple' => TRUE,
+    '#size' => 5,
+  ];
+  
+  $form['load_network_button'] = [
     '#type' => 'submit',
-    '#value' => 'Update Network View',
+    '#value' => 'Load Network',
+    '#name' => 'load_network_button',
     '#ajax' => array(
       'callback' => 'tripal_network_viewer_network_form_ajax_callback',
       'wrapper'  => 'tripal-network-viewer-network-form',
@@ -748,6 +770,7 @@ function tripal_network_viewer_network_form_ajax_callback($form, $form_state) {
   $args = [
     'organism_id' => NULL,
     'network_id' => NULL,
+    'feature_id' => NULL,
     'features' => NULL,
     'vocab_terms' => NULL,
   ];
@@ -766,10 +789,11 @@ function tripal_network_viewer_network_form_ajax_callback($form, $form_state) {
   }
 
   // Tell Drupal to update the network
-  tripal_network_add_ajax_command(ajax_command_invoke(NULL, "getNetwork", [$args]));
-  tripal_network_add_ajax_command(ajax_command_invoke(NULL, "updateFilterForm"));
-  tripal_network_add_ajax_command(ajax_command_invoke(NULL, "updateLayersForm"));
-
+  if ($form_state['triggering_element']['#name'] == 'load_network_button') {
+    tripal_network_add_ajax_command(ajax_command_invoke(NULL, "getNetwork", [$args]));
+    tripal_network_add_ajax_command(ajax_command_invoke(NULL, "updateFilterForm"));
+    tripal_network_add_ajax_command(ajax_command_invoke(NULL, "updateLayersForm"));
+  }
 
   return $form;
 }
@@ -959,425 +983,6 @@ function tripal_network_viewer_layers_form_ajax_callback($form, $form_state) {
 
   // Tell Drupal to update the network
   tripal_network_add_ajax_command(ajax_command_invoke(NULL, "getNetwork", [$args]));
-
-  return $form;
-}
-
-/**
- *
- * @return
- */
-function tripal_network_get_default_layout(){
-  return [
-    'autosize' => TRUE,
-    'paper_bgcolor' => "#FFFFFF",
-    'margin' => ['l' => 30, 'r' => 20, 't' => 50, 'b' => 20],
-    'showlegend' => TRUE,
-    'legend' => [
-      'font' => [
-        'color' => "#000000",
-      ],
-    ],
-    'scene' => [
-      'aspectmode' => 'manual',
-      'aspectratio' => [
-        'x' => 1,
-        'y' => 1,
-        'z' => 1
-      ],
-      'camera' => [
-        'eye' => [
-          'x' => 0,
-          'y' => 0,
-          'z' => 2
-        ],
-
-        'projection' => [
-          'type' => 'orthographic'
-        ]
-      ],
-      'xaxis' => [
-        'type' => 'linear',
-        'zeroline' => FALSE,
-        'showbackground' => FALSE,
-        'showline' => FALSE,
-        'zeroline' => FALSE,
-        'showgrid' => TRUE  ,
-        'showticklabels' => FALSE,
-        'title' => '',
-        'showspikes' => FALSE,
-        'color'=> "#000000"
-      ],
-      'yaxis' => [
-        'type' => 'linear',
-        'zeroline' => FALSE,
-        'showline' => FALSE,
-        'zeroline' => FALSE,
-        'showgrid' => TRUE,
-        'showticklabels' => FALSE,
-        'title' => '',
-        'showspikes' => FALSE,
-        'color'=> "#000000"
-      ],
-      'zaxis' => [
-        'type' => 'linear',
-        'zeroline' => FALSE,
-        'showline' => FALSE,
-        'zeroline' => FALSE,
-        'showgrid' => TRUE,
-        'showticklabels' => TRUE,
-        'showspikes' => FALSE,
-        'title' => '',
-        'color'=> "#000000"
-      ]
-    ],
-    'title' => '',
-  ];
-}
-
-/**
- *
- */
-function tripal_network_neighborhood_viewer_ajax_retrieve() {
-  global $user;
-
-  // Get the fitering variables requested by the user.
-  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
-  $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
-  $feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : NULL;
-
-  // Set the Plotly layout sepcifications.
-  // Set the Plotly layout sepcifications.
-  $layout = tripal_network_get_default_layout();
-  $layout['title'] = 'Connected Neighbors';
-
-  // TODO: this shoulnd't be hardcoded.
-  $layer_by = 'SWO:0000425';
-  $color_by = 'SWO:0000425';
-
-  if ($network_id) {
-    $network = new ChadoRecord('network');
-    $network->setValues(['network_id' => $network_id]);
-    $network->find();
-    $organism_id = $network->getValue('organism_id');
-  }
-
-  // Make sure the user has access.
-  if (!tripal_network_viewer_has_access($organism_id, $network_id)) {
-    $network_id = 0;
-    $organism_id = 0;
-  }
-
-  if ($network_id) {
-
-    // Make sure we have required filters.
-    $plotly_data = NULL;
-    if ($network_id == 0) {
-      $plotly_data = tripal_network_make_plotly_data(NULL, $layout, $layer_by, $color_by, TRUE);
-      drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
-      return;
-    }
-
-    $network_items = tripal_network_get_network_elements([
-      'organism_id' => $organism_id, 'network_id' => $network_id,
-      'feature_ids' => [$feature_id]]);
-    $plotly_data = tripal_network_make_plotly_data($network_items, $layout, $layer_by, $color_by);
-    drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
-  }
-}
-
-
-/**
- *
- */
-function tripal_network_make_plotly_data($network_items, &$layout, $layer_by, $color_by, $is_empty = FALSE) {
-
-  $edge_trace_defaults = [
-    'mode' => 'lines',
-    'type' => 'scatter3d',
-    'line' => [
-      'color' => [],
-      'width' => 2,
-      'opacity' => 0.9,
-    ],
-    'name' => 'Edge',
-    'ids' => [],
-    'hovertemplate'=> "%{text}",
-    'x' => [],
-    'y' => [],
-    'z' => [],
-    'text' => [],
-  ];
-
-  $node_trace_defaults = [
-    'mode'  => 'markers',
-    'type' => 'scatter3d',
-    'marker' => [
-      'symbol' => 'circle',
-      'color' => [],
-      'size' => [],
-      'sizemin' => 5,
-      'opacity' => 0.9,
-      'line' => [
-        'width' => 2,
-        'color' => 'rgb(100, 100, 100)',
-      ],
-    ],
-    'hovertemplate'=> "%{text}",
-    'name' => 'Node',
-    'ids' => [],
-    'x' => [],
-    'y' => [],
-    'z' => [],
-    'text' => [],
-  ];
-
-  if ($is_empty) {
-    return [$edge_trace_defaults, $node_trace_defaults];
-  }
-
-  $network_id = array_key_exists('network_id', $network_items) ? $network_items['network_id'] : NULL;
-  $organism_id = array_key_exists('organism_id', $network_items) ? $network_items['organism_id'] : NULL;
-  $edges = $network_items['edges'];
-  $nodes = $network_items['nodes'];
-  
-  // Add in the degree as it needed by the fa2 layout.
-  $degree = tripal_network_get_nodeprops(array_keys($nodes), 'network_node_id', 'OBI:0200130');
-  foreach ($nodes as $node_id => $node) {
-    $nodes[$node_id]['degree'] = 1;
-    if (array_key_exists($node_id, $degree)) {
-      $nodes[$node_id]['degree'] = $degree[$node_id];
-    }
-  }
-  
-  module_load_include("inc", "tripal_network", "api/tripal_network.fa2.api");
-  $fa2_options = [
-    'ticks' => 100,
-    'repusion_coefficient' => 4.0,
-    'gravity_coefficient' => 1.0,
-    'barnes_hut_optimize' => TRUE,
-    'barnes_hut_theta' => 1.2,
-    'edge_weight_influence' => 1.0,
-    'distribute_attraction' => TRUE,
-    'jitter_tolderance' => 1.0, 
-    
-  ];
-  tripal_network_apply_fa2_layout($nodes, $edges, $fa2_options);
-  
-//   $x_coords = tripal_network_get_nodeprops(array_keys($nodes), 'network_node_id',
-//       'SIO:000400', $organism_id, $network_id);
-//   $y_coords = tripal_network_get_nodeprops(array_keys($nodes), 'network_node_id',
-//       'SIO:000401', $organism_id, $network_id);
-//   $degree = tripal_network_get_nodeprops(array_keys($nodes), 'network_node_id',
-//       'OBI:0200130', $organism_id, $network_id);  
-  
-
-  // Calculate teh x,y,z coordianates for nodes.
-  $node_coords = [];
-  foreach ($nodes as $node_id => $node) {
-    $x = $node['x'];
-    $y = $node['y'];
-//    $x = array_key_exists($node_id, $x_coords) ? $x_coords[$node_id] : mt_rand(0, 10);
-//    $y = array_key_exists($node_id, $y_coords) ? $y_coords[$node_id] : mt_rand(0, 10);
-//    $nodes[$node_id]['degree'] = $degree[$node_id];
-//    $nodes[$node_id]['x'] = $x;
-//    $nodes[$node_id]['y'] = $y;
-    $node_coords[$node_id] = [
-      'x' => $x,
-      'y' => $y,
-      'z' => 0
-    ];
-    
-  }  
-
-  // Get the layer and colors for the selected properties.
-  $edge_ids = array_keys($edges);
-  $layers = tripal_network_layer_edges($organism_id, $network_id, $edge_ids, $layer_by);
-  $colors = tripal_network_color_edges($organism_id, $network_id, $edge_ids, $color_by);
-
-  // Create the edges trace.
-  $traces = [];
-  foreach ($edges as $network_edge_id => $edge) {
-
-    // Get the z-coord, bin and color for this edge.
-    $layer = array_key_exists($network_edge_id, $layers['item_layer']) ? $layers['item_layer'][$network_edge_id] : 0;
-    $color = array_key_exists($network_edge_id, $colors['item_color']) ? $colors['item_color'][$network_edge_id] : 0;
-    $layer_name = $colors['labels'][$color];
-
-    $z = 0;
-    if ($layers['data_class'] == 'quantitative') {
-      $z = array_key_exists($network_edge_id, $layers['adj_values']) ? $layers['adj_values'][$network_edge_id] : 0;
-    }
-    else {
-      $z = $layer;
-    }
-
-    // Add a new trace if we haven't seen this bin yet.
-    if (!array_key_exists($layer_name, $traces)) {
-      $traces[$layer_name] = $edge_trace_defaults;
-      $traces[$layer_name]['name'] = $layer_name;
-      $traces[$layer_name]['line']['color'] = $color;
-    }
-
-    $source_node_id = $edge['source_node_id'];
-    $target_node_id = $edge['target_node_id'];
-
-    // Set the line x,y,z coordinates
-    $traces[$layer_name]['x'][] = $node_coords[$source_node_id]['x'];
-    $traces[$layer_name]['y'][] = $node_coords[$source_node_id]['y'];
-    $traces[$layer_name]['z'][] = $z;
-    $traces[$layer_name]['x'][] = $node_coords[$target_node_id]['x'];
-    $traces[$layer_name]['y'][] = $node_coords[$target_node_id]['y'];
-    $traces[$layer_name]['z'][] = $z;
-
-    // Add an empty entry to keep Plotly from adding an extra line.
-    $traces[$layer_name]['x'][] = NULL;
-    $traces[$layer_name]['y'][] = NULL;
-    $traces[$layer_name]['z'][] = NULL;
-
-    // Set the line text.
-    $text = $edge['source_name'] . ' (-) ' . $edge['target_name'];
-    $traces[$layer_name]['text'][] = $text;
-    $traces[$layer_name]['text'][] = $text;
-    $traces[$layer_name]['text'][] = $text;
-
-    // Set the line ids.
-    $traces[$layer_name]['ids'][] = $network_edge_id;
-    $traces[$layer_name]['ids'][] = $network_edge_id;
-    $traces[$layer_name]['ids'][] = $network_edge_id;
-
-    // Move the node's z-coordinate to the highest value score.
-    if ($layers['data_class'] == 'quantitative') {
-      $node_coords[$source_node_id]['z'] = max($z, $node_coords[$source_node_id]['z']);
-      $node_coords[$target_node_id]['z'] = max($z, $node_coords[$target_node_id]['z']);
-      $node_coords[$source_node_id]['layer'] = $layer;
-      $node_coords[$target_node_id]['layer'] = $layer;
-
-      // If the layer by is "rank" then put nodes at the lowest rank they
-      // first appear. Otherwise, use the highest.
-      if ($layer_by == 'NCIT:C48904' and $node_coords[$source_node_id]['z'] != 0) {
-        $node_coords[$source_node_id]['z'] = min($z, $node_coords[$source_node_id]['z']);
-        $node_coords[$target_node_id]['z'] = min($z, $node_coords[$target_node_id]['z']);
-        $node_coords[$source_node_id]['layer'] = $layer;
-        $node_coords[$target_node_id]['layer'] = $layer;
-      }
-    }
-    else {
-      $node_coords[$source_node_id]['z'] = $z;
-      $node_coords[$target_node_id]['z'] = $z;
-      $node_coords[$source_node_id]['layer'] = $layer;
-      $node_coords[$target_node_id]['layer'] = $layer;
-    }
-  }
-
-  if ($colors['data_class'] == 'categorical') {
-    ksort($traces);
-  }
-  else {
-    ksort($traces, SORT_NUMERIC);
-  }
-
-  // Create the node trace
-  $traces['nodes'] = $node_trace_defaults;
-  foreach ($nodes as $node_id => $node) {
-
-    // The bin for the node is the z coordinate assigned to the node.
-    $layer = $node_coords[$node_id]['layer'];
-    $traces['nodes']['x'][] = $node_coords[$node_id]['x'];
-    $traces['nodes']['y'][] = $node_coords[$node_id]['y'];
-    $traces['nodes']['z'][] = $node_coords[$node_id]['z'];
-    $traces['nodes']['ids'][] = $node_id;
-    $traces['nodes']['text'][] = $node['node_name'];
-    $traces['nodes']['marker']['size'][] = max(round(log10($nodes[$node_id]['degree'])*10), 5);
-    $traces['nodes']['marker']['color'][] = in_array($node_id, $network_items['feature_ids']) ? '#FFFF00': '#AAAAAA';
-  }
-
-  // Now set the tick labels
-  if ($layers['data_class'] == 'categorical') {
-    $layout['scene']['zaxis']['tickmode'] = "array";
-    $layout['scene']['zaxis']['tickvals'] = $layers['layers'];
-    $layout['scene']['zaxis']['ticktext'] = $layers['layer_labels'];
-  }
-  $layout['scene']['zaxis']['title'] = $layers['title'];
-
-  return array_values($traces);
-}
-
-/**
- *
- * @param unknown $form
- * @param unknown $form_state
- * @param unknown $feature_id
- * @param unknown $network_id
- * @return unknown
- */
-function tripal_network_neighborhood_viewer_form($form, &$form_state,
-    $feature_id = NULL, $network_id = NULL) {
-
-  global $user;
-
-  // Get the list of modules
-  $sql = '';
-  $args = [':feature_id' => $feature_id];
-  $sql = "
-    SELECT * FROM {network} N
-      INNER JOIN {network_node} NN on NN.network_id = N.network_id
-      INNER JOIN {network_feature} NF on NF.network_node_id = NN.network_node_id
-    WHERE NF.feature_id = :feature_id
-    ORDER BY N.name
-  ";
-  $networks = [
-    0 => '-- Select --',
-  ];
-  $results = chado_query($sql, $args);
-  while ($record = $results->fetchObject()) {
-    // Show networks that have been published and that the user has acces to.
-    $entity_id = chado_get_record_entity_by_table('network', $record->network_id);
-    if ($entity_id){
-      $entity = tripal_load_entity('TripalEntity', [$entity_id]);
-      if (tripal_entity_access('view', $entity[$entity_id], $user, 'TripalEntity')) {
-        $networks[$record->network_id] = $record->name;
-      }
-    }
-  }
-
-  $form['feature_id'] = [
-    '#type' => 'value',
-    '#value' => $feature_id,
-    '#prefix' => '<div id="tripal-network-neighborhood-viewer-form">',
-  ];
-  $form['network_id'] = [
-    '#type' => 'select',
-    '#title' => 'Network',
-    '#options' => $networks,
-    '#default_value' => $network_id,
-    '#description' => t('Select the network to view connections for this feature.'),
-    '#ajax' => array(
-      'callback' => 'tripal_network_neighborhood_viewer_form_ajax_callback',
-      'wrapper'  => 'tripal-network-neighborhood-viewer-form',
-      'effect'   => 'fade',
-      'method'   => 'replace',
-    ),
-    '#suffix' => '</div>',
-  ];
-  return $form;
-}
-
-/**
- *
- */
-function tripal_network_neighborhood_viewer_form_ajax_callback($form, $form_state) {
-  $network_id = $form_state['values']['network_id'];
-  $feature_id = $form_state['values']['feature_id'];
-
-  $args = [
-    'feature_id' => $feature_id,
-    'network_id' => $network_id,
-    'viewer_id' => 'tripal-network-neighborhood-viewer'
-  ];
-
-  // Tell Drupal to update the network
-  tripal_network_add_ajax_command(ajax_command_invoke(NULL, "getNetworkNeighborhood", [$args]));
 
   return $form;
 }

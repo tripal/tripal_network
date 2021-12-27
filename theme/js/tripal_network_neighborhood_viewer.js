@@ -36,6 +36,7 @@
     // by the tripal_network module of Drupal via the data function. 
     var network_id = args['network_id'];
     var feature_id = args['feature_id'];
+    var organism_id = args['organism_id'];
     var viewer_id = args['viewer_id'];
 
     $.ajax({
@@ -44,7 +45,10 @@
       url: baseurl + '/networks/viewer/neighborhood/retrieve',
       type: "GET",
       dataType: 'json',
-      data: {'network_id': network_id, 'feature_id': feature_id },
+      data: {
+	    'organism_id': organism_id,
+	    'network_id': network_id, 
+        'feature_id': feature_id },
       success: function(json) {
         response = json;
         Plotly.newPlot(viewer_id, response['data'], response['layout']);

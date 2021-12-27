@@ -1,5 +1,8 @@
 <?php
 global $user;
+$organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
+$network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
+$feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : NULL;
 
 $site_name = variable_get('site_name');
 
@@ -11,12 +14,14 @@ drupal_add_js('https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js');
 drupal_add_js($js_path . '/tripal_network_viewer.js');
 drupal_add_css($css_path . '/tripal_network_viewer.css', 'external');
 
-$args = [];
 if ($organism_id) {
   $args['organism_id'] = $organism_id;
-  if ($network_id) {
-    $args['network_id'] = $network_id;
-  }
+}
+if ($network_id) {
+  $args['network_id'] = $network_id;
+}
+if ($feature_id) {
+  $args['feature_id'] = $feature_id;
 }
 
 drupal_add_js("
@@ -29,7 +34,7 @@ drupal_add_js("
 ", 'inline');
 
 
-$network_form = drupal_get_form('tripal_network_viewer_network_form', $organism_id, $network_id);
+$network_form = drupal_get_form('tripal_network_viewer_network_form', $organism_id, $network_id, $feature_id);
 $network_form = drupal_render($network_form);
 
 $layers_form = drupal_get_form('tripal_network_viewer_layers_form', $organism_id, $network_id);

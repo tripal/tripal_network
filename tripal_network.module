@@ -4,7 +4,9 @@
 require_once "includes/tripal_network.schema.inc";
 require_once "includes/tripal_network.fields.inc";
 require_once "api/tripal_network.api.inc";
+require_once "includes/tripal_network.plotly.inc";
 require_once "includes/tripal_network.viewer.inc";
+require_once "includes/tripal_network.neighborhood_viewer.inc";
 require_once "includes/tripal_network.entity.inc";
 
 /**
@@ -40,22 +42,6 @@ function tripal_network_menu() {
   $items['networks/viewer'] = [
     'page callback' => 'tripal_network_viewer_page',
     'page arguments' => [],
-    'access arguments' => ['view ' . $bundle->name],
-    'file' => '/includes/tripal_network.viewer.inc',
-    'file path' => drupal_get_path('module','tripal_network'),
-    'type' => MENU_CALLBACK,
-  ];
-  $items['networks/viewer/%'] = [
-    'page callback' => 'tripal_network_viewer_page',
-    'page arguments' => [2],
-    'access arguments' => ['view ' . $bundle->name],
-    'file' => '/includes/tripal_network.viewer.inc',
-    'file path' => drupal_get_path('module','tripal_network'),
-    'type' => MENU_CALLBACK,
-  ];
-  $items['networks/viewer/%/%'] = [
-    'page callback' => 'tripal_network_viewer_page',
-    'page arguments' => [2,3],
     'access arguments' => ['view ' . $bundle->name],
     'file' => '/includes/tripal_network.viewer.inc',
     'file path' => drupal_get_path('module','tripal_network'),
@@ -195,7 +181,7 @@ function tripal_network_theme($existing, $type, $theme, $path) {
     ),
     'tripal_network_viewer' => array(
       'template' => 'tripal_network_viewer',
-      'variables' =>  ['organism_id' => NULL, 'network_id' => NULL],
+      'variables' =>  [],
       'path' => drupal_get_path('module', 'tripal_network') . "/theme/templates",
     ),
     'tripal_network_viewer_property' => array(
