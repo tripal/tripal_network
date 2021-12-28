@@ -130,8 +130,8 @@ function tripal_network_get_plotly_data($network_items, &$layout, $layer_by, $co
   module_load_include("inc", "tripal_network", "api/tripal_network.fa2.api");
   $fa2_options = [
     'ticks' => 100,
-    'repusion_coefficient' => 4.0,
-    'gravity_coefficient' => 1.0,
+    'repulsion_coefficient' => 2,
+    'gravity_coefficient' => 0.5,
     'barnes_hut_optimize' => TRUE,
     'barnes_hut_theta' => 1.2,
     'edge_weight_influence' => 1.0,

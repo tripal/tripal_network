@@ -14,6 +14,7 @@ drupal_add_js('https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js');
 drupal_add_js($js_path . '/tripal_network_viewer.js');
 drupal_add_css($css_path . '/tripal_network_viewer.css', 'external');
 
+$args = [];
 if ($organism_id) {
   $args['organism_id'] = $organism_id;
 }
@@ -43,6 +44,9 @@ $layers_form = drupal_render($layers_form);
 $filter_form = drupal_get_form('tripal_network_viewer_filter_form', $organism_id, $network_id);
 $filter_form = drupal_render($filter_form);
 
+$network_details = drupal_get_form('tripal_network_viewer_network_details_form');
+$network_details = drupal_render($network_details);
+
 $node_details = drupal_get_form('tripal_network_viewer_node_details_form');
 $node_details = drupal_render($node_details);
 
@@ -53,7 +57,8 @@ $edge_details = drupal_render($edge_details);
 <div id="tripal-network-viewer-app">
    <div id="tripal-network-viewer-loading"><img src="<?php print $theme_path?>/images/loading.gif"></div>
    <div id="tripal-network-viewer-navbar">
-     <div><img id="tripal-network-viewer-network-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Network_1571006.png"></div>
+     <div><img id="tripal-network-viewer-network-select-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_arrange_2145331.png"></div>
+     <div><img id="tripal-network-viewer-network-details-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Network_1571006.png"></div>
      <div><img id="tripal-network-viewer-layers-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Layers_4177660.png"></div>
      <div><img id="tripal-network-viewer-filters-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_filter_4186018.png"></div>
      <div><img id="tripal-network-viewer-node-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Circle_3927915.png"></div>
@@ -70,10 +75,16 @@ $edge_details = drupal_render($edge_details);
          <h1>Network Viewer</h1>
          <?php print l('Site Home', '/')?>
        </div>
-       <div id="tripal-network-viewer-network-box" class="tripal-network-viewer-sidebar-box">
+       <div id="tripal-network-viewer-network-select-box" class="tripal-network-viewer-sidebar-box">
     	   <h2>Network Selection</h2>
        	 <div class="tripal-network-viewer-sidebar-box-content">
        	   <?php print $network_form ?>
+       	 </div>
+       </div>
+       <div id="tripal-network-viewer-network-details-box" class="tripal-network-viewer-sidebar-box">
+    	   <h2>Network Details</h2>
+       	 <div class="tripal-network-viewer-sidebar-box-content">
+       	   <?php print $network_details ?>
        	 </div>
        </div>
        <div id="tripal-network-viewer-layers-box" class="tripal-network-viewer-sidebar-box">
@@ -105,14 +116,15 @@ $edge_details = drupal_render($edge_details);
             <p>
               <b>Icons Attribution</b>
               <ul>
-                <li>Network icon by Three Six Five from the Noun Project</li>
-                <li>Layers icon by Thomas from the Noun Project</li>
-                <li>Filter icon by Adam Baihaqi from the Noun Project</li>
-                <li>Circle by Lars Meiertoberens from the Noun Project</li>
-                <li>Link icon by Alex Burte from the Noun Project</li>
-                <li>About icon by andika from the Noun Project</li>
-                <li>Slide icon by Alebaer from the Noun Project</li>
-                <li>Help icon by Rainbow Designs from the Noun Project</li>
+                <li>Network selection icon by Three Six Five from the NounProject.com</li>
+                <li>Network details icon by Markus from the NounProject.com</li>
+                <li>Layers icon by Thomas from the NounProject.com</li>
+                <li>Filter icon by Adam Baihaqi from the NounProject.com</li>
+                <li>Circle by Lars Meiertoberens from the NounProject.com</li>
+                <li>Link icon by Alex Burte from the NounProject.com</li>
+                <li>About icon by andika from the NounProject.com</li>
+                <li>Slide icon by Alebaer from the NounProject.com</li>
+                <li>Help icon by Rainbow Designs from the NounProject.com</li>
               </ul>
             </p>
           </div>

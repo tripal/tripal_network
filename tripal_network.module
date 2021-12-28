@@ -63,7 +63,7 @@ function tripal_network_menu() {
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
   ];
-  $items['networks/viewer/form/layers'] = [
+  $items['networks/viewer/update/layers'] = [
     'page callback' => 'tripal_network_viewer_ajax_get_layers_form',
     'page arguments' => [],
     'access arguments' => ['view ' . $bundle->name],
@@ -71,16 +71,8 @@ function tripal_network_menu() {
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
   ];
-  $items['networks/viewer/form/filter'] = [
+  $items['networks/viewer/update/filter'] = [
     'page callback' => 'tripal_network_viewer_ajax_get_filter_form',
-    'page arguments' => [],
-    'access arguments' => ['view ' . $bundle->name],
-    'file' => '/includes/tripal_network.viewer.inc',
-    'file path' => drupal_get_path('module','tripal_network'),
-    'type' => MENU_CALLBACK,
-  ];
-  $items['networks/viewer/form/network-details'] = [
-    'page callback' => 'tripal_network_viewer_ajax_get_network_details_form',
     'page arguments' => [],
     'access arguments' => ['view ' . $bundle->name],
     'file' => '/includes/tripal_network.viewer.inc',

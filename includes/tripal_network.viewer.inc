@@ -24,7 +24,7 @@ function tripal_network_viewer_ajax_init() {
     'selected_edge' => null,
     'layer_by' => 'SWO:0000425',
     'color_by' => 'SWO:0000425',
-    'limit' => 1000,
+    'limit' => 250,
     'limit_by' => 'SWO:0000425'
   ];
   drupal_json_output($init_state);
@@ -41,15 +41,7 @@ function tripal_network_viewer_ajax_get_layers_form() {
   $form = drupal_get_form('tripal_network_viewer_layers_form', $organism_id, $network_id, $state);
   $form = drupal_render($form);
 
-  $settings = FALSE;
-  $javascript = drupal_add_js(NULL, NULL);
-  if(isset($javascript['settings'], $javascript['settings']['data'])) {
-    $settings = '<script type="text/javascript">jQuery.extend(Drupal.settings, ';
-    $settings .= drupal_json_encode(call_user_func_array('array_merge_recursive', $javascript['settings']['data']));
-    $settings .=  ');</script>';
-  }
-  print $form . $settings;
-  die;
+  ajax_deliver($form);
 }
 
 /**
@@ -58,40 +50,13 @@ function tripal_network_viewer_ajax_get_layers_form() {
 function tripal_network_viewer_ajax_get_filter_form() {
   $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
   $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
-  $state = $_GET;
-
-  $form = drupal_get_form('tripal_network_viewer_filter_form', $organism_id, $network_id, $state);
+  $limit = array_key_exists('limit', $_GET) ? $_GET['limit'] : 10;
+  $limit_by = array_key_exists('limit_by', $_GET) ? $_GET['limit_by'] : NULL;
+  
+  $form = drupal_get_form('tripal_network_viewer_filter_form', $organism_id, $network_id, $limit, $limit_by);
   $form = drupal_render($form);
-
-  $settings = FALSE;
-  $javascript = drupal_add_js(NULL, NULL);
-  if(isset($javascript['settings'], $javascript['settings']['data'])) {
-    $settings = '<script type="text/javascript">jQuery.extend(Drupal.settings, ';
-    $settings .= drupal_json_encode(call_user_func_array('array_merge_recursive', $javascript['settings']['data']));
-    $settings .=  ');</script>';
-  }
-  print $form . $settings;
-  die;
-}
-
-/**
- *
- */
-function tripal_network_viewer_ajax_get_network_details_form() {
-  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
-
-  $form = drupal_get_form('tripal_network_viewer_network_details_form', $network_id);
-  $form = drupal_render($form);
-
-  $settings = FALSE;
-  $javascript = drupal_add_js(NULL, NULL);
-  if(isset($javascript['settings'], $javascript['settings']['data'])) {
-    $settings = '<script type="text/javascript">jQuery.extend(Drupal.settings, ';
-    $settings .= drupal_json_encode(call_user_func_array('array_merge_recursive', $javascript['settings']['data']));
-    $settings .=  ');</script>';
-  }
-  print $form . $settings;
-  die;
+  
+  ajax_deliver($form);
 }
 
 /**
@@ -104,15 +69,52 @@ function tripal_network_viewer_ajax_get_node_details() {
   $form = drupal_get_form('tripal_network_viewer_node_details_form', $node_id, $state);
   $form = drupal_render($form);
 
-  $settings = FALSE;
-  $javascript = drupal_add_js(NULL, NULL);
-  if(isset($javascript['settings'], $javascript['settings']['data'])) {
-    $settings = '<script type="text/javascript">jQuery.extend(Drupal.settings, ';
-    $settings .= drupal_json_encode(call_user_func_array('array_merge_recursive', $javascript['settings']['data']));
-    $settings .=  ');</script>';
+  ajax_deliver($form);
+}
+
+/**
+ *
+ */
+function tripal_network_viewer_network_details_form($form, &$form_state, $network_details = NULl) {
+  
+  $details = 'Please select a network to view details.';
+  if ($network_details) {
+    $rows = [];
+    $headers = [];
+    $rows[] = [
+      [
+        'data' => 'Number of Edges',
+        'header' => TRUE,
+        'width' => '70%',
+      ],
+      count(array_keys($network_details['edges'])),
+    ];
+    $rows[] = [
+      [
+        'data' => 'Number of Nodes',
+        'header' => TRUE,
+        'width' => '70%',
+      ],
+      count(array_keys($network_details['nodes'])),
+    ];
+    $headers = [];
+    $summary_table = [
+      'header' => $headers,
+      'rows' => $rows,
+      'attributes' => [],
+      'caption' => '',
+      'sticky' => TRUE,
+      'colgroups' => [],
+      'empty' => 'No attributes for this node',
+    ];
+    $details = theme_table($summary_table);
   }
-  print $form . $settings;
-  die;
+  
+  $form['details'] = [
+    '#type' => 'markup',
+    '#markup' => $details,
+  ];
+  return $form;
 }
 
 /**
@@ -300,15 +302,7 @@ function tripal_network_viewer_ajax_get_edge_details() {
   $form = drupal_get_form('tripal_network_viewer_edge_details_form', $node_id);
   $form = drupal_render($form);
 
-  $settings = FALSE;
-  $javascript = drupal_add_js(NULL, NULL);
-  if(isset($javascript['settings'], $javascript['settings']['data'])) {
-    $settings = '<script type="text/javascript">jQuery.extend(Drupal.settings, ';
-    $settings .= drupal_json_encode(call_user_func_array('array_merge_recursive', $javascript['settings']['data']));
-    $settings .=  ');</script>';
-  }
-  print $form . $settings;
-  die;
+  ajax_deliver($form);
 }
 
 /**
@@ -403,71 +397,6 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
   return $form;
 }
 
-/**
- *
- */
-function tripal_network_viewer_network_details_form($form, &$form_state, $network_id = NULL) {
-
-
-  if (array_key_exists('values', $form_state)) {
-    $network_id = array_key_exists('network_id', $form_state['values']) ? $form_state['values']['network_id'] : $network_id;
-  }
-
-  $network_name = 'Select a network to view its details';
-  $details = '';
-
-  if ($network_id) {
-    $network_name = 'Network Attributes';
-    $sql = "
-      SELECT CVT.name, NP.value, DBX.accession, DB.name as db_name
-      FROM {networkprop} NP
-        INNER JOIN {cvterm} CVT ON CVT.cvterm_id = NP.type_id
-        INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
-        INNER JOIN {db} DB on DB.db_id = DBX.db_id
-      WHERE NP.network_id = :network_id
-    ";
-    $args[':network_id'] = $network_id;
-    $results = chado_query($sql, $args);
-
-    $rows = [];
-    while ($prop = $results->fetchObject()) {
-      $rows[] = [
-        [
-          'data' => ucfirst($prop->name),
-          'header' => TRUE,
-        ],
-        $prop->value,
-      ];
-    }
-    $headers = ['Attribute', 'Value'];
-    $summary_table = [
-      'header' => $headers,
-      'rows' => $rows,
-      'attributes' => [],
-      'caption' => '',
-      'sticky' => TRUE,
-      'colgroups' => [],
-      'empty' => 'No attributes for this edge',
-    ];
-    $details = theme_table($summary_table);
-  }
-
-  $form['network_id'] = [
-    '#type' => 'value',
-    '#value' => $network_id,
-  ];
-  $form['network_name'] = [
-    '#type' => 'markup',
-    '#markup' => $network_name,
-  ];
-  $form['details'] = [
-    '#type' => 'markup',
-    '#markup' => $details,
-    '#prefix' => '<div id="tripal-network-viewer-network-details-details">',
-    '#suffix' => '</div>',
-  ];
-  return $form;
-}
 
 function tripal_network_viewer_has_access($organism_id = NULL, $network_id = NULL) {
   global $user;
@@ -510,7 +439,7 @@ function tripal_network_viewer_ajax_retrieve() {
   $feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : NULL;
   $layer_by = array_key_exists('layer_by', $_GET) ? $_GET['layer_by'] : NULL;
   $color_by = array_key_exists('color_by', $_GET) ? $_GET['color_by'] : NULL;
-  $limit = array_key_exists('limit', $_GET) ? $_GET['limit'] : 1000;
+  $limit = array_key_exists('limit', $_GET) ? $_GET['limit'] : 250;
   $limit_by = array_key_exists('limit_by', $_GET) ? $_GET['limit_by'] : NULL;
   $features = array_key_exists('features', $_GET) ? $_GET['features'] : NULL;
   $vocab_terms = array_key_exists('vocab_terms', $_GET) ? $_GET['vocab_terms'] : NULL;
@@ -534,7 +463,8 @@ function tripal_network_viewer_ajax_retrieve() {
   $plotly_data = NULL;
   if (!$organism_id) {
     $plotly_data = tripal_network_get_plotly_data(NULL, $layout, $layer_by, $color_by, TRUE);
-    drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
+    $details = drupal_render(drupal_get_form('tripal_network_viewer_network_details_form'));    
+    drupal_json_output(['data' => $plotly_data, 'layout' => $layout, 'details' => $details]);
     return;
   }
 
@@ -593,8 +523,14 @@ function tripal_network_viewer_ajax_retrieve() {
   
   // Generate the plotly data.
   $plotly_data = tripal_network_get_plotly_data($network_items, $layout, $layer_by, $color_by);
+  
+  $details = drupal_render(drupal_get_form('tripal_network_viewer_network_details_form', $network_items));
 
-  drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
+  drupal_json_output([
+    'data' => $plotly_data, 
+    'layout' => $layout,
+    'details' => $details
+  ]);
 }
 
 /**
@@ -739,7 +675,7 @@ function tripal_network_viewer_network_form($form, &$form_state, $organism_id = 
   ];
   
   $form['load_network_button'] = [
-    '#type' => 'submit',
+    '#type' => 'button',
     '#value' => 'Load Network',
     '#name' => 'load_network_button',
     '#ajax' => array(
@@ -799,67 +735,59 @@ function tripal_network_viewer_network_form_ajax_callback($form, $form_state) {
 }
 
 
-
-
 /**
  *
  */
-function tripal_network_viewer_filter_form($form, &$form_state,
-    $organism_id = NULL, $network_id = NULL, $state = NULL) {
+function tripal_network_viewer_filter_form($form, &$form_state, $organism_id = NULL, 
+    $network_id = NULL, $limit = 250, $limit_by = NULL) {
+  
+  $details = 'Please select a network to view details.';
+  if (!$organism_id) {
+    $form['details'] = [
+      '#type' => 'markup',
+      '#markup' => $details,
+    ];
+  } 
+  else {
 
-  $limit_by = '';
-  $limit = '';
-
-  if (is_array($state)){
-    $organism_id = array_key_exists('organism_id', $state) ? $state['organism_id'] : $organism_id;
-    $network_id = array_key_exists('network_id', $state) ? $state['network_id'] : $network_id;
-    $limit_by = array_key_exists('limit_by', $state) ? $state['limit_by'] : $limit_by;
-    $limit = array_key_exists('limit', $state) ? $state['limit'] : $limit;
+    if (array_key_exists('values', $form_state)) {
+      $limit = array_key_exists('limit', $form_state['values']) ? $form_state['values']['limit'] : $limit;
+      $limit_by = array_key_exists('limit_by', $form_state['values']) ? $form_state['values']['limit_by'] : $limit_by;
+    }
+    
+    $props = [];
+    if ($organism_id) {
+      $props = tripal_network_get_attribute_options($organism_id, $network_id, TRUE, FALSE, TRUE, FALSE);
+    }
+  
+    $form['limit'] = [
+      '#type' => 'textfield',
+      '#title' => 'Limit Number of Edges',
+      '#size' => 10,
+      '#default_value' => $limit,
+      '#description' => t('Limit the number of edges displayed.'),
+    ];
+    $form['limit_by'] = [
+      '#type' => 'select',
+      '#title' => 'Limit By',
+      '#options' => $props,
+      '#default_value' => $limit_by,
+      '#description' => t('Select a property to limit the best edges (only works for numerical properties).'),
+    ];
+  
+    $form['network_filter_button'] = [
+      '#type' => 'button',
+      '#name' => 'network_filter_button',
+      '#value' => 'Perform Filter',
+      '#ajax' => array(
+        'callback' => 'tripal_network_viewer_filter_form_ajax_callback',
+        'wrapper' => 'tripal-network-viewer-filter-form',
+        'effect' => 'fade',
+        'method' => 'replace',
+      ),
+      '#suffix' => '</div>',
+    ];
   }
-
-  if (array_key_exists('values', $form_state)) {
-    $organism_id = array_key_exists('organism_id', $form_state['values']) ? $form_state['values']['organism_id'] : $organism_id;
-    $network_id = array_key_exists('network_id', $form_state['values']) ? $form_state['values']['network_id'] : $network_id;
-    $limit = array_key_exists('limit', $form_state['values']) ? $form_state['values']['limit'] : $limit;
-    $limit_by = array_key_exists('limit_by', $form_state['values']) ? $form_state['values']['limit_by'] : $limit_by;
-  }
-
-  $props = [];
-  if ($organism_id) {
-    $props = tripal_network_get_attribute_options($organism_id, $network_id, TRUE, FALSE, TRUE, FALSE);
-  }
-
-  $form['network_id'] = [
-    '#type' => 'value',
-    '#value' =>  $network_id,
-    '#prefix' => '<div id="tripal-network-viewer-filter-form">',
-  ];
-  $form['limit'] = [
-    '#type' => 'textfield',
-    '#title' => 'Limit Number of Edges',
-    '#size' => 10,
-    '#default_value' => $limit,
-    '#description' => t('Limit the number of edges displayed.'),
-  ];
-  $form['limit_by'] = [
-    '#type' => 'select',
-    '#title' => 'Limit By',
-    '#options' => $props,
-    '#default_value' => $limit_by,
-    '#description' => t('Select a property to limit the best edges (only works for numerical properties).'),
-  ];
-
-  $form['button'] = [
-    '#type' => 'submit',
-    '#value' => 'Perform Filter',
-    '#ajax' => array(
-      'callback' => 'tripal_network_viewer_filter_form_ajax_callback',
-      'wrapper'  => 'tripal-network-viewer-filter-form',
-      'effect'   => 'fade',
-      'method'   => 'replace',
-    ),
-    '#suffix' => '</div>',
-  ];
 
   return $form;
 }
@@ -910,8 +838,8 @@ function tripal_network_viewer_layers_form($form, &$form_state,
     '#description' => t('Select a property to color edges.'),
   ];
 
-  $form['button'] = [
-    '#type' => 'submit',
+  $form['network_layer_button'] = [
+    '#type' => 'button',
     '#value' => 'Update Display',
     '#ajax' => array(
       'callback' => 'tripal_network_viewer_layers_form_ajax_callback',

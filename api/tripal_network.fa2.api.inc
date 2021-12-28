@@ -363,7 +363,7 @@ function tripal_network_apply_fa2_layout(&$nodes, $edges, $options) {
   
   $ticks = array_key_exists('ticks', $options) ? $options['ticks'] : 100;
   $kg = array_key_exists('gravity_coefficient', $options) ? $options['gravity_coefficient'] : 1;
-  $kr = array_key_exists('repusion_coefficient', $options) ? $options['repusion_coefficient'] : 1;
+  $kr = array_key_exists('repulsion_coefficient', $options) ? $options['repulsion_coefficient'] : 1;
   $bho = array_key_exists('barnes_hut_optimize', $options) ? $options['barnes_hut_optimize'] : TRUE;
   $bht = array_key_exists('barnes_hut_theta', $options) ? $options['barnes_hut_theta'] : 1.2;
   $ewi = array_key_exists('edge_weight_influence', $options) ? $options['edge_weight_influence'] : 1;

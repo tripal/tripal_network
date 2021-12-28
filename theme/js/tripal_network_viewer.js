@@ -20,7 +20,7 @@
   // executed everytime a page load occurs or when an ajax call returns.
   Drupal.behaviors.tripal_network = {
     attach: function (context, settings) {
-      
+
     } 
   } 
 
@@ -43,7 +43,7 @@
     });
       
     // Show the network box on load
-    $.fn.showBox("tripal-network-viewer-network-box");
+    $.fn.showBox("tripal-network-viewer-network-select-box");
      
     // If any navbar icons are clicked show the corresponding box.
     $(".tripal-network-viewer-navbar-icon").click(function() {
@@ -110,12 +110,12 @@
       // "base" of the URL for this site.
       url: baseurl + '/networks/viewer/details/node',
       type: "GET",
-      dataType: 'html',
+      dataType: 'json',
       data: data,
       success: function(response) {
+		$('#tripal-network-viewer-node-box form').replaceWith(response[1]['data']);
+	    Drupal.attachBehaviors($('#tripal-network-viewer-node-box form'), response[0]['settings']);
         $.fn.showBox('tripal-network-viewer-node-box');
-        $('#tripal-network-viewer-node-box form').replaceWith(response);
-        Drupal.attachBehaviors();
 		$('#tripal-network-viewer-loading').hide();
 
       },
@@ -125,7 +125,8 @@
       }
     }) 
   }
-  
+
+
   /**
    *
    */
@@ -138,12 +139,12 @@
       // "base" of the URL for this site.
       url: baseurl + '/networks/viewer/details/edge',
       type: "GET",
-      dataType: 'html',
+      dataType: 'json',
       data: {'edge_id': edge_id},
       success: function(response) {
+		 $('#tripal-network-viewer-edge-box form').replaceWith(response[1]['data']);
+	     Drupal.attachBehaviors($('#tripal-network-viewer-edge-box form'), response[0]['settings']);
          $.fn.showBox('tripal-network-viewer-edge-box');
-         $('#tripal-network-viewer-edge-box form').replaceWith(response);
-         Drupal.attachBehaviors();
          $('#tripal-network-viewer-loading').hide();
       },
       error: function(xhr, textStatus, thrownError) {
@@ -162,13 +163,13 @@
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
-      url: baseurl + '/networks/viewer/form/layers',
+      url: baseurl + '/networks/viewer/update/layers',
       type: "GET",
-      dataType: 'html',
+      dataType: 'json',
       data: state,
       success: function(response) {
-        $('#tripal-network-viewer-layers-box form').replaceWith(response);
-        Drupal.attachBehaviors();
+	    $('#tripal-network-viewer-layers-box form').replaceWith(response[1]['data']);
+        Drupal.attachBehaviors($('#tripal-network-viewer-layers-box form'), response[0]['settings']);
 		$('#tripal-network-viewer-loading').hide();
       },
       error: function(xhr, textStatus, thrownError) {
@@ -186,13 +187,13 @@
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
-      url: baseurl + '/networks/viewer/form/filter',
+      url: baseurl + '/networks/viewer/update/filter',
       type: "GET",
-      dataType: 'html',
+      dataType: 'json',
       data: state,
       success: function(response) {
-        $('#tripal-network-viewer-filters-box form').replaceWith(response);
-        Drupal.attachBehaviors();
+	    $('#tripal-network-viewer-filters-box form').replaceWith(response[1]['data']);
+		Drupal.attachBehaviors($('#tripal-network-viewer-filters-box form'), response[0]['settings']);
 		$('#tripal-network-viewer-loading').hide();
       },
       error: function(xhr, textStatus, thrownError) {
@@ -201,31 +202,7 @@
       }
     }) 
    };
-   
-   /**
-   *
-   */
-  $.fn.updateNetworkDetailsForm = function(network_id) {
-    $('#tripal-network-viewer-loading').show()
-    $.ajax({
-      // The baseurl is a variable set by Tripal that indicates the
-      // "base" of the URL for this site.
-      url: baseurl + '/networks/viewer/form/network-details',
-      type: "GET",
-      dataType: 'html',
-      data: {'network_id':  network_id},
-      success: function(response) {
-        $('#tripal-network-viewer-network-details form').replaceWith(response);
-        Drupal.attachBehaviors();
-		$('#tripal-network-viewer-loading').hide();
-      },
-      error: function(xhr, textStatus, thrownError) {
-        alert(thrownError);
-		$('#tripal-network-viewer-loading').hide();
-      }
-    }) 
-   };
-   
+      
    /**
     * Initializes the viewer state by retiieving defaults from the server.
     */
@@ -279,7 +256,7 @@
       dataType: 'json',
       data: state,
       success: function(json) {
-        response = json;
+        var response = json;
         
         // Create the new plot.
         settings = {
@@ -323,6 +300,8 @@
           selected_edge = null;
           selected_edge_prev_color = null;
         }
+
+		$('#tripal-network-viewer-network-details-box form').replaceWith(response['details']);
 
         // Turn off the spinner.
         $('#tripal-network-viewer-loading').hide();
