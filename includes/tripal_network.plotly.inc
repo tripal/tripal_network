@@ -17,18 +17,12 @@ function tripal_network_get_plotly_default_layout(){
     ],
     'scene' => [
       'aspectmode' => 'manual',
-      'aspectratio' => [
-        'x' => 1,
-        'y' => 1,
-        'z' => 1
+      'aspectratio' => ['x' => 2, 'y' => 2, 'z' => 1
       ],
       'camera' => [
-        'eye' => [
-          'x' => 0,
-          'y' => 0,
-          'z' => 2
-        ],
-        
+        'up'=> ['x'=> 0, 'y'=> 0, 'z' => 1],
+        'center'=> ['x'=> 0, 'y' => 0, 'z' => 0],
+        'eye' => ['x' => 0, 'y' => 0, 'z' => 1],        
         'projection' => [
           'type' => 'orthographic'
         ]
@@ -82,7 +76,7 @@ function tripal_network_get_plotly_data($network_items, &$layout, $layer_by, $co
     'type' => 'scatter3d',
     'line' => [
       'color' => [],
-      'width' => 4,
+      'width' => 3,
       'opacity' => 0.9,
     ],
     'name' => 'Edge',

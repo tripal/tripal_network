@@ -74,6 +74,11 @@ function tripal_network_get_network_elements($selection = []) {
         $params[":${fi}_min_value"] = $filter['min_value'];
       }
       
+      if (array_key_exists('categories', $filter) and !empty($filter['categories'])) {
+        $sql .= " AND NEP${fi}.value IN (:${fi}_categories)";
+        $params[":${fi}_categories"] = $filter['categories'];
+      }
+      
       $order_by = 'ASC';
       if (array_key_exists('order_by', $filter) and $filter['order_by'] == 'DESC') {
         $order_by = 'DESC';

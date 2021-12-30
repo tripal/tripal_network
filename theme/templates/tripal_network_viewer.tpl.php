@@ -1,5 +1,6 @@
 <?php
 global $user;
+$network_session_id = NULL;
 $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
 $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
 $feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : NULL;
@@ -39,10 +40,10 @@ drupal_add_js("
 $network_form = drupal_get_form('tripal_network_viewer_network_form', $organism_id, $network_id, $feature_id);
 $network_form = drupal_render($network_form);
 
-$layers_form = drupal_get_form('tripal_network_viewer_layers_form', $organism_id, $network_id);
+$layers_form = drupal_get_form('tripal_network_viewer_layers_form', $network_session_id, $organism_id, $network_id);
 $layers_form = drupal_render($layers_form);
 
-$filter_form = drupal_get_form('tripal_network_viewer_filter_form', $organism_id, $network_id);
+$filter_form = drupal_get_form('tripal_network_viewer_filter_form', $network_session_id, $organism_id, $network_id);
 $filter_form = drupal_render($filter_form);
 
 $network_details = drupal_get_form('tripal_network_viewer_network_details_form');

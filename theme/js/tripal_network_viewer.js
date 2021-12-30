@@ -1,7 +1,12 @@
 (function($) {
    
    // Holds key/value pairs indicating the current state of the viewer.
-   var state = {};
+   var state = {
+	 'network_id': null,
+     'organism_id': null,
+     'feature_id': null,
+     'network_session_id': null,
+   };
    
    var selected_node = null;
    var selected_edge = null;
@@ -249,7 +254,8 @@
        data: {
 	     'network_id': args['network_id'] ,
          'organism_id': args['organism_id'],
-         'feature_id': args['feature_id']
+         'feature_id': args['feature_id'],
+         'network_session_id': state['network_session_id']
 	   },
        success: function(json) {
          response = json;
