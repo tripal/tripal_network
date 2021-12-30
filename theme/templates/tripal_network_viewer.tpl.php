@@ -13,6 +13,8 @@ drupal_add_js('https://cdn.plot.ly/plotly-2.3.1.min.js');
 drupal_add_js('https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js');
 drupal_add_js($js_path . '/tripal_network_viewer.js');
 drupal_add_css($css_path . '/tripal_network_viewer.css', 'external');
+drupal_add_js('misc/form.js');
+drupal_add_js('misc/collapse.js');
 
 $args = [];
 if ($organism_id) {
@@ -29,7 +31,6 @@ drupal_add_js("
   (function(\$) {
     $(document).ready(function() {
       \$.fn.initViewer(" . json_encode($args) . ");
-      \$.fn.getNetwork({});
     });
   })(jQuery);
 ", 'inline');
@@ -55,14 +56,16 @@ $edge_details = drupal_render($edge_details);
 
 ?>
 <div id="tripal-network-viewer-app">
-   <div id="tripal-network-viewer-loading"><img src="<?php print $theme_path?>/images/loading.gif"></div>
+   <div id="tripal-network-viewer-loading"><img src="<?php print $theme_path?>/images/loading.gif">
+   </div>
    <div id="tripal-network-viewer-navbar">
-     <div><img id="tripal-network-viewer-network-select-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_arrange_2145331.png"></div>
+     <div><img id="tripal-network-viewer-network-select-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_selection_2256434.png"></div>
      <div><img id="tripal-network-viewer-network-details-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Network_1571006.png"></div>
      <div><img id="tripal-network-viewer-layers-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Layers_4177660.png"></div>
      <div><img id="tripal-network-viewer-filters-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_filter_4186018.png"></div>
      <div><img id="tripal-network-viewer-node-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Circle_3927915.png"></div>
      <div><img id="tripal-network-viewer-edge-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_link_2545631.png"></div>
+     <div><img id="tripal-network-viewer-analysis-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_analysis_2018398.png"></div>
      <div><img id="tripal-network-viewer-about-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_about_4190914.png"></div>
      <div><img id="tripal-network-viewer-help-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_help_2302539.png"></div>
    </div>
@@ -72,7 +75,7 @@ $edge_details = drupal_render($edge_details);
      </div>
      <div id="tripal-network-viewer-sidebar-boxes">
        <div id="tripal-network-viewer-sidebar-header">
-         <h1>Network Viewer</h1>
+         <h1>3D Network Explorer</h1>
          <?php print l('Site Home', '/')?>
        </div>
        <div id="tripal-network-viewer-network-select-box" class="tripal-network-viewer-sidebar-box">
@@ -92,7 +95,7 @@ $edge_details = drupal_render($edge_details);
            <?php print $layers_form ?>
        </div>
        <div id="tripal-network-viewer-filters-box" class="tripal-network-viewer-sidebar-box">
-         	<h2>Filters</h2>
+         	<h2>Node/Edge Property Filters</h2>
            <?php print $filter_form ?>
        </div>
        <div id="tripal-network-viewer-node-box" class="tripal-network-viewer-sidebar-box">
@@ -102,6 +105,9 @@ $edge_details = drupal_render($edge_details);
        <div id="tripal-network-viewer-edge-box" class="tripal-network-viewer-sidebar-box">
          	<h2>Selected Edge Details</h2>
           <?php print $edge_details ?>
+       </div>
+       <div id="tripal-network-viewer-analysis-box" class="tripal-network-viewer-sidebar-box">
+         	<h2>Analysis</h2>          
        </div>
        <div id="tripal-network-viewer-about-box" class="tripal-network-viewer-sidebar-box">
           <h2>About this Network Viewer</h2>
@@ -116,12 +122,13 @@ $edge_details = drupal_render($edge_details);
             <p>
               <b>Icons Attribution</b>
               <ul>
-                <li>Network selection icon by Three Six Five from the NounProject.com</li>
+                <li>Network selection icon by Lauk from the NounProject.com</li>
                 <li>Network details icon by Markus from the NounProject.com</li>
                 <li>Layers icon by Thomas from the NounProject.com</li>
                 <li>Filter icon by Adam Baihaqi from the NounProject.com</li>
                 <li>Circle by Lars Meiertoberens from the NounProject.com</li>
                 <li>Link icon by Alex Burte from the NounProject.com</li>
+                <li>Analysis icon by hashank singh from the NounProject.com</li> 
                 <li>About icon by andika from the NounProject.com</li>
                 <li>Slide icon by Alebaer from the NounProject.com</li>
                 <li>Help icon by Rainbow Designs from the NounProject.com</li>
@@ -137,7 +144,7 @@ $edge_details = drupal_render($edge_details);
      </div>
 
    </div>
-   <div id="tripal-network-viewer-display">
+   <div id="tripal-network-viewer-display"> 	 
      <div id="tripal-network-viewer"></div>
    </div>
 </div>

@@ -7,12 +7,12 @@
 function tripal_network_get_plotly_default_layout(){
   return [
     'autosize' => TRUE,
-    'paper_bgcolor' => "#FFFFFF",
+    'paper_bgcolor' => "#000000",
     'margin' => ['l' => 30, 'r' => 20, 't' => 50, 'b' => 20],
     'showlegend' => TRUE,
     'legend' => [
       'font' => [
-        'color' => "#000000",
+        'color' => "#FFFFFF",
       ],
     ],
     'scene' => [
@@ -43,7 +43,7 @@ function tripal_network_get_plotly_default_layout(){
         'showticklabels' => FALSE,
         'title' => '',
         'showspikes' => FALSE,
-        'color'=> "#000000"
+        'color'=> "#FFFFFF"
       ],
       'yaxis' => [
         'type' => 'linear',
@@ -54,7 +54,7 @@ function tripal_network_get_plotly_default_layout(){
         'showticklabels' => FALSE,
         'title' => '',
         'showspikes' => FALSE,
-        'color'=> "#000000"
+        'color'=> "#FFFFFF"
       ],
       'zaxis' => [
         'type' => 'linear',
@@ -65,7 +65,7 @@ function tripal_network_get_plotly_default_layout(){
         'showticklabels' => TRUE,
         'showspikes' => FALSE,
         'title' => '',
-        'color'=> "#000000"
+        'color'=> "#FFFFFF"
       ]
     ],
     'title' => '',
@@ -82,7 +82,7 @@ function tripal_network_get_plotly_data($network_items, &$layout, $layer_by, $co
     'type' => 'scatter3d',
     'line' => [
       'color' => [],
-      'width' => 2,
+      'width' => 4,
       'opacity' => 0.9,
     ],
     'name' => 'Edge',
@@ -117,7 +117,7 @@ function tripal_network_get_plotly_data($network_items, &$layout, $layer_by, $co
     'text' => [],
   ];
   
-  if ($is_empty or !$network_items) {
+  if ($is_empty or !$network_items or empty($network_items['edges'])) {
     return [$edge_trace_defaults, $node_trace_defaults];
   }
   
@@ -136,7 +136,7 @@ function tripal_network_get_plotly_data($network_items, &$layout, $layer_by, $co
     'barnes_hut_theta' => 1.2,
     'edge_weight_influence' => 1.0,
     'distribute_attraction' => TRUE,
-    'jitter_tolderance' => 1.0,
+    'jitter_tolerance' => 1.0,
     
   ];
   
@@ -280,7 +280,7 @@ function tripal_network_get_plotly_data($network_items, &$layout, $layer_by, $co
     $traces['nodes']['ids'][] = $node_id;
     $traces['nodes']['text'][] = $node['node_name'];
     $traces['nodes']['marker']['size'][] = max(round(log10($nodes[$node_id]['degree'])*10), 5);
-    $traces['nodes']['marker']['color'][] = in_array($node_id, $network_items['feature_ids']) ? '#FFFF00': '#AAAAAA';
+    $traces['nodes']['marker']['color'][] = in_array($node_id, $network_items['feature_ids']) ? '#FFFF00AA': '#AAAAAAAA';
   }
   
   // Now set the tick labels
@@ -292,4 +292,45 @@ function tripal_network_get_plotly_data($network_items, &$layout, $layer_by, $co
   $layout['scene']['zaxis']['title'] = $layers['title'];
   
   return array_values($traces);
+}
+
+/**
+ * 
+ */
+function tripal_network_get_plotly_degree_distribution_plot_layout(){
+  return [
+    'title' => "Node Degree Distribution",
+    'xaxis' => [
+      'type' => "log",
+      'title' => 'log(degree)'
+    ],
+    'yaxis' => [
+      'type' => "log",
+      'title' => 'log(count)'
+    ]
+  ];
+}
+
+function tripal_network_get_plotly_degree_distribution_plot_data($network_details){
+  
+  $plot_data = [
+    'x' => [],
+    'y' => [],
+    'mode' => 'markers',
+    'type' => 'scatter'
+  ];
+  $degree_count = [];
+  foreach ($network_details['nodes'] as $node) {
+    if (!array_key_exists($node['degree'], $degree_count)) {
+      $degree_count[$node['degree']] = 1;
+    }
+    else {
+      $degree_count[$node['degree']]++;
+    }
+  }
+  foreach ($degree_count as $degree => $cnt) {
+    $plot_data['x'][] = $degree;
+    $plot_data['y'][] = $cnt;
+  }
+  return $plot_data;
 }

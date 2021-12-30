@@ -157,6 +157,12 @@ class GraphMLImporter extends TripalImporter {
    * section.
    */
   private $attr_keys = [];
+  
+  /**\
+   * An associative array that maps attribute keys from the GraphML
+   * to term IDs.
+   */
+  private $terms2attrs = [];
 
 
   /**
@@ -881,6 +887,9 @@ class GraphMLImporter extends TripalImporter {
         // it up either way.
         $term_name = $term->dbxref_id->db_id->name . ':' . $term->dbxref_id->accession;
         $this->terms[$term_name] = $term;
+        
+        // Add the mapping between the attribute key and the term
+        $this->terms2attrs[$term_name] = $matches[1];
       }
     }
 
@@ -1731,9 +1740,11 @@ class GraphMLImporter extends TripalImporter {
     chado_query($sql, $args);
     $sql = "DELETE from {network_attr} WHERE network_id = :network_id";
     chado_query($sql, $args);
-    $sql = "DELETE from {network_feature} WHERE network_node_id IN (SELECT network_node_id FROM network_node WHERE network_id = :network_id)";
+    $sql = "DELETE from {network_feature} WHERE network_node_id IN 
+             (SELECT network_node_id FROM {network_node} WHERE network_id = :network_id)";
     chado_query($sql, $args);
-    $sql = "DELETE from {network_compound} WHERE network_node_id IN (SELECT network_node_id FROM network_node WHERE network_id = :network_id)";
+    $sql = "DELETE from {network_compound} WHERE network_node_id IN 
+             (SELECT network_node_id FROM {network_node} WHERE network_id = :network_id)";
     chado_query($sql, $args);
     $sql = "DELETE from {network_node} WHERE network_id = :network_id";
     chado_query($sql, $args);
@@ -1799,10 +1810,10 @@ class GraphMLImporter extends TripalImporter {
     $network_analysis->insert();
 
     // Add the network properties
-    $init_sql = "INSERT INTO {networkprop} (network_id, type_id, value, rank) VALUES\n";
+    $init_sql = "INSERT INTO {networkprop} (network_id, type_id, value, value_num, rank) VALUES\n";
     $j = 0;
     $args = [];
-    foreach ($this->graph as $key => $value) {
+    foreach ($this->graph as $key => $val) {
       if (array_key_exists($key, $this->terms) and preg_match('/:/', $key)) {
         // Donj't save the name as a property because the name is
         // wikth the feature recrod.
@@ -1810,14 +1821,26 @@ class GraphMLImporter extends TripalImporter {
           continue;
         }
         $j++;
+        
+        // Data of type 'string' should go in the value column.
+        // all other is numeric and should go in the 'value_num' column.
+        $value = NULL;
+        $value_num = NULL;
+        if ($this->attr_keys[$this->terms2attrs[$key]]['attr.type'] == 'string') {
+          $value = $val;
+        }
+        else {
+          $value_num = $val;
+        }
 
         // Build the SQL/args.
         $term = $this->terms[$key];
         if ($term) {
-          $sql .= "(:network_id_$j, :type_id_$j, :value_$j, :rank_$j),\n";
+          $sql .= "(:network_id_$j, :type_id_$j, :value_$j, :value_num_$j, :rank_$j),\n";
           $args[":network_id_$j"] = $this->network->getID();
           $args[":type_id_$j"] = $term->cvterm_id;
           $args[":value_$j"] = $value;
+          $args[":value_num_$j"] = $value_num;
           $args[":rank_$j"] = 0;
         }
       }
@@ -2004,8 +2027,8 @@ class GraphMLImporter extends TripalImporter {
 
     $this->setItemsHandled(0);
     $this->setTotalItems($num_batches);
-
-    $init_sql = "INSERT INTO {network_nodeprop} (network_node_id, type_id, value, rank) VALUES\n";
+    
+    $init_sql = "INSERT INTO {network_nodeprop} (network_node_id, type_id, value, value_num, rank) VALUES\n";
     $i = 0;
     $j = 0;
     $total = 0;
@@ -2019,7 +2042,7 @@ class GraphMLImporter extends TripalImporter {
       $i++;
 
       // Iterate through all of the properties of this feature.
-      foreach ($node as $key => $value) {
+      foreach ($node as $key => $val) {
         if (array_key_exists($key, $this->terms) and preg_match('/:/', $key)) {
 
 
@@ -2029,13 +2052,25 @@ class GraphMLImporter extends TripalImporter {
             continue;
           }
           $j++;
+          
+          // Data of type 'string' should go in the value column.
+          // all other is numeric and should go in the 'value_num' column.
+          $value = NULL;
+          $value_num = NULL;
+          if ($this->attr_keys[$this->terms2attrs[$key]]['attr.type'] == 'string') {
+            $value = $val;
+          }
+          else {
+            $value_num = $val;
+          }
 
           // Build the SQL/args.
           $term = $this->terms[$key];
-          $sql .= "(:network_node_id_$j, :type_id_$j, :value_$j, :rank_$j),\n";
+          $sql .= "(:network_node_id_$j, :type_id_$j, :value_$j, :value_num_$j, :rank_$j),\n";
           $args[":network_node_id_$j"] = $info['network_node_id'];
           $args[":type_id_$j"] = $term->cvterm_id;;
           $args[":value_$j"] = $value;
+          $args[":value_num_$j"] = $value_num;
           $args[":rank_$j"] = 0;
         }
       }
@@ -2068,8 +2103,9 @@ class GraphMLImporter extends TripalImporter {
 
     $this->setItemsHandled(0);
     $this->setTotalItems($num_batches);
-
-    $init_sql = "INSERT INTO {network_edgeprop} (network_edge_id, type_id, value, rank) VALUES\n";
+    
+      
+    $init_sql = "INSERT INTO {network_edgeprop} (network_edge_id, type_id, value, value_num, rank) VALUES\n";
     $i = 0;
     $j = 0;
     $total = 0;
@@ -2081,18 +2117,30 @@ class GraphMLImporter extends TripalImporter {
       $edge = $this->getCachedElement($findex);
       $total++;
       $i++;
-
+      
       // Iterate through all of the properties of this feature.
-      foreach ($edge as $key => $value) {
+      foreach ($edge as $key => $val) {
         if (array_key_exists($key, $this->terms) and preg_match('/:/', $key)) {
           $j++;
+          
+          // Data of type 'string' should go in the value column.
+          // all other is numeric and should go in the 'value_num' column.
+          $value = NULL;
+          $value_num = NULL;
+          if ($this->attr_keys[$this->terms2attrs[$key]]['attr.type'] == 'string') {
+            $value = $val;
+          }                  
+          else {
+            $value_num = $val;
+          }
 
           // Build the SQL/args.
           $term = $this->terms[$key];
-          $sql .= "(:network_edge_id_$j, :type_id_$j, :value_$j, :rank_$j),\n";
+          $sql .= "(:network_edge_id_$j, :type_id_$j, :value_$j, :value_num_$j, :rank_$j),\n";
           $args[":network_edge_id_$j"] = $info['network_edge_id'];
           $args[":type_id_$j"] = $term->cvterm_id;
           $args[":value_$j"] = $value;
+          $args[":value_num_$j"] = $value_num;
           $args[":rank_$j"] = 0;
         }
       }

@@ -7,17 +7,12 @@
  *   An associative array of edges with the keys 'edges' and 'nodes'.
  */
 function tripal_network_get_network_elements($selection = []) {
+  
   $organism_id = array_key_exists('organism_id', $selection) ? $selection['organism_id'] : NULL;
   $network_id = array_key_exists('network_id', $selection) ? $selection['network_id'] : NULL;
   $feature_ids = array_key_exists('feature_ids', $selection) ? $selection['feature_ids'] : [];
   $term_ids = array_key_exists('term_ids', $selection) ? $selection['term_ids'] : [];
-  $limit_term = array_key_exists('limit_term', $selection) ? $selection['limit_term'] : NULL;
-  $limit = array_key_exists('limit', $selection) ? $selection['limit'] : 0;
-  $offset = array_key_exists('offset', $selection) ? $selection['offset'] : 0;
-
-  if ($offset and !$limit) {
-    throw new Exception('tripal_network_get_edges: if an offset is provided a limit must also be provided.');
-  }
+  $filters = array_key_exists('filters', $selection) ? $selection['filters'] : [];
 
   $params = [];
   $params[':organism_id'] = $organism_id;
@@ -55,32 +50,49 @@ function tripal_network_get_network_elements($selection = []) {
     $where .= " AND (FCVTS.cvterm_id IN (:term_ids) OR FCVTT.cvterm_id IN (:term_ids)) ";
     $params[':term_ids'] = $term_ids;
   }
-
-  if ($limit_term) {
-    $term = chado_get_cvterm(['id' => $limit_term]);
-    $sql .= "
-      INNER JOIN {network_edgeprop} NEP on NEP.network_edge_id = NE.network_edge_id
-    ";
-    $where .= " AND NEP.type_id = :cvterm_id";
-    $params[':cvterm_id'] = $term->cvterm_id;
-  }
-  $limit_sql = '';
-  $order_sql = '';
-  if ($limit) {
-    $limit_sql = " LIMIT :limit OFFSET :offset";
-    if ($limit_term) {
-      // TODO: we need to know if this is a numerical value so we can sort
-      // properly and if we should sort ascending or descending.
-      $order_sql = " ORDER BY NEP.value DESC";
+  
+  $sql = $sql . $where;
+  
+  // Now apply the filters
+  foreach ($filters as $fi => $filter) {    
+    if (array_key_exists('limit_by', $filter) and $filter['limit_by']) {
+      $limit_term = chado_get_cvterm(['id' => $filter['limit_by']]); 
+      $sql = "
+        SELECT TBL${fi}.* 
+        FROM ($sql) as TBL${fi}
+          INNER JOIN {network_edgeprop} NEP${fi} on NEP${fi}.network_edge_id = TBL${fi}.network_edge_id              
+        WHERE NEP${fi}.type_id = :fi_${fi}_cvterm_id  
+      ";
+      
+      # Add min and max limits.
+      if (array_key_exists('max_value', $filter) and is_numeric($filter['max_value'])) {
+        $sql .= " AND NEP${fi}.value_num <= :${fi}_max_value";
+        $params[":${fi}_max_value"] = $filter['max_value'];
+      }
+      if (array_key_exists('min_value', $filter) and is_numeric($filter['min_value'])) {
+        $sql .= " AND NEP${fi}.value_num >= :${fi}_min_value";
+        $params[":${fi}_min_value"] = $filter['min_value'];
+      }
+      
+      $order_by = 'ASC';
+      if (array_key_exists('order_by', $filter) and $filter['order_by'] == 'DESC') {
+        $order_by = 'DESC';
+      }
+      
+      if (array_key_exists('use_abs', $filter) and $filter['use_abs'] == 1) {
+        $sql .= " ORDER BY ABS(NEP${fi}.value_num) $order_by";
+      }
+      else {
+        $sql .= " ORDER BY NEP${fi}.value_num $order_by";
+      }
+      $params[":fi_${fi}_cvterm_id"] = $limit_term->cvterm_id;
+      
+    } 
+    if (array_key_exists('limit', $filter) and $filter['limit'] > 0) {
+      $sql .= " LIMIT :${fi}_limit OFFSET 0";
+      $params[":${fi}_limit"] = $filter['limit'];
     }
-    else {
-      $order_sql = " ORDER BY NE.network_edge_id ASC";
-    }
-    $params[':limit'] = $limit;
-    $params[':offset'] = $offset;
   }
-  $sql = $sql . $where . $order_sql . $limit_sql;
-
 
   // Execute the query and return the parsed results.
   $results = chado_query($sql, $params);
@@ -118,6 +130,10 @@ function tripal_network_get_network_elements($selection = []) {
  *   The total number of bins
  */
 function tripal_network_layer_edges($organism_id, $network_id, $edge_ids, $layer_term) {
+  
+  if (empty($edge_ids)) {
+    return NULL;
+  }
 
   // We want to take the absolute value of some property types.
   $abs = FALSE;
@@ -311,14 +327,13 @@ function tripal_network_layer_edges($organism_id, $network_id, $edge_ids, $layer
  * @return string[]
  */
 function tripal_network_color_edges($organism_id, $network_id, $edge_ids, $color_term) {
-
+  
   // The colros array that will be returned.
   $colors = [];
 
 
   // Hard-coded virdis colors
   $virdis_colors = [
-
     'rgb(68, 1, 84)',
     'rgb(71, 19, 101)',
     'rgb(72, 36, 117)',
@@ -408,7 +423,12 @@ function tripal_network_get_networkprops($ids, $term) {
   ];
   $results = chado_query($sql, $args);
   while ($property = $results->fetchObject()) {
-    $props[$property->network_id] = $property->value;
+    if ($property->value and !$property->value_num) {
+      $props[$property->network_id] = $property->value;
+    }
+    elseif (!$property->value and $property->value_num) {
+      $props[$property->network_id] = $property->value_num;
+    }
   }
   return $props;
 }
@@ -519,7 +539,12 @@ function tripal_network_get_nodeprops($ids, $id_type = 'network_node_id', $term,
 
   $results = chado_query($sql, $args);
   while ($property = $results->fetchObject()) {
-    $props[$property->$id_type] = $property->value;
+    if ($property->value and !$property->value_num) {
+      $props[$property->$id_type] = $property->value;
+    }
+    elseif (!$property->value and $property->value_num) {
+      $props[$property->$id_type] = $property->value_num;
+    }
   }
   return $props;
 }
@@ -549,7 +574,7 @@ function tripal_network_get_edgeprops($ids, $term) {
   }
 
   $sql = "
-    SELECT NEP.network_edge_id, NEP.value
+    SELECT NEP.network_edge_id, NEP.value, NEP.value_num
     FROM {network_edgeprop} NEP
       INNER JOIN {cvterm} CVT on CVT.cvterm_id = NEP.type_id
       INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
@@ -566,7 +591,12 @@ function tripal_network_get_edgeprops($ids, $term) {
   ];
   $results = chado_query($sql, $args);
   while ($property = $results->fetchObject()) {
-    $props[$property->network_edge_id] = $property->value;
+    if ($property->value and !$property->value_num) {
+      $props[$property->network_edge_id] = $property->value;
+    }
+    elseif (!$property->value and $property->value_num) {
+      $props[$property->network_edge_id] = $property->value_num;
+    }
   }
   return $props;
 }
@@ -645,7 +675,7 @@ function tripal_network_get_attributes($organism_id = NULL, $network_id = NULL, 
   return $response;
 }
 /**
- * Returns the an options array  of attributes for a given network.
+ * Returns an options array of attributes for a given network.
  *
  * @param integer $network_id
  *   The network ID for which attributes should be retreived.
@@ -712,6 +742,7 @@ function tripal_network_get_attribute_options($organism_id=NULL, $network_id=NUL
     $args[':network_id'] = $network_id;
   }
   $results = chado_query($sql, $args);
+  $props[] = '--Select--';
   while ($record = $results->fetchObject()) {
     $term = $record->db_name . ':' . $record->accession;
     $props[$term] = ucfirst($record->name);

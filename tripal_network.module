@@ -180,6 +180,11 @@ function tripal_network_theme($existing, $type, $theme, $path) {
       'render element' => 'element',
       'path' => drupal_get_path('module', 'tripal_network') . "/includes/tripal_network.viewer.inc",
     ),
+    'tripal_network_viewer_filter_form_list' => array(
+      'function' => 'theme_tripal_network_viewer_filter_form_list',
+      'render element' => 'element',
+      'file' => 'includes/tripal_network.viewer.inc',
+    ),
   );
   return $items;
 }

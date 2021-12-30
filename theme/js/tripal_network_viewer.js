@@ -10,6 +10,10 @@
    var sidebar_width = 0;
    var display_offset = 0;
    var display_width = 0;
+
+   // Holds the value of waiting ajax commands that are using the 
+   // spinner. The spinner should turn off once all have completed.
+   var spinner_waiting = 0;
    
    // Plotly has a bug. When a relayout is called it triggers a click
    // event which causes an eternal loop. So, we'll use this to keep 
@@ -95,8 +99,37 @@
      $('#tripal-network-viewer-display').width((display_width + sidebar_width) - 40);
      Plotly.Plots.resize('tripal-network-viewer');
   }
+
+  $.fn.showSpinner = function() {
+	spinner_waiting = spinner_waiting + 1;
+	$('#tripal-network-viewer-loading').show();
+  }
+  $.fn.hideSpinner = function() {
+	spinner_waiting = spinner_waiting - 1;
+	if (spinner_waiting == 0) {
+		$('#tripal-network-viewer-loading').hide();
+	}
+  }
   
-  
+  $.fn.updateNetworkPlots = function() {
+	
+	// The plotly data for the degree distribution plot
+	// is set by the tripal_network Drupal code as form elements
+	// in the network-details form when it is updated. We can
+	// pull the data from those elements to create the plot.
+	var dist_data = JSON.parse($('#tripal-network-degree-dist-plot-data').val())
+	var dist_layout = JSON.parse($('#tripal-network-degree-dist-plot-layout').val())
+	
+	var settings = {
+      'displaylogo': false, 
+      'toImageButtonOptions' : {
+        'filename': 'tripal_network_degree_distribution',
+        'format': 'png',
+        'scale' : 10
+      }
+    };
+	Plotly.newPlot('tripal-network-degree-dist-plot', [dist_data], dist_layout, settings);
+  }
   /**
    *
    */
@@ -104,7 +137,7 @@
      var node_id = args['node_id'];
      var data = state;
      data['node_id'] = node_id;
-     $('#tripal-network-viewer-loading').show()
+     $.fn.showSpinner()
      $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
@@ -116,12 +149,12 @@
 		$('#tripal-network-viewer-node-box form').replaceWith(response[1]['data']);
 	    Drupal.attachBehaviors($('#tripal-network-viewer-node-box form'), response[0]['settings']);
         $.fn.showBox('tripal-network-viewer-node-box');
-		$('#tripal-network-viewer-loading').hide();
+		$.fn.hideSpinner();
 
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
-		$('#tripal-network-viewer-loading').hide();
+		$.fn.hideSpinner();
       }
     }) 
   }
@@ -131,7 +164,7 @@
    *
    */
   $.fn.updateEdgeDetails = function(args) {
-	 $('#tripal-network-viewer-loading').show()
+	 $.fn.showSpinner()
 	
      var edge_id = args['edge_id'];
      $.ajax({
@@ -145,11 +178,11 @@
 		 $('#tripal-network-viewer-edge-box form').replaceWith(response[1]['data']);
 	     Drupal.attachBehaviors($('#tripal-network-viewer-edge-box form'), response[0]['settings']);
          $.fn.showBox('tripal-network-viewer-edge-box');
-         $('#tripal-network-viewer-loading').hide();
+         $.fn.hideSpinner();
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
-		$('#tripal-network-viewer-loading').hide();
+		$.fn.hideSpinner();
       }
     }) 
   }
@@ -159,7 +192,7 @@
    *
    */
   $.fn.updateLayersForm = function() {
-    $('#tripal-network-viewer-loading').show()
+    $.fn.showSpinner()
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
@@ -170,11 +203,11 @@
       success: function(response) {
 	    $('#tripal-network-viewer-layers-box form').replaceWith(response[1]['data']);
         Drupal.attachBehaviors($('#tripal-network-viewer-layers-box form'), response[0]['settings']);
-		$('#tripal-network-viewer-loading').hide();
+		$.fn.hideSpinner();
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
-		$('#tripal-network-viewer-loading').hide();
+		$.fn.hideSpinner();
       }
     }) 
    };
@@ -183,7 +216,7 @@
    *
    */
   $.fn.updateFilterForm = function() {
-    $('#tripal-network-viewer-loading').show()
+    $.fn.showSpinner()
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
@@ -194,11 +227,11 @@
       success: function(response) {
 	    $('#tripal-network-viewer-filters-box form').replaceWith(response[1]['data']);
 		Drupal.attachBehaviors($('#tripal-network-viewer-filters-box form'), response[0]['settings']);
-		$('#tripal-network-viewer-loading').hide();
+		$.fn.hideSpinner();
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
-		$('#tripal-network-viewer-loading').hide();
+		$.fn.hideSpinner();
       }
     }) 
    };
@@ -220,7 +253,7 @@
 	   },
        success: function(json) {
          response = json;
-         $.fn.getNetwork(json);
+         $.fn.setState(response);
        },
        error: function(xhr, textStatus, thrownError) {
          alert(thrownError);
@@ -244,7 +277,7 @@
    */
   $.fn.getNetwork = function(args) {
    
-    $('#tripal-network-viewer-loading').show()
+    $.fn.showSpinner()
     
     $.fn.setState(args);
 
@@ -301,16 +334,19 @@
           selected_edge_prev_color = null;
         }
 
-		$('#tripal-network-viewer-network-details-box form').replaceWith(response['details']);
+        // Add in the network details and switch to that box.
+		$('#tripal-network-viewer-network-details-box form').replaceWith(response['details']);		
+		$.fn.showBox('tripal-network-viewer-network-details-box');		
+		$.fn.updateNetworkPlots();
 
         // Turn off the spinner.
-        $('#tripal-network-viewer-loading').hide();
+        $.fn.hideSpinner();
 
       },
       error: function(xhr, textStatus, thrownError) {
         alert(thrownError);
         // Turn off the spinner.
-        $('#tripal-network-viewer-loading').hide();
+        $.fn.hideSpinner();
       }
     })
   };
