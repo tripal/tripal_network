@@ -1,6 +1,9 @@
 The Tripal Network Extension Module
 ===================================
 
+[![DOI](https://zenodo.org/badge/58517985.svg)](https://zenodo.org/badge/latestdoi/58517985)
+
+
 The Tripal Network module supports inclusion of biological networks in a Tripal site. It provides:
 
 - A variety of new Chado tables for storing networks and because Chado does not currently have tables for storing compounds and pathways the module adds those as well.  All of these new tables follow Chado design standards.
