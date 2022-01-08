@@ -433,7 +433,8 @@ class GraphMLImporter extends TripalImporter {
       'items' => [
         'Similarity Score (SWO:0000425)',
         'Importance Weight (NCIT:C48192)',
-        'Rank (NCIT:C48904)'
+        'Rank (NCIT:C48904)',
+        'WGCNA edge weigth (local:WGCNA_edge_weight)',
       ],
       'title' => NULL,
       'type' => 'ul',
@@ -467,13 +468,7 @@ class GraphMLImporter extends TripalImporter {
            '!here' => l('here', 'http://localhost/admin/tripal/loaders/chado_vocabs/chado_cv/cvterm/add', ['attributes' => ['target' => '_blank']]),
            '!EBI' => l('EBI Ontology Lookup Service' ,'https://www.ebi.ac.uk/ols/index', ['attributes' => ['target' => '_blank']])
          ]) .
-         '<p><b>Visualizing the Network</b><br>' .
-         t('This loader does not create a 2D layout for the nodes in the network viewer.
-            This x and y positions must be provided as node attributes in the GraphML file. Please use the
-            following terms to indicate which node attributes below
-            provide the x and y coordinates. If these terms are not used or the attributes are not in
-            the GraphML file then node layout will be random. ') . $layout_terms . '</p>' .
-            '<p><b>Ranking Edges in the Network</br></b>' .
+         '<p><b>Ranking Edges in the Network</br></b>' .
          t('The netework viewer works best with at least one term that end-users can use for ranking edges. The following
             are examples of possible terms that could be used for ranking: ') . $ranking_terms . '</p>',
       '#weight' => -100,
@@ -522,7 +517,9 @@ class GraphMLImporter extends TripalImporter {
           $default_data_type = $form_state['storage']['graphml_key.' . $key . '.class'];
           $default_term_id = $form_state['storage']['graphml_key.' . $key . '.id'];
           $default_term = chado_get_cvterm(['cvterm_id' => $default_term_id]);
-          $default_term_name = $default_term->name;
+          if ($default_term) {
+            $default_term_name = $default_term->name;
+          }
         }
       }
       // Get the default value for the attribute if this is being reloaded
@@ -624,14 +621,18 @@ class GraphMLImporter extends TripalImporter {
     // that for the name.
     $graph_name = $this->graph['id'];
     $namet = chado_get_cvterm(['id' => 'schema:name']);
-    if (array_key_exists($namet->cvterm_id, $attr_terms['graph'])){
+    if ($namet and array_key_exists('graph', $attr_terms) and 
+        array_key_exists($namet->cvterm_id, $attr_terms['graph']) and
+        array_key_exists($attr_terms['graph'][$namet->cvterm_id], $this->graph)){
       $graph_name = $this->graph[$attr_terms['graph'][$namet->cvterm_id]];
       $graph_uname = $graph_name;
     }
 
     $graph_uname = $this->graph['id'];
     $unamet = chado_get_cvterm(['id' => 'data:0842']);
-    if (array_key_exists($unamet->cvterm_id, $attr_terms['graph'])){
+    if ($unamet and array_key_exists('graph', $attr_terms) and 
+        array_key_exists($unamet->cvterm_id, $attr_terms['graph']) and
+        array_key_exists($attr_terms['graph'][$unamet->cvterm_id], $this->graph)){
       $graph_uname = $this->graph[$attr_terms['graph'][$unamet->cvterm_id]];
       if (!$graph_name or $graph_name == 'G') {
         $graph_name = $graph_uname;
@@ -655,34 +656,6 @@ class GraphMLImporter extends TripalImporter {
       '#description' => t("A unique name name for this graph. It need not be human
          readable, but it must be unique from any other existing graph. This name was extracted from the GraphML file provided."),
     ];
-
-    // We need to let the user know how the load will perform given the
-    // inputs provided. First get the list of required terms.
-    $xcoord = chado_get_cvterm(['id' => 'SIO:000400']);
-    if (!array_key_exists($xcoord->cvterm_id, $attr_terms['node'])) {
-      drupal_set_message('The GraphML file provided needs a node attribute
-        assigned the term "x cartesian coordinate" (SIO:000400). This term
-        indicates that the attribute provides the x-axis coordinate for
-        the node for the network visualization. If you do
-        not have an attribute with this term then the node will be randomly
-        positioned in the graphical viewers.',  'warning');
-    }
-
-    $ycoord = chado_get_cvterm(['id' => 'SIO:000401']);
-    if (!array_key_exists($ycoord->cvterm_id, $attr_terms['node'])) {
-      drupal_set_message('The GraphML file provided needs a node attribute
-        assigned the term "y cartesian coordinate" (SIO:000401). This termy
-        indicates that the attribute provides the x-axis coordinate for
-        the node for the network visualization. If you do
-        not have an attribute with this term then the node will be randomly
-        positioned in the graphical viewers.',  'warning');
-    }
-
-    $simscore = chado_get_cvterm(['id' => 'SWO:0000425']);
-    if (!array_key_exists($simscore->cvterm_id, $attr_terms['edge'])) {
-
-    }
-
 
     $form['prev_step'] = array(
       '#type' => 'submit',

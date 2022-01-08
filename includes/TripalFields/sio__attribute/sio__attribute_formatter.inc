@@ -44,8 +44,10 @@ function tripal_network_sio__attribute_formatter_form($form, &$form_state, $item
 
   // Organize the attributes:
   foreach ($items as $index => $item) {
-    $domain_type = $item['value'][$domain_term];
-    $attributes[$domain_type . ' Attributes'][$index + 1] = ucfirst($item['value'][$attr_term]);
+    if (!empty($item['value'])) {
+      $domain_type = $item['value'][$domain_term];
+      $attributes[$domain_type . ' Attributes'][$index + 1] = ucfirst($item['value'][$attr_term]);
+    }
   }
 
   $form['items'] = [

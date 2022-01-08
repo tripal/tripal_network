@@ -1,5 +1,21 @@
 <?php
 
+function tripal_network_get_networks() {
+  $params = [];
+  $sql = "SELECT N.network_id FROM {network} N";
+  if ($organism_id) {
+    $sql .= " WHERE N.organism_id = :organism_id";
+    $params[':organism_id'] = $organism_id;
+  }
+  $sql .= " ORDER BY N.name";
+  
+  $networks = [];
+  $results = chado_query($sql, $params);
+  while ($network = $results->fetchObject()) {
+    $networks[] = chado_generate_var('network', ['network_id' => $network->network_id]);
+  }
+  return $networks;
+}
 /**
  * Retrieves the edges of a network.
  *

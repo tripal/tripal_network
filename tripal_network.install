@@ -75,12 +75,12 @@ function tripal_network_add_bulk_loader() {
   // If the template doesn't already exist then add it.
   $template_id = db_select('tripal_bulk_loader_template', 'tblt')
     ->fields('tblt',['template_id'])
-    ->condition('name', 'Tripal Network: Gene Functional Annotations Importer', '=')
+    ->condition('name', 'Tripal Network: Functional Annotations Importer', '=')
     ->execute()
     ->fetchField();
   if (!$template_id) {
     $options = [
-      'template_name' => 'Tripal Network: Gene Functional Annotations Importer',
+      'template_name' => 'Tripal Network: Functional Annotations Importer',
       'template_array' => $template,
     ];
     $errors = [];
@@ -215,6 +215,19 @@ function tripal_network_add_terms() {
     'cv_name' => 'SWO',
     'definition' => 'Similarity score',
   ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'NCIT:C48834',
+    'name' => 'Correlation',
+    'cv_name' => 'NCIT',
+    'definition' => 'The degree to which two or more quantities or events are linearly associated, a statistical relation between two or more variables such that systematic changes in the value of one variable are accompanied by systematic changes in the others. [ NCI ]',
+  ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:WGCNA_edge_weight',
+    'name' => 'WGCNA edge weight',
+    'cv_name' => 'local',
+    'definition' => 'The edge weight from a WGCNA network is the distance (e.g., euclidean) between the vector of topological overlap measures of each node with every other node.',
+  ]);
+  
   $term = tripal_insert_cvterm([
     'id' => 'NCIT:C44185',
     'name' => 'P-Value',
@@ -502,7 +515,15 @@ function tripal_network_add_terms() {
       'term' => 'schema:name',
       'type' => 'annotation'
     ],
+    'name' => [
+      'term' => 'schema:name',
+      'type' => 'annotation'
+    ],
     'g_uname' => [
+      'term' => 'data:0842',
+      'type' => 'annotation'
+    ],
+    'uname' => [
       'term' => 'data:0842',
       'type' => 'annotation'
     ],
@@ -511,6 +532,10 @@ function tripal_network_add_terms() {
       'type' => 'annotation'
     ],
     'v_degree' => [
+      'term' => 'OBI:0200130',
+      'type' => 'quantitative'
+    ],
+    'degree' => [
       'term' => 'OBI:0200130',
       'type' => 'quantitative'
     ],
@@ -527,10 +552,30 @@ function tripal_network_add_terms() {
       'type' => 'quantitative'
     ],
     'e_Similarity_Score' => [
-      'term' => 'SWO:0000425',
+      'term' => 'NCIT:C48834',
+      'type' => 'quantitative'
+    ],
+    'Similarity_Score' => [
+      'term' => 'NCIT:C48834',
+      'type' => 'quantitative'
+    ],
+    'weight' => [
+      'term' => 'NCIT:C48192',
+      'type' => 'quantitative'
+    ],
+    'e_WGCNA_weight' => [
+      'term' => 'local:WGCNA_edge_weight',
+      'type' => 'quantitative'
+    ],
+    'WGCNA_weight' => [
+      'term' => 'local:WGCNA_edge_weight',
       'type' => 'quantitative'
     ],
     'e_Interaction' =>  [
+      'term' => 'INO:0000002',
+      'type' => 'categorical'
+    ],
+    'Interaction' =>  [
       'term' => 'INO:0000002',
       'type' => 'categorical'
     ],
@@ -538,7 +583,15 @@ function tripal_network_add_terms() {
       'term' => 'local:KINC_cluster_index',
       'type' => 'quantitative'
     ],
+    'Cluster_Index' => [
+      'term' => 'local:KINC_cluster_index',
+      'type' => 'quantitative'
+    ],
     'e_Cluster_Size' => [
+      'term' => 'local:KINC_cluster_size',
+      'type' => 'quantitative'
+    ],
+    'Cluster_Size' => [
       'term' => 'local:KINC_cluster_size',
       'type' => 'quantitative'
     ],
@@ -546,19 +599,39 @@ function tripal_network_add_terms() {
       'term' => 'local:KINC_sample_string',
       'type' => 'annotation'
     ],
+    'Samples' => [
+      'term' => 'local:KINC_sample_string',
+      'type' => 'annotation'
+    ],
     'e_Test_Name' => [
       'term' => 'local:KINC_test_name',
       'type' => 'categorical'
     ],
+    'Test_Name' => [
+      'term' => 'local:KINC_test_name',
+      'type' => 'categorical'
+    ],
     'e_p_value' => [
-      'term' => 'local:KINC_pvalue',
+      'term' => 'NCIT:C44185',
+      'type' => 'quantitative'
+    ],
+    'p_value' => [
+      'term' => 'NCIT:C44185',
       'type' => 'quantitative'
     ],
     'e_r_squared' => [
-      'term' => 'local:KINC_rsquared',
+      'term' => 'NCIT:C85542',
+      'type' => 'quantitative'
+    ],
+    'r_squared' => [
+      'term' => 'NCIT:C85542',
       'type' => 'quantitative'
     ],
     'e_rank' => [
+      'term' => 'NCIT:C48904',
+      'type' => 'quantitative'
+    ],
+    'rank' => [
       'term' => 'NCIT:C48904',
       'type' => 'quantitative'
     ],
@@ -566,11 +639,23 @@ function tripal_network_add_terms() {
       'term' => 'local:KINC_WAnova_Max',
       'type' => 'quantitative'
     ],
+    'WAnova_Max' => [
+      'term' => 'local:KINC_WAnova_Max',
+      'type' => 'quantitative'
+    ],
     'e_WAnova_Min'  => [
       'term' => 'local:KINC_WAnova_Min',
       'type' => 'quantitative'
     ],
+    'WAnova_Min'  => [
+      'term' => 'local:KINC_WAnova_Min',
+      'type' => 'quantitative'
+    ],
     'e_MissingTtest' => [
+      'term' => 'local:KINC_Missing_Ttest',
+      'type' => 'quantitative'
+    ],
+    'MissingTtest' => [
       'term' => 'local:KINC_Missing_Ttest',
       'type' => 'quantitative'
     ],

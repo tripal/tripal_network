@@ -535,16 +535,19 @@ function tripal_network_viewer_ajax_retrieve() {
     $sql = "
       SELECT DISTINCT F.feature_id
       FROM {feature} F
-        INNER JOIN {network_feature} NN on NN.feature_id = F.feature_id
         LEFT JOIN {feature_synonym} FS on FS.feature_id = F.feature_id
         LEFT JOIN {synonym} S on S.synonym_id = FS.synonym_id
       WHERE
-        lower(F.name) = :name OR
-        lower(F.uniquename) = :name OR
-        lower(S.name) = :name
+        (lower(F.name) = :name OR
+         lower(F.uniquename) = :name OR
+         lower(S.name) = :name) AND
+        F.organism_id = :organism_id
     ";
     foreach ($features as $fname) {
-      $args = [':name' => strtolower($fname)];
+      $args = [
+        ':name' => strtolower(trim($fname)),
+        ':organism_id' => $organism_id
+      ];
       $feature = chado_query($sql, $args)->fetchObject();
       if ($feature) {
         $feature_ids[] = $feature->feature_id;
