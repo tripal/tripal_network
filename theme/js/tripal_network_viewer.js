@@ -8,14 +8,12 @@
      'network_session_id': null,
    };
    
+   var sidebar_default_width = null;
+   
    var selected_node = null;
    var selected_edge = null;
    var selected_edge_prev_color = null;
    
-   var sidebar_width = 0;
-   var display_offset = 0;
-   var display_width = 0;
-
    // Holds the value of waiting ajax commands that are using the 
    // spinner. The spinner should turn off once all have completed.
    var spinner_waiting = 0;
@@ -36,18 +34,48 @@
   // Code that must be executed when the document is ready and never again
   // goes in this section
   $(document).ready(function() {
+	
+	// For displays that don't fit the navbar and the sidebar we will scale
+	// the sidebar to fit the width. Otherwise we need to remember the
+	// default sidebar width. 
+	sidebar_default_width = $('#tripal-network-viewer-sidebar').width();
    
     // Get the size of the elements so we can resize things when
     // closing the sidebar.
-    sidebar_width = $('#tripal-network-viewer-sidebar').width();    
-    display_offset = $('#tripal-network-viewer-display').offset();
-    display_width = $(window).width() - display_offset.left;
-    $('#tripal-network-viewer-display').width(display_width);
+    var window_width = $(window).width();
+    var navbar_width = $('tripal-network-viewer-navbar').width();
+    var sidebar_width =  $('#tripal-network-viewer-sidebar').width();
+	var toggle_img_width =  $('#tripal-network-viewer-slide-icon').width();
+    var control_width =  sidebar_width + navbar_width + toggle_img_width * 2 + 15;
+    var display_width = window_width - (sidebar_width + navbar_width);
+    
+    // Set some defaults    
+    if (control_width > window_width) {
+	    
+	    // Shrink the navigation bar.
+		navbar_width = 50
+		
+		// Fill the rest of the space with the sidebar and toggle button.
+		sidebar_width = window_width - ((toggle_img_width * 2) + navbar_width);
+		sidebar_default_width = sidebar_width;
+		toggle_width =  window_width - ((toggle_img_width * 2) + 15);
+		display_width = 0;			
+		
+		// Now resize everthing.
+		$('.tripal-network-viewer-navbar-icon').css({'height': 25, 'width': 25, 'margin': 12});
+		$('#tripal-network-viewer-navbar').width(navbar_width);		
+		$('#tripal-network-viewer-sidebar').css({'left': navbar_width, 'width': sidebar_width});
+		$('#tripal-network-viewer-sidebar-toggle').css({'left': navbar_width, 'width': toggle_width});
+		$('#tripal-network-viewer-display').css({'left': navbar_width + sidebar_width, 'width': display_width});
+	}  
     
     // If the window size changes we need to update the size variables.
     $( window ).resize(function() {
-      display_width = $(window).width() - display_offset.left;
-      $('#tripal-network-viewer-display').width(display_width);
+	  var window_width = $(window).width() 
+	  var sidebar_width = $('#tripal-network-viewer-sidebar').width();
+	  var navbar_width = $('#tripal-network-viewer-navbar').width();
+      var display_width = window_width - (sidebar_width + navbar_width);
+      $('#tripal-network-viewer-display').css({'left': navbar_width + sidebar_width, 'width': display_width});
       Plotly.Plots.resize('tripal-network-viewer');
     });
       
@@ -88,21 +116,32 @@
   }
   
   $.fn.openSidebar = function() {
-     $('#tripal-network-viewer-sidebar').width(sidebar_width);
-     $('#tripal-network-viewer-sidebar-header').show();
-     $('#tripal-network-viewer-sidebar-boxes').show("fast"); 
-     $('#tripal-network-viewer-display').css({top: 0, left: display_offset.left, position:'absolute'});
-     $('#tripal-network-viewer-display').width(display_width);
-     Plotly.Plots.resize('tripal-network-viewer');
+	var window_width = $(window).width() 
+    var navbar_width = $('#tripal-network-viewer-navbar').width();   
+    var sidebar_width = sidebar_default_width;
+    var toggle_img_width =  $('#tripal-network-viewer-slide-icon').width();
+    var display_width =  window_width - (sidebar_width + navbar_width);
+    var toggle_width = sidebar_width + toggle_img_width * 2;
+
+	$('#tripal-network-viewer-sidebar').width(sidebar_default_width);
+    $('#tripal-network-viewer-sidebar').show();
+    $('#tripal-network-viewer-sidebar-toggle').width(toggle_width);
+    $('#tripal-network-viewer-display').css({top: 0, left: navbar_width + sidebar_width, position:'absolute'});
+    $('#tripal-network-viewer-display').width(display_width);
+    Plotly.Plots.resize('tripal-network-viewer');
   }
   
   $.fn.closeSidebar = function() {
-     $('#tripal-network-viewer-sidebar-boxes').hide("fast");
-     $('#tripal-network-viewer-sidebar-header').hide();
-     $('#tripal-network-viewer-sidebar').width('40');
-     $('#tripal-network-viewer-display').css({top: 0, left: 90, position:'absolute'});
-     $('#tripal-network-viewer-display').width((display_width + sidebar_width) - 40);
-     Plotly.Plots.resize('tripal-network-viewer');
+	var window_width = $(window).width() 
+	var navbar_width = $('#tripal-network-viewer-navbar').width();   
+    var display_width =  window_width - navbar_width;
+    var toggle_img_width =  $('#tripal-network-viewer-slide-icon').width();
+    $('#tripal-network-viewer-sidebar').animate({width: 'toggle'}, "slow");
+    $('#tripal-network-viewer-sidebar').width(0);
+    $('#tripal-network-viewer-sidebar-toggle').width(toggle_img_width * 2);
+    $('#tripal-network-viewer-display').css({top: 0, left: navbar_width, position:'absolute'});
+    $('#tripal-network-viewer-display').width((display_width));
+    Plotly.Plots.resize('tripal-network-viewer');
   }
 
   $.fn.showSpinner = function() {
@@ -342,7 +381,6 @@
 
         // Add in the network details and switch to that box.
 		$('#tripal-network-viewer-network-details-box form').replaceWith(response['details']);		
-		$.fn.showBox('tripal-network-viewer-network-details-box');		
 		$.fn.updateNetworkPlots();
 
         // Turn off the spinner.

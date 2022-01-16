@@ -57,7 +57,8 @@ $edge_details = drupal_render($edge_details);
 
 ?>
 <div id="tripal-network-viewer-app">
-   <div id="tripal-network-viewer-loading"><img src="<?php print $theme_path?>/images/loading.gif">
+   <div id="tripal-network-viewer-loading">
+   	 <div id="tripal-network-viewer-loading-spinner"></div>
    </div>
    <div id="tripal-network-viewer-navbar">
      <div><img id="tripal-network-viewer-network-select-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_selection_2256434.png"></div>
@@ -70,10 +71,10 @@ $edge_details = drupal_render($edge_details);
      <div><img id="tripal-network-viewer-about-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_about_4190914.png"></div>
      <div><img id="tripal-network-viewer-help-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_help_2302539.png"></div>
    </div>
-   <div id="tripal-network-viewer-sidebar">
-     <div id="tripal-network-viewer-sidebar-toggle">
+   <div id="tripal-network-viewer-sidebar-toggle">
        <img id="tripal-network-viewer-slide-icon" class="tripal-network-viewer-sidebar-icon" src="<?php print $theme_path?>/images/noun_slide_3149648.png">
-     </div>
+   </div>
+   <div id="tripal-network-viewer-sidebar">
      <div id="tripal-network-viewer-sidebar-boxes">
        <div id="tripal-network-viewer-sidebar-header">
          <h1>3D Network Explorer</h1>

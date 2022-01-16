@@ -30,12 +30,12 @@ function tripal_network_viewer_ajax_init() {
     'feature_id' => $feature_id,
     'selected_node' => null,
     'selected_edge' => null,
-    'layer_by' => 'SWO:0000425',
-    'color_by' => 'SWO:0000425',
+    'layer_by' => 'NCIT:C48834',
+    'color_by' => 'NCIT:C48834',
     'filters' => [
       0 => [
         'limit' => 500,
-        'limit_by' => 'SWO:0000425',
+        'limit_by' => 'NCIT:C48834',
         'order_by' => 'DESC',
         'use_abs' => 1
       ],
@@ -502,10 +502,10 @@ function tripal_network_viewer_ajax_retrieve() {
 
   // TODO: this shoulnd't be hardcoded.
   if (!$layer_by) {
-    $layer_by = 'SWO:0000425';
+    $layer_by = 'NCIT:C48834';
   }
   if (!$color_by) {
-    $color_by = 'SWO:0000425';
+    $color_by = 'NCIT:C48834';
   }
 
   if (!tripal_network_viewer_has_access($organism_id, $network_id)) {
@@ -810,9 +810,10 @@ function tripal_network_viewer_network_form_ajax_callback($form, $form_state) {
 
   // Tell Drupal to update the network
   if ($form_state['triggering_element']['#name'] == 'load_network_button') {
+    tripal_network_add_ajax_command(ajax_command_invoke(NULL, "closeSidebar"));
     tripal_network_add_ajax_command(ajax_command_invoke(NULL, "getNetwork", [$args]));
     tripal_network_add_ajax_command(ajax_command_invoke(NULL, "updateFilterForm"));
-    tripal_network_add_ajax_command(ajax_command_invoke(NULL, "updateLayersForm"));
+    tripal_network_add_ajax_command(ajax_command_invoke(NULL, "updateLayersForm"));    
   }
 
   return $form;

@@ -158,7 +158,7 @@ function tripal_network_layer_edges($organism_id, $network_id, $edge_ids, $layer
 
   // We want to take the absolute value of some property types.
   $abs = FALSE;
-  if ($layer_term == 'SWO:0000425') {
+  if ($layer_term == 'NCIT:C48834') {
     $abs = TRUE;
   }
 

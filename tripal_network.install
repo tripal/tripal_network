@@ -34,6 +34,7 @@ function tripal_network_install() {
   tripal_network_add_network_attrprop_table($schema);
   tripal_network_add_network_cvterm_table($schema);
   tripal_network_add_network_file_table($schema);
+  tripal_network_add_network_pub_table($schema);
 
   // Tables for storing the network nodes.
   tripal_network_add_network_node_table($schema);

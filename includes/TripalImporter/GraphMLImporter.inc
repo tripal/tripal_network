@@ -431,7 +431,7 @@ class GraphMLImporter extends TripalImporter {
 
     $ranking_terms = theme_item_list([
       'items' => [
-        'Similarity Score (SWO:0000425)',
+        'Correlation (NCIT:C48834)',
         'Importance Weight (NCIT:C48192)',
         'Rank (NCIT:C48904)',
         'WGCNA edge weigth (local:WGCNA_edge_weight)',

@@ -16,8 +16,8 @@ function tripal_network_neighborhood_viewer_ajax_retrieve() {
   $layout['title'] = 'Connected Neighbors';
   
   // TODO: this shoulnd't be hardcoded.
-  $layer_by = 'SWO:0000425';
-  $color_by = 'SWO:0000425';
+  $layer_by = 'NCIT:C48834';
+  $color_by = 'NCIT:C48834';
       
    // Make sure we have required filters.
   $plotly_data = NULL;
