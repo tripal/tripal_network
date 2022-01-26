@@ -5,33 +5,38 @@
  * @return string
  */
 function tripal_network_admin_home($organism_id = NULL) {
-  $params = [];
-  $sql = "SELECT * FROM {network} N";
-  if ($organism_id) {
-    $sql .= " WHERE N.organism_id = :organism_id";
-    $params[':organism_id'] = $organism_id;
-  }
   
-  $networks = chado_query($sql, $params);
-  while ($network = $networks->fetchObject()) {
+  $breadcrumb = [];
+  $breadcrumb[] = l('Home', '<front>');
+  $breadcrumb[] = l('Administration', 'admin');
+  $breadcrumb[] = l('Tripal', 'admin/tripal');
+  $breadcrumb[] = l('Extensions', 'admin/tripal/extension');
+  drupal_set_breadcrumb($breadcrumb);
+  
+  $admin_form = drupal_get_form('tripal_network_admin_form');
+  $admin_form = drupal_render($admin_form);
     
-  }
+  return $admin_form;
 }
 
+/**
+ * 
+ */
 function tripal_network_admin_form($form, &$form_state) {
-  $form['settings'] = [
-    '#type' => 'fieldset',
-    '#title' => 'Settings',
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
+
+  $form['submit'] = [
+    '#type' => 'submit',
+    '#value' => t('Save Settings'),
   ];
-  $form['settings']['default_layer_by'] = [
-    '#type' => 'select',
-    '#title' => t('Default Layer By Attribute'),
-    '#options' => [],
-    '#default_value' => ''
-  ];
+  
   return $form;
+}
+
+/**
+ * 
+ */
+function tripal_network_admin_form_submit($form, $form_state) {
+  
 }
 
 /**

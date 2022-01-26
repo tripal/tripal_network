@@ -135,8 +135,6 @@ function tripal_network_get_network_elements($selection = []) {
     'organism_id' => $organism_id,
     'network_id' => $network_id,
     'feature_ids' => $feature_ids,
-    'limit' => $limit,
-    'offset' => $offset,
     'edges' => $edges,
     'nodes' => $nodes
   ];
@@ -475,10 +473,16 @@ function tripal_network_get_nodes($ids, $id_type = 'network_node_id') {
   }
    
   $sql = "
-    SELECT NN.network_node_id, F.*
+    SELECT 
+      NN.network_node_id, F.*, 
+      DB.name as type_db_name, DBX.accession as type_accession
     FROM {network_node} NN
       INNER JOIN {network_feature} NF on NF.network_node_id = NN.network_node_id
       INNER JOIN {feature} F on F.feature_id = NF.feature_id
+      INNER JOIN {cvterm} CVT on F.type_id = CVT.cvterm_id
+      INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
+      INNER JOIN {db} DB on DB.db_id = DBX.db_id
+      INNER JOIN {cv} CV on CV.cv_id = CVT.cv_id
     WHERE
       $column in (:ids) 
   ";

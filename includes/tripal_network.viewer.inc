@@ -81,6 +81,23 @@ function tripal_network_viewer_ajax_get_filter_form() {
 /**
  *
  */
+function tripal_network_viewer_ajax_get_data_form() {
+  $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
+  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
+  $filters = array_key_exists('filters', $_GET) ? $_GET['filters'] : [];
+  $network_session_id  = array_key_exists('network_session_id', $_GET) ? $_GET['network_session_id'] : NULL;
+  
+  
+  $form = drupal_get_form('tripal_network_viewer_data_form', $network_session_id,
+      $organism_id, $network_id, $filters);
+  $form = drupal_render($form);
+  
+  ajax_deliver($form);
+}
+
+/**
+ *
+ */
 function tripal_network_viewer_ajax_get_node_details() {
   $node_id = array_key_exists('node_id', $_GET) ? $_GET['node_id'] : NULL;
   $state = $_GET;
@@ -147,7 +164,7 @@ function tripal_network_viewer_network_details_form($form, &$form_state, $networ
   ];
   $form['details'] = [
     '#type' => 'markup',
-    '#markup' => $details,
+    '#markup' => '',
   ];
   
   $form['network_details_degree_dist_plot'] = [
@@ -191,14 +208,13 @@ function tripal_network_viewer_node_details_form($form, &$form_state, $node_id =
     'summary' => 'Node Summary'
   ];
   $entity = NULL;
-
+  
   $node_name = 'Click a node to view its details';
   if ($node_id) {
     $feature = tripal_network_get_nodes([$node_id])[$node_id];
     
     $entity_id = chado_get_record_entity_by_table('feature', $feature->feature_id);
-    $entities = tripal_load_entity('TripalEntity', [$entity_id]);
-    field_attach_load('TripalEntity', $entities);
+    $entities = tripal_load_entity('TripalEntity', [$entity_id], FALSE, []);
     $entity = NULL;
     if (count($entities) == 1) {
       $entity = $entities[$entity_id];
@@ -218,11 +234,11 @@ function tripal_network_viewer_node_details_form($form, &$form_state, $node_id =
           continue;
         }
 
-        // Skip fields with no value
+        // Skip fields with no value that are auto loaded
         $field = field_info_field($field_name);
         $field_items = field_get_items('TripalEntity', $entity, $field_name);
         if (tripal_field_is_empty($field, $field_items)) {
-         // continue;
+          // continue;
         }
 
         // Add this field for display in the summary table.
@@ -281,6 +297,8 @@ function tripal_network_viewer_node_details_form($form, &$form_state, $node_id =
     }
     else {
       $field = field_info_field($default_field);
+      field_attach_load($entity->type, [$entity->id => $entity],
+          FIELD_LOAD_CURRENT, ['field_id' => $field['id']]);
       $instance = $other_fields[$default_field];
       $items = field_get_items('TripalEntity', $entity, $default_field);
       $display = $instance['display']['default'];
@@ -587,7 +605,8 @@ function tripal_network_viewer_ajax_retrieve() {
   $plotly_data = tripal_network_get_plotly_data($network_items, $layout, $layer_by, $color_by);
 
   // Build the network details content.
-  $details = drupal_render(drupal_get_form('tripal_network_viewer_network_details_form', $network_items));
+  $details = drupal_get_form('tripal_network_viewer_network_details_form', $network_items);
+  $details = drupal_render($details);
 
   drupal_json_output([
     'data' => $plotly_data, 
@@ -812,8 +831,6 @@ function tripal_network_viewer_network_form_ajax_callback($form, $form_state) {
   if ($form_state['triggering_element']['#name'] == 'load_network_button') {
     tripal_network_add_ajax_command(ajax_command_invoke(NULL, "closeSidebar"));
     tripal_network_add_ajax_command(ajax_command_invoke(NULL, "getNetwork", [$args]));
-    tripal_network_add_ajax_command(ajax_command_invoke(NULL, "updateFilterForm"));
-    tripal_network_add_ajax_command(ajax_command_invoke(NULL, "updateLayersForm"));    
   }
 
   return $form;
@@ -1340,5 +1357,82 @@ function tripal_network_viewer_layers_form_ajax_callback($form, $form_state) {
   // Tell Drupal to update the network
   tripal_network_add_ajax_command(ajax_command_invoke(NULL, "getNetwork", [$args]));
 
+  return $form;
+}
+
+/**
+ *
+ **/
+function tripal_network_viewer_data_form($form, $form_state,  $network_session_id,
+    $organism_id = NULL, $network_id = NULL, $filters = []) {
+
+  $details = 'Please select a network to view details.';
+  if (!$organism_id) {
+    $form['details'] = [
+      '#type' => 'markup',
+      '#markup' => $details,
+    ];
+    return $form;
+  }
+  
+  // Get the limits and filters from a form submit.
+  $limit_by = '';
+  if (array_key_exists('values', $form_state)) {
+    $limit_by = array_key_exists('limit_by', $form_state['values']) ? $form_state['values']['limit_by'] : $limit_by;
+    $filters = array_key_exists('filters', $form_state['values']) ? $form_state['values']['filters'] : $filters;
+  }
+  
+  $form['limit_by'] = [
+    '#type' => 'value',
+    '#value' => $limit_by,
+    '#markup' => '<div id="tripal-network-viewer-data-form">'    
+  ];
+  $form['filters'] = [
+    '#type' => 'value',
+    '#value' => $filters
+  ];
+  
+  $quant_props = [];
+  if ($organism_id) {
+    $quant_props = tripal_network_get_attribute_options($organism_id, $network_id, TRUE, FALSE, TRUE, FALSE);
+  }
+  $cat_props = [];
+  if ($organism_id) {
+    $cat_props = tripal_network_get_attribute_options($organism_id, $network_id, FALSE, TRUE, TRUE, FALSE);
+  }
+  $props = $quant_props + $cat_props;
+  array_multisort($props);
+  
+  $include_props = [];
+  $form['include_props'] = [
+    '#type' => 'select',
+    '#title' => 'Property',
+    '#options' => $props,
+    '#default_value' => $include_props,
+    '#description' => t('Select Properties to include in the table.'),
+    '#ajax' => array(
+      'callback' => 'tripal_network_viewer_data_form_ajax_callback',
+      'wrapper' => 'tripal-network-viewer-data-form',
+      'effect' => 'fade',
+      'method' => 'replace',
+    ),
+  ]; 
+  
+  $network_items = $_SESSION['tripal_network_current'][$network_session_id]['network_items'];
+  dpm($network_items);
+  
+  $form['data_table'] = [
+    '#type' => 'markup',
+    '#markup' => '',
+    '#suffix' => '</div>'
+  ];  
+  return $form;  
+}
+
+/**
+ *
+ **/
+function tripal_network_viewer_data_form_ajax_callback($form, $form_state) {
+    
   return $form;
 }

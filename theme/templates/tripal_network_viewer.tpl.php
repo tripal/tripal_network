@@ -55,6 +55,9 @@ $node_details = drupal_render($node_details);
 $edge_details = drupal_get_form('tripal_network_viewer_edge_details_form');
 $edge_details = drupal_render($edge_details);
 
+$data_form = drupal_get_form('tripal_network_viewer_data_form', $network_session_id, $organism_id, $network_id);
+$data_form = drupal_render($data_form);
+
 ?>
 <div id="tripal-network-viewer-app">
    <div id="tripal-network-viewer-loading">
@@ -67,6 +70,7 @@ $edge_details = drupal_render($edge_details);
      <div><img id="tripal-network-viewer-filters-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_filter_4186018.png"></div>
      <div><img id="tripal-network-viewer-node-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Circle_3927915.png"></div>
      <div><img id="tripal-network-viewer-edge-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_link_2545631.png"></div>
+     <div><img id="tripal-network-viewer-data-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_table_1061423.png"></div>
      <div><img id="tripal-network-viewer-analysis-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_analysis_2018398.png"></div>
      <div><img id="tripal-network-viewer-about-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_about_4190914.png"></div>
      <div><img id="tripal-network-viewer-help-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_help_2302539.png"></div>
@@ -108,8 +112,13 @@ $edge_details = drupal_render($edge_details);
          	<h2>Selected Edge Details</h2>
           <?php print $edge_details ?>
        </div>
+       <div id="tripal-network-viewer-data-box" class="tripal-network-viewer-sidebar-box">
+         	<h2>Data Tables</h2>
+         	<?php print $data_form ?> 
+       </div>
        <div id="tripal-network-viewer-analysis-box" class="tripal-network-viewer-sidebar-box">
-         	<h2>Analysis</h2>          
+         	<h2>Analysis</h2>   
+         	      
        </div>
        <div id="tripal-network-viewer-about-box" class="tripal-network-viewer-sidebar-box">
           <h2>About this Network Viewer</h2>

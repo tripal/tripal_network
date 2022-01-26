@@ -107,7 +107,7 @@
   }
   
   $.fn.showBox = function(id) {
-    $.fn.openSidebar();
+    $.fn.openSidebar(id);
     var icon = id.replace('box', 'icon');
     $('.tripal-network-viewer-sidebar-box').hide();
     $('.tripal-network-viewer-navbar-icon').css('opacity', '0.5');
@@ -115,7 +115,7 @@
     $('#' + id).show();
   }
   
-  $.fn.openSidebar = function() {
+  $.fn.openSidebar = function(id = null) {
 	var window_width = $(window).width() 
     var navbar_width = $('#tripal-network-viewer-navbar').width();   
     var sidebar_width = sidebar_default_width;
@@ -256,7 +256,7 @@
     }) 
    };
    
-   /**
+  /**
    *
    */
   $.fn.updateFilterForm = function() {
@@ -271,6 +271,30 @@
       success: function(response) {
 	    $('#tripal-network-viewer-filters-box form').replaceWith(response[1]['data']);
 		Drupal.attachBehaviors($('#tripal-network-viewer-filters-box form'), response[0]['settings']);
+		$.fn.hideSpinner();
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+		$.fn.hideSpinner();
+      }
+    }) 
+   };
+   
+  /**
+   *
+   */
+  $.fn.updateDataForm = function() {
+    $.fn.showSpinner()
+    $.ajax({
+      // The baseurl is a variable set by Tripal that indicates the
+      // "base" of the URL for this site.
+      url: baseurl + '/networks/viewer/update/data',
+      type: "GET",
+      dataType: 'json',
+      data: state,
+      success: function(response) {
+	    $('#tripal-network-viewer-data-box form').replaceWith(response[1]['data']);
+		Drupal.attachBehaviors($('#tripal-network-viewer-data-box form'), response[0]['settings']);
 		$.fn.hideSpinner();
       },
       error: function(xhr, textStatus, thrownError) {
@@ -382,6 +406,9 @@
         // Add in the network details and switch to that box.
 		$('#tripal-network-viewer-network-details-box form').replaceWith(response['details']);		
 		$.fn.updateNetworkPlots();
+		$.fn.updateFilterForm();
+        $.fn.updateLayersForm();
+        $.fn.updateDataForm();
 
         // Turn off the spinner.
         $.fn.hideSpinner();
