@@ -4,10 +4,15 @@
 require_once "includes/tripal_network.schema.inc";
 require_once "includes/tripal_network.fields.inc";
 require_once "api/tripal_network.api.inc";
-require_once "includes/tripal_network.plotly.inc";
 require_once "includes/tripal_network.viewer.inc";
 require_once "includes/tripal_network.neighborhood_viewer.inc";
 require_once "includes/tripal_network.entity.inc";
+require_once "includes/TripalNetwork.inc";
+require_once "includes/TripalNetworkViewer.inc";
+require_once "includes/TripalNetworkViewerPlotly.inc";
+require_once "includes/TripalNetworkLayout.inc";
+require_once "includes/TripalNetworkLayoutFA2.inc";
+require_once "includes/TripalNetworkLayoutRandom.inc";
 
 /**
  * Implements hook_permission().
@@ -258,3 +263,4 @@ function tripal_network_add_ajax_command($command) {
   }
   $_SESSION['tripal-network-ajax-commands'][] = $command;
 }
+

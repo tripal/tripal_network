@@ -10,29 +10,21 @@ function tripal_network_neighborhood_viewer_ajax_retrieve() {
   $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
   $feature_id = array_key_exists('feature_id', $_GET) ? $_GET['feature_id'] : NULL;
   
-  // Set the Plotly layout sepcifications.
-  // Set the Plotly layout sepcifications.
-  $layout = tripal_network_get_plotly_default_layout();
-  $layout['title'] = 'Connected Neighbors';
+  // Create the network instance
+  $network = new TripalNetwork([
+    'organism_id' => $organism_id, 
+    'network_ids' => $network_id,
+    'feature_ids' => [$feature_id]
+  ]);
   
-  // TODO: this shoulnd't be hardcoded.
-  $layer_by = 'NCIT:C48834';
-  $color_by = 'NCIT:C48834';
-      
-   // Make sure we have required filters.
-  $plotly_data = NULL;
-  if (!$network_id) {
-    $plotly_data = tripal_network_get_plotly_data(NULL, $layout, $layer_by, $color_by, TRUE);
-  }
-  else {    
-    $network_items = tripal_network_get_network_elements([
-      'organism_id' => $organism_id, 
-      'network_id' => $network_id, 
-      'feature_ids' => [$feature_id]      
-    ]);    
-    $plotly_data = tripal_network_get_plotly_data($network_items, $layout, $layer_by, $color_by);
-  }
-  drupal_json_output(['data' => $plotly_data, 'layout' => $layout]);
+  // Load the network data
+  $network->loadNetwork();  
+  
+  // Generate the plotly data.
+  $viewer = new TripalNetworkViewerPlotly($network);
+  $plotly_data = $viewer->getNetworkPlot();
+  $plotly_data['layout']['title'] = 'Connected Neighbors';      
+  drupal_json_output($plotly_data);
 }
 
 /**

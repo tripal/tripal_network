@@ -111,10 +111,11 @@ function tripal_network_viewer_ajax_get_node_details() {
 /**
  *
  */
-function tripal_network_viewer_network_details_form($form, &$form_state, $network_details = NULl) {
+function tripal_network_viewer_network_details_form($form, &$form_state, 
+    TripalNetwork $network = NULl, $viewer = NULL) {
   
   
-  if (!$network_details) {
+  if (!$network) {
     $form['details'] = [
       '#type' => 'markup',
       '#markup' => 'Please select a network to view details.',
@@ -122,12 +123,17 @@ function tripal_network_viewer_network_details_form($form, &$form_state, $networ
     return $form;
   }
   
-  $organism = chado_generate_var('organism', ['organism_id' => $network_details['organism_id']]);
+  $selection = $network->getSelection();
+  
+  $organism = chado_generate_var('organism', ['organism_id' => $selection['organism_id']]);
   $form['network_details_organism'] = [
     '#type' => 'item',
     '#title' => t('Organism'),
     '#markup' => chado_get_organism_scientific_name($organism)
   ];
+  
+  $edges = $network->getEdges();
+  $nodes = $network->getNodes();
   
   $rows = [];
   $headers = [];
@@ -137,7 +143,7 @@ function tripal_network_viewer_network_details_form($form, &$form_state, $networ
       'header' => TRUE,
       'width' => '70%',
     ],
-    count(array_keys($network_details['edges'])),
+    count(array_keys($edges)),
   ];
   $rows[] = [
     [
@@ -145,7 +151,7 @@ function tripal_network_viewer_network_details_form($form, &$form_state, $networ
       'header' => TRUE,
       'width' => '70%',
     ],
-    count(array_keys($network_details['nodes'])),
+    count(array_keys($nodes)),
   ];
   $headers = [];
   $summary_table = [
@@ -172,17 +178,17 @@ function tripal_network_viewer_network_details_form($form, &$form_state, $networ
     '#markup' => '<div id="tripal-network-degree-dist-plot"></div>',    
   ];
   
-  $degree_dist_layout = tripal_network_get_plotly_degree_distribution_plot_layout();
+  $degplot = $viewer->getDegreeDistPlot();
+  
   $form['network_details_degree_dist_plot_layout'] = [
     '#type' => 'hidden',
     '#attributes' => ['id' => 'tripal-network-degree-dist-plot-layout'],
-    '#value' => json_encode($degree_dist_layout),
+    '#value' => json_encode($degplot['layout']),
   ];
-  $degree_dist_data = tripal_network_get_plotly_degree_distribution_plot_data($network_details);
   $form['network_details_degree_dist_plot_data'] = [
     '#type' => 'hidden',
     '#attributes' => ['id' => 'tripal-network-degree-dist-plot-data'],
-    '#value' => json_encode($degree_dist_data),
+    '#value' => json_encode($degplot['data']),
   ];
   
   return $form;
@@ -516,28 +522,9 @@ function tripal_network_viewer_ajax_retrieve() {
   $vocab_terms = array_key_exists('vocab_terms', $_GET) ? $_GET['vocab_terms'] : NULL;
   $network_session_id  = array_key_exists('network_session_id', $_GET) ? $_GET['network_session_id'] : NULL;
 
-  $layout = tripal_network_get_plotly_default_layout();
-
-  // TODO: this shoulnd't be hardcoded.
-  if (!$layer_by) {
-    $layer_by = 'NCIT:C48834';
-  }
-  if (!$color_by) {
-    $color_by = 'NCIT:C48834';
-  }
-
   if (!tripal_network_viewer_has_access($organism_id, $network_id)) {
     drupal_set_message('Permission denied', 'error');
     $organism_id = 0;
-  }
-
-  // If we don't have a organism ID then return an empty scene.
-  $plotly_data = NULL;
-  if (!$organism_id) {
-    $plotly_data = tripal_network_get_plotly_data(NULL, $layout, $layer_by, $color_by, TRUE);
-    $details = drupal_render(drupal_get_form('tripal_network_viewer_network_details_form'));    
-    drupal_json_output(['data' => $plotly_data, 'layout' => $layout, 'details' => $details]);
-    return;
   }
 
   // If teh viewer was pre-loaded with a feature then add it to the list. 
@@ -584,36 +571,48 @@ function tripal_network_viewer_ajax_retrieve() {
       }
     }
   }
-
-
-  // Get the network Plotly data.
-  $network_items = tripal_network_get_network_elements([
-    'organism_id' => $organism_id, 'network_id' => $network_id,
-    'feature_ids' => $feature_ids, 'term_ids' => $term_ids, 
-    'filters' => $filters]);
-   
+ 
+  // Create the network instance
+  $network = new TripalNetwork([
+    'organism_id' => $organism_id, 'network_ids' => $network_id,
+    'feature_ids' => $feature_ids, 'term_ids' => $term_ids    
+  ]);
   
-  // Add in the degree to the nodes.
-  tripal_network_calculate_degree($network_items);
+  // Set the filters
+  $network->resetFilters();
+  foreach ($filters as $filter) {
+    $network->addFilter($filter);
+  }
+  
+  // Load the network data
+  $network->loadNetwork();  
+   
+  // Generate the plotly data.
+  $viewer = new TripalNetworkViewerPlotly($network);
+  if ($layer_by) {
+    $viewer->layerBy($layer_by);
+  }
+  if ($color_by) {
+    $viewer->ColorBy($color_by);
+  }
+  $plotly_data = $viewer->getNetworkPlot();
+
+  // Build the network details content.
+  $details = drupal_get_form('tripal_network_viewer_network_details_form', $network, $viewer);
+  $details = drupal_render($details);
+  
+  $plotly_data['details'] = $details;
+  $plotly_data['network_session_id'] = $network_session_id;
+  
   
   // Save this network to the session variable so we don't have to look it up again.
   $_SESSION['tripal_network_current'][$network_session_id] = [
-    'network_items' => $network_items
+    'network' => serialize($network),
+    'viewer' => serialize($viewer)
   ];
   
-  // Generate the plotly data.
-  $plotly_data = tripal_network_get_plotly_data($network_items, $layout, $layer_by, $color_by);
 
-  // Build the network details content.
-  $details = drupal_get_form('tripal_network_viewer_network_details_form', $network_items);
-  $details = drupal_render($details);
-
-  drupal_json_output([
-    'data' => $plotly_data, 
-    'layout' => $layout,
-    'details' => $details,
-    'network_session_id' => $network_session_id
-  ]);
+  drupal_json_output($plotly_data);
 }
 
 /**
@@ -858,9 +857,9 @@ function tripal_network_viewer_filter_edges_cat_form(&$form, &$form_state, $netw
     $categories = array_key_exists('categories', $form_state['values']) ? $form_state['values']['categories'] : $categories;
   }
   
-  //$attribute = tripal_network_get_attributes($organism_id, $network_id, $limit_by);
-  $network_items = $_SESSION['tripal_network_current'][$network_session_id]['network_items'];
-  $props = tripal_network_get_edgeprops(array_keys($network_items['edges']), $limit_by);
+  $network = tripal_network_viewer_get_session_network($network_session_id);
+  $edges = $network->getEdges();
+  $props = tripal_network_get_edgeprops(array_keys($edges), $limit_by);
   $cat_list = [0 => '--Select--'];
   foreach ($props as $prop) {
     $cat_list[$prop] = $prop;
@@ -1219,9 +1218,6 @@ function tripal_network_viewer_layers_form($form, &$form_state,
     $network_session_id, $organism_id = NULl, $network_id = NULL, $layer_by = NULL,
     $color_by = NULL) {
 
-  $layer_by = '';
-  $color_by = '';
-
   $details = 'Please select a network to view details.';
   if (!$organism_id) {
     $form['details'] = [
@@ -1238,6 +1234,7 @@ function tripal_network_viewer_layers_form($form, &$form_state,
   if ($organism_id) {
     $props = tripal_network_get_attribute_options($organism_id, $network_id, TRUE, TRUE, TRUE, FALSE);
   }
+  array_multisort($props);
 
   $form['layer_by'] = [
     '#type' => 'select',
@@ -1417,9 +1414,8 @@ function tripal_network_viewer_data_form($form, $form_state,  $network_session_i
       'method' => 'replace',
     ),
   ]; 
-  
-  $network_items = $_SESSION['tripal_network_current'][$network_session_id]['network_items'];
-  dpm($network_items);
+    
+  $network = tripal_network_viewer_get_session_network($network_session_id);
   
   $form['data_table'] = [
     '#type' => 'markup',
@@ -1427,6 +1423,21 @@ function tripal_network_viewer_data_form($form, $form_state,  $network_session_i
     '#suffix' => '</div>'
   ];  
   return $form;  
+}
+
+/**
+ * 
+ */
+function tripal_network_viewer_get_session_network($network_session_id) {
+  if (!$network_session_id) {
+    return NULL;
+  }
+  if (array_key_exists('tripal_network_current', $_SESSION)) {
+    if (array_key_exists($network_session_id, $_SESSION['tripal_network_current'])){
+      return unserialize($_SESSION['tripal_network_current'][$network_session_id]['network']);
+    }
+  }
+  return NULL;
 }
 
 /**
