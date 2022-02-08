@@ -13,6 +13,10 @@ body {
   margin-top: 0px !important;
 }
 
+.form-control {
+  color: black;
+}
+
 #tripal-network-viewer-app {
   padding: 0px;
   margin: 0px;
