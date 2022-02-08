@@ -593,7 +593,7 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
    */
   public function getDegreeDistPlot() {
     $layout = [
-      'title' => "Node Degree Distribution",
+      'title' => "",
       'xaxis' => [
         'type' => "log",
         'title' => 'log(degree)'
@@ -601,7 +601,15 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
       'yaxis' => [
         'type' => "log",
         'title' => 'log(count)'
-      ]
+      ],
+      'width' => 380,
+      'height' => 380,
+      'margin' => [
+        'l' => 60,
+        'r' => 50,
+        't' => 70,
+        'b' => 70,
+      ],
     ];
           
     $plot_data = [
