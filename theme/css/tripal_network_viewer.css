@@ -14,7 +14,7 @@ body {
 }
 
 .form-control {
-  color: black;
+  color: black !important;
 }
 
 #tripal-network-viewer-app {

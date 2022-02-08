@@ -283,7 +283,9 @@
   /**
    *
    */
-  $.fn.updateDataForm = function() {
+  $.fn.updateDataForm = function(page) {
+	var data = state;
+	data['page'] = page
     $.fn.showSpinner()
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
@@ -291,7 +293,7 @@
       url: baseurl + '/networks/viewer/update/data',
       type: "GET",
       dataType: 'json',
-      data: state,
+      data: data,
       success: function(response) {
 	    $('#tripal-network-viewer-data-box form').replaceWith(response[1]['data']);
 		Drupal.attachBehaviors($('#tripal-network-viewer-data-box form'), response[0]['settings']);

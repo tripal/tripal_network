@@ -86,10 +86,11 @@ function tripal_network_viewer_ajax_get_data_form() {
   $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
   $filters = array_key_exists('filters', $_GET) ? $_GET['filters'] : [];
   $network_session_id  = array_key_exists('network_session_id', $_GET) ? $_GET['network_session_id'] : NULL;
+  $page = array_key_exists('page', $_GET) ? $_GET['page'] : NULL;
   
   
   $form = drupal_get_form('tripal_network_viewer_data_form', $network_session_id,
-      $organism_id, $network_id, $filters);
+      $organism_id, $network_id, $filters, $page);
   $form = drupal_render($form);
   
   ajax_deliver($form);
@@ -1374,17 +1375,18 @@ function tripal_network_viewer_layers_form_ajax_callback($form, $form_state) {
  *
  **/
 function tripal_network_viewer_data_form($form, $form_state,  $network_session_id,
-    $organism_id = NULL, $network_id = NULL, $filters = []) {
+    $organism_id = NULL, $network_id = NULL, $filters = [], $page = 0) {
 
+  $network = tripal_network_viewer_get_session_network($network_session_id);
   $details = 'Please select a network to view details.';
-  if (!$organism_id) {
+  if (!$network) {
     $form['details'] = [
       '#type' => 'markup',
       '#markup' => $details,
     ];
     return $form;
   }
-  
+    
   // Get the limits and filters from a form submit.
   $limit_by = '';
   if (array_key_exists('values', $form_state)) {
@@ -1392,10 +1394,14 @@ function tripal_network_viewer_data_form($form, $form_state,  $network_session_i
     $filters = array_key_exists('filters', $form_state['values']) ? $form_state['values']['filters'] : $filters;
   }
   
+  $form['data_wrapper_start'] = [
+    '#type' => 'markup',
+    '#markup' => '<div id="tripal-network-viewer-data-form">'
+  ];
+  
   $form['limit_by'] = [
     '#type' => 'value',
     '#value' => $limit_by,
-    '#markup' => '<div id="tripal-network-viewer-data-form">'    
   ];
   $form['filters'] = [
     '#type' => 'value',
@@ -1416,8 +1422,9 @@ function tripal_network_viewer_data_form($form, $form_state,  $network_session_i
   $include_props = [];
   $form['include_props'] = [
     '#type' => 'select',
-    '#title' => 'Property',
+    '#title' => 'Columns to Include',
     '#options' => $props,
+    '#multiple' => TRUE,
     '#default_value' => $include_props,
     '#description' => t('Select Properties to include in the table.'),
     '#ajax' => array(
@@ -1427,14 +1434,46 @@ function tripal_network_viewer_data_form($form, $form_state,  $network_session_i
       'method' => 'replace',
     ),
   ]; 
-    
-  $network = tripal_network_viewer_get_session_network($network_session_id);
   
+  $nodes = $network->getNodes();
+  $edges = $network->getEdges();
+  $edge_indexes = array_keys($edges);  
+    
+  // Initialize the pager
+  $per_page = 15;  
+  pager_default_initialize(count($edge_indexes), $per_page);
+  $pager = theme('pager', ['quantity', count($edge_indexes)]);
+  
+  // Fix the pager so it works with ajax
+  $pager = preg_replace('/href="\/.+\?page=(\d+).*"/', 'href="javascript:void(0)" onclick="jQuery.fn.updateDataForm($1)"', $pager);
+  $pager = preg_replace('/href="\/.+"/', 'href="javascript:void(0)" onclick="jQuery.fn.updateDataForm(0)"', $pager);
+    
+  $headers = ['Source', 'Target'];
+  $rows = [];
+  for ($i = $page * $per_page; $i < min(($page+1) * $per_page, count($edge_indexes)); $i++) {
+    $rows[] = [
+      $edges[$edge_indexes[$i]]['source_name'],
+      $edges[$edge_indexes[$i]]['target_name'],
+    ];
+  }
+  $data_table = [
+    'header' => $headers,
+    'rows' => $rows,
+    'attributes' => [],
+    'caption' => '',
+    'sticky' => TRUE,
+    'colgroups' => [],
+    'empty' => 'No edges',
+  ];
   $form['data_table'] = [
+    '#type' => 'item',
+    '#title' => 'Edges',
+    '#markup' => theme_table($data_table) . $pager
+  ];
+  $form['data_wrapper_end'] = [
     '#type' => 'markup',
-    '#markup' => '',
-    '#suffix' => '</div>'
-  ];  
+    '#markup' => '</div">'
+  ];
   return $form;  
 }
 
