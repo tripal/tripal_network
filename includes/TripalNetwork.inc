@@ -211,7 +211,7 @@ class TripalNetwork {
     $this->nodes = $nodes;
     
     $this->getEdgeAttributes();
-//    $this->getNodeAttributes();
+    //$this->getNodeAttributes();
   } 
   
   /**
@@ -222,6 +222,10 @@ class TripalNetwork {
     if (count($this->edges) == 0) {
       return;
     }
+    
+    $quantitative_term = chado_get_cvterm(['id' => 'NCIT:C142658']);
+    $categorical_term = chado_get_cvterm(['id' => 'NCIT:C142657']);
+    $ordinal_term = chado_get_cvterm(['id' => 'NCIT:C47797']);
     
     $sql = "
       SELECT DISTINCT NE.network_id, NEP.type_id
@@ -242,7 +246,19 @@ class TripalNetwork {
       ];
       $attr = chado_expand_var($attr, 'table', 'network_attrprop', $options);      
       $term_id = $attr->attr_id->dbxref_id->db_id->name . ":" . $attr->attr_id->dbxref_id->accession;
-      $this->edge_attributes[$term_id][$attr_type->network_id] = $attr;
+      $data_type = $categorical_term;
+      foreach ($attr->network_attrprop as $attrprop) {
+        if ($attrprop->value_id == $quantitative_term->cvterm_id) {
+          $data_type = $quantitative_term;
+        }
+        if ($attrprop->value_id == $ordinal_term->cvterm_id) {
+          $data_type = $ordinal_term;
+        }
+      }
+      $this->edge_attributes[$term_id][$attr_type->network_id] = [
+        'attr' => $attr,
+        'type' => $data_type,
+      ];
     }    
   }
   
@@ -254,6 +270,10 @@ class TripalNetwork {
     if (count($this->nodes) == 0) {
       return;
     }
+    
+    $quantitative_term = chado_get_cvterm(['id' => 'NCIT:C142658']);
+    $categorical_term = chado_get_cvterm(['id' => 'NCIT:C142657']);
+    $ordinal_term = chado_get_cvterm(['id' => 'NCIT:C47797']);
     
     $sql = "
       SELECT DISTINCT NE.network_id, NNP.type_id
@@ -273,8 +293,20 @@ class TripalNetwork {
         'return_array' => TRUE,
       ];
       $attr = chado_expand_var($attr, 'table', 'network_attrprop', $options);
+      $data_type = $categorical_term;
+      foreach ($attr->network_attrprop as $attrprop) {
+        if ($attrprop->value_id == $quantitative_term->cvterm_id) {
+          $data_type = $quantitative_term;
+        }
+        if ($attrprop->value_id == $ordinal_term->cvterm_id) {
+          $data_type = $ordinal_term;
+        }
+      }
       $term_id = $attr->type_id->dbxref_id->db_id->name . ":" . $attr->type_id->dbxref_id->accession;
-      $this->node_attributes[$attr_type->network_id][$term_id] = $attr;
+      $this->node_attributes[$term_id][$attr_type->network_id] = [
+        'attr' => $attr,
+        'type' => $data_type,
+      ];
     }  
   }
   

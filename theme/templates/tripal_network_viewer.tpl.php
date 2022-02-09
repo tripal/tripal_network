@@ -76,7 +76,10 @@ $data_form = drupal_render($data_form);
      <div><img id="tripal-network-viewer-help-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_help_2302539.png"></div>
    </div>
    <div id="tripal-network-viewer-sidebar-toggle">
-       <img id="tripal-network-viewer-slide-icon" class="tripal-network-viewer-sidebar-icon" src="<?php print $theme_path?>/images/noun_slide_3149648.png">
+     <div id ="tripal-network-viewer-slide-icons">
+       <img id="tripal-network-viewer-slide-right-icon" class="tripal-network-viewer-sidebar-icon" src="<?php print $theme_path?>/images/noun-fast-forward-57089.png">
+       <img id="tripal-network-viewer-slide-left-icon" class="tripal-network-viewer-sidebar-icon" src="<?php print $theme_path?>/images/noun-rewind-57114.png">
+     </div>
    </div>
    <div id="tripal-network-viewer-sidebar">
      <div id="tripal-network-viewer-sidebar-boxes">

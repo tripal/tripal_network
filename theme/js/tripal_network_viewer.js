@@ -1,27 +1,30 @@
 (function($) {
    
-   // Holds key/value pairs indicating the current state of the viewer.
-   var state = {
-	 'network_id': null,
-     'organism_id': null,
-     'feature_id': null,
-     'network_session_id': null,
-   };
+  // Holds key/value pairs indicating the current state of the viewer.
+  var state = {
+	'network_id': null,
+    'organism_id': null,
+    'feature_id': null,
+    'network_session_id': null,
+  };
    
-   var sidebar_default_width = null;
+  var sidebar_default_width = null;
    
-   var selected_node = null;
-   var selected_edge = null;
-   var selected_edge_prev_color = null;
+  var selected_node = null;
+  var selected_edge = null;
+  var selected_edge_prev_color = null;
    
-   // Holds the value of waiting ajax commands that are using the 
-   // spinner. The spinner should turn off once all have completed.
-   var spinner_waiting = 0;
+  // Holds the value of waiting ajax commands that are using the 
+  // spinner. The spinner should turn off once all have completed.
+  var spinner_waiting = 0;
    
-   // Plotly has a bug. When a relayout is called it triggers a click
-   // event which causes an eternal loop. So, we'll use this to keep 
-   // that loop from happening when nodes and edges are being selected.
-   var in_selection = false;
+  // Plotly has a bug. When a relayout is called it triggers a click
+  // event which causes an eternal loop. So, we'll use this to keep 
+  // that loop from happening when nodes and edges are being selected.
+  var in_selection = false;
+  
+  // Indicates the openness state of the sidebar
+  var sidebar_state = 'partial';
   
   // All code within this Drupal.behavior.tripal_network array is 
   // executed everytime a page load occurs or when an ajax call returns.
@@ -45,7 +48,7 @@
     var window_width = $(window).width();
     var navbar_width = $('tripal-network-viewer-navbar').width();
     var sidebar_width =  $('#tripal-network-viewer-sidebar').width();
-	var toggle_img_width =  $('#tripal-network-viewer-slide-icon').width();
+	var toggle_img_width =  $('#tripal-network-viewer-slide-icons').width();
     var control_width =  sidebar_width + navbar_width + toggle_img_width * 2 + 15;
     var display_width = window_width - (sidebar_width + navbar_width);
     
@@ -90,14 +93,22 @@
     })
     
     // Add support for the slide icon.
-    $("#tripal-network-viewer-sidebar-toggle").click(function() {
-      if ($('#tripal-network-viewer-sidebar-header').is(":visible")) {        
-        $.fn.closeSidebar();
+    $("#tripal-network-viewer-slide-left-icon").click(function() {
+      if (sidebar_state == 'partial') {        
+        $.fn.closedSidebar();
       }
-      else  {
-        $.fn.openSidebar();
+      else if (sidebar_state == 'full') {
+        $.fn.partialSidebar();
       }
     })
+    $("#tripal-network-viewer-slide-right-icon").click(function() {
+	  if (sidebar_state == 'closed') {         
+        $.fn.partialSidebar();
+      }
+      else if (sidebar_state == 'partial') {
+		$.fn.fullSidebar();
+	  }
+	})
   });
   
   $.fn.setState = function(args) {
@@ -107,7 +118,7 @@
   }
   
   $.fn.showBox = function(id) {
-    $.fn.openSidebar(id);
+    $.fn.partialSidebar(id);
     var icon = id.replace('box', 'icon');
     $('.tripal-network-viewer-sidebar-box').hide();
     $('.tripal-network-viewer-navbar-icon').css('opacity', '0.5');
@@ -115,33 +126,57 @@
     $('#' + id).show();
   }
   
-  $.fn.openSidebar = function(id = null) {
+  $.fn.partialSidebar = function(id = null) {
 	var window_width = $(window).width() 
     var navbar_width = $('#tripal-network-viewer-navbar').width();   
     var sidebar_width = sidebar_default_width;
-    var toggle_img_width =  $('#tripal-network-viewer-slide-icon').width();
+    var toggle_img_width =  $('#tripal-network-viewer-slide-icons').width();
     var display_width =  window_width - (sidebar_width + navbar_width);
-    var toggle_width = sidebar_width + toggle_img_width * 2;
+    var toggle_width = sidebar_width + toggle_img_width + 20;
 
+	$('#tripal-network-viewer-slide-left-icon').show();
+	$('#tripal-network-viewer-slide-right-icon').show();
+	$('#tripal-network-viewer-sidebar').animate({width: 'show'}, "fast");
 	$('#tripal-network-viewer-sidebar').width(sidebar_default_width);
-    $('#tripal-network-viewer-sidebar').show();
     $('#tripal-network-viewer-sidebar-toggle').width(toggle_width);
     $('#tripal-network-viewer-display').css({top: 0, left: navbar_width + sidebar_width, position:'absolute'});
     $('#tripal-network-viewer-display').width(display_width);
     Plotly.Plots.resize('tripal-network-viewer');
+    sidebar_state = 'partial';
   }
   
-  $.fn.closeSidebar = function() {
+  $.fn.closedSidebar = function() {
 	var window_width = $(window).width() 
 	var navbar_width = $('#tripal-network-viewer-navbar').width();   
     var display_width =  window_width - navbar_width;
-    var toggle_img_width =  $('#tripal-network-viewer-slide-icon').width();
-    $('#tripal-network-viewer-sidebar').animate({width: 'toggle'}, "slow");
+    var toggle_width =  $('#tripal-network-viewer-slide-icons').width();
+    $('#tripal-network-viewer-sidebar').animate({width: 'hide'}, "slow");
     $('#tripal-network-viewer-sidebar').width(0);
-    $('#tripal-network-viewer-sidebar-toggle').width(toggle_img_width * 2);
+    $('#tripal-network-viewer-sidebar-toggle').width(toggle_width);
     $('#tripal-network-viewer-display').css({top: 0, left: navbar_width, position:'absolute'});
     $('#tripal-network-viewer-display').width((display_width));
+    $('#tripal-network-viewer-slide-left-icon').hide();
     Plotly.Plots.resize('tripal-network-viewer');
+    sidebar_state = 'closed';
+  }
+  
+  $.fn.fullSidebar = function() {
+	var window_width = $(window).width() 
+    var navbar_width = $('#tripal-network-viewer-navbar').width();   
+    var toggle_img_width =  $('#tripal-network-viewer-slide-icons').width();
+    var sidebar_width = window_width - navbar_width - toggle_img_width;
+    var toggle_width = window_width - navbar_width;  
+    var display_width =  window_width - (sidebar_width + navbar_width);
+ 
+
+    $('#tripal-network-viewer-sidebar').animate({width: 'show'}, "slow");
+    $('#tripal-network-viewer-sidebar').width(sidebar_width);
+    $('#tripal-network-viewer-sidebar-toggle').width(toggle_width);
+    $('#tripal-network-viewer-display').css({top: 0, left: navbar_width, position:'absolute'});
+    $('#tripal-network-viewer-display').width((display_width));
+    $('#tripal-network-viewer-slide-right-icon').hide();
+    Plotly.Plots.resize('tripal-network-viewer');
+    sidebar_state = 'full';
   }
 
   $.fn.showSpinner = function() {
@@ -283,9 +318,10 @@
   /**
    *
    */
-  $.fn.updateDataForm = function(page) {
+  $.fn.updateDataForm = function(page, edata_includes) {
 	var data = state;
 	data['page'] = page
+	data['edata_includes'] = edata_includes
     $.fn.showSpinner()
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the

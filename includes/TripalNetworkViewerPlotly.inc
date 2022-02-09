@@ -340,8 +340,8 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
     // network_attrprop table which has a network_id field.  
     // But we're hardcoding if the properties are quantiative, 
     // ordinal or categorical so it's okay.
-    foreach ($attribute as $network_id => $network_attr) {
-      foreach ($network_attr->network_attrprop as $property) {
+    foreach ($attribute as $network_id => $attr_details) {
+      foreach ($attr_details['attr']->network_attrprop as $property) {
       
         $term = $property->type_id;
         $prop_term = $property->type_id->dbxref_id->db_id->name . ':' . $property->type_id->dbxref_id->accession;
