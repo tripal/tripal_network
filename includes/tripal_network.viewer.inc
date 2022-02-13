@@ -81,7 +81,7 @@ function tripal_network_viewer_ajax_get_filter_form() {
 /**
  *
  */
-function tripal_network_viewer_ajax_get_data_form() {
+function tripal_network_viewer_ajax_get_edge_data_form() {
   $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
   $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
   $filters = array_key_exists('filters', $_GET) ? $_GET['filters'] : [];
@@ -89,8 +89,26 @@ function tripal_network_viewer_ajax_get_data_form() {
   $page = array_key_exists('page', $_GET) ? $_GET['page'] : 0;
   $edata_includes = array_key_exists('edata_includes', $_GET) ? $_GET['edata_includes'] : [];
     
-  $form = drupal_get_form('tripal_network_viewer_data_form', $network_session_id,
+  $form = drupal_get_form('tripal_network_viewer_edge_data_form', $network_session_id,
       $organism_id, $network_id, $filters, $page, $edata_includes);
+  $form = drupal_render($form);
+  
+  ajax_deliver($form);
+}
+
+/**
+ *
+ */
+function tripal_network_viewer_ajax_get_node_data_form() {
+  $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
+  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
+  $filters = array_key_exists('filters', $_GET) ? $_GET['filters'] : [];
+  $network_session_id  = array_key_exists('network_session_id', $_GET) ? $_GET['network_session_id'] : NULL;
+  $page = array_key_exists('page', $_GET) ? $_GET['page'] : 0;
+  $ndata_includes = array_key_exists('ndata_includes', $_GET) ? $_GET['ndata_includes'] : [];
+  
+  $form = drupal_get_form('tripal_network_viewer_node_data_form', $network_session_id,
+      $organism_id, $network_id, $filters, $page, $ndata_includes);
   $form = drupal_render($form);
   
   ajax_deliver($form);
@@ -1374,7 +1392,7 @@ function tripal_network_viewer_layers_form_ajax_callback($form, $form_state) {
 /**
  *
  **/
-function tripal_network_viewer_data_form($form, $form_state,  $network_session_id,
+function tripal_network_viewer_edge_data_form($form, $form_state,  $network_session_id,
     $organism_id = NULL, $network_id = NULL, $filters = [], $page = 0, $edata_includes = []) {
 
   $network = tripal_network_viewer_get_session_network($network_session_id);
@@ -1386,25 +1404,24 @@ function tripal_network_viewer_data_form($form, $form_state,  $network_session_i
     ];
     return $form;
   }
-    
+         
   // Get the included columns.
   if (array_key_exists('values', $form_state)) {
     $edata_includes = array_key_exists('edata_includes', $form_state['values']) ? $form_state['values']['edata_includes'] : $edata_includes;
   }
   
-  $form['data_wrapper_start'] = [
+  $form['edge_tab_wrapper_start'] = [
     '#type' => 'markup',
-    '#markup' => '<div id="tripal-network-viewer-data-form">'
+    '#markup' => '<div id ="tripal-network-viewer-edge-data-form">'
   ];
   
- 
   $attributes = [];
   $eattrs = $network->getEdgeAttrs();
   foreach ($eattrs as  $term_id => $networks) {
     foreach ($networks as $attr_details) {
       $attributes[$term_id] = ucfirst($attr_details['attr']->attr_id->name);
     }
-  } 
+  }
   array_multisort($attributes);
   
   $form['edata_includes'] = [
@@ -1415,31 +1432,30 @@ function tripal_network_viewer_data_form($form, $form_state,  $network_session_i
     '#default_value' => $edata_includes,
     '#description' => t('Select Properties to include in the table.'),
     '#ajax' => array(
-      'callback' => 'tripal_network_viewer_data_form_ajax_callback',
-      'wrapper' => 'tripal-network-viewer-data-form',
+      'callback' => 'tripal_network_viewer_edge_data_form_ajax_callback',
+      'wrapper' => 'tripal-network-viewer-edge-data-form',
       'effect' => 'fade',
       'method' => 'replace',
     ),
-  ]; 
+  ];
   
   // Loade the included properties
   foreach ($edata_includes as $term_id) {
     $network->retrieveEdgeProp($term_id);
   }
   
-  $nodes = $network->getNodes();
   $edges = $network->getEdges();
-  $edge_indexes = array_keys($edges);  
-    
+  $edge_indexes = array_keys($edges);
+  
   // Initialize the pager
-  $per_page = 15;  
+  $per_page = 15;
   pager_default_initialize(count($edge_indexes), $per_page);
   $pager = theme('pager', ['quantity', count($edge_indexes)]);
   
   // Fix the pager so it works with ajax
-  $pager = preg_replace('/href="\/.+\?page=(\d+).*"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateDataForm($1, JSON.parse(JSON.stringify('. json_encode($edata_includes) . ')))\'', $pager);
-  $pager = preg_replace('/href="\/.+"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateDataForm(0, JSON.parse(JSON.stringify(' . json_encode($edata_includes) . ')))\'', $pager);
-    
+  $pager = preg_replace('/href="\/.+\?page=(\d+).*"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateEdgeDataForm($1, JSON.parse(JSON.stringify('. json_encode($edata_includes) . ')))\'', $pager);
+  $pager = preg_replace('/href="\/.+"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateEdgeDataForm(0, JSON.parse(JSON.stringify(' . json_encode($edata_includes) . ')))\'', $pager);
+  
   $headers = ['Source', 'Target'];
   foreach ($edata_includes as $term_id) {
     $headers[] = $attributes[$term_id];
@@ -1468,12 +1484,118 @@ function tripal_network_viewer_data_form($form, $form_state,  $network_session_i
     '#type' => 'item',
     '#title' => 'Edges',
     '#markup' => theme_table($data_table) . $pager
-  ];
-  $form['data_wrapper_end'] = [
+  ];  
+  
+  $form['edge_tab_wrapper_end'] = [
     '#type' => 'markup',
-    '#markup' => '</div">'
+    '#markup' => '</div>'
   ];
-  return $form;  
+  
+  return $form;
+}
+
+/**
+ * 
+ */
+function tripal_network_viewer_node_data_form($form, $form_state,  $network_session_id,
+    $organism_id = NULL, $network_id = NULL, $filters = [], $page = 0, $ndata_includes = []) {
+      
+  $network = tripal_network_viewer_get_session_network($network_session_id);
+  $details = 'Please select a network to view details.';
+  if (!$network) {
+    $form['details'] = [
+      '#type' => 'markup',
+      '#markup' => $details,
+    ];
+    return $form;
+  }
+      
+  // Get the included columns.
+  if (array_key_exists('values', $form_state)) {
+    $ndata_includes = array_key_exists('ndata_includes', $form_state['values']) ? $form_state['values']['ndata_includes'] : $ndata_includes;
+  }
+  
+  $form['node_tab_wrapper_start'] = [
+    '#type' => 'markup',
+    '#markup' => '<div id ="tripal-network-viewer-node-data-form">'
+  ];
+  
+  $attributes = [];
+  $nattrs = $network->getNodeAttrs();
+  foreach ($nattrs as  $term_id => $networks) {
+    foreach ($networks as $attr_details) {
+      $attributes[$term_id] = ucfirst($attr_details['attr']->attr_id->name);
+    }
+  }
+  array_multisort($attributes);
+  
+  $form['ndata_includes'] = [
+    '#type' => 'select',
+    '#title' => 'Columns to Include',
+    '#options' => $attributes,
+    '#multiple' => TRUE,
+    '#default_value' => $ndata_includes,
+    '#description' => t('Select Properties to include in the table.'),
+    '#ajax' => array(
+      'callback' => 'tripal_network_viewer_node_data_form_ajax_callback',
+      'wrapper' => 'tripal-network-viewer-node-data-form',
+      'effect' => 'fade',
+      'method' => 'replace',
+    ),
+  ];
+  
+  // Load the included properties
+  foreach ($ndata_includes as $term_id) {
+    $network->retrieveNodeProp($term_id);
+  }
+  
+  $nodes = $network->getNodes();
+  $node_indexes = array_keys($nodes);
+  
+  // Initialize the pager
+  $per_page = 15;
+  pager_default_initialize(count($node_indexes), $per_page);
+  $pager = theme('pager', ['quantity', count($node_indexes)]);
+  
+  // Fix the pager so it works with ajax
+  $pager = preg_replace('/href="\/.+\?page=(\d+).*"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateNodeDataForm($1, JSON.parse(JSON.stringify('. json_encode($ndata_includes) . ')))\'', $pager);
+  $pager = preg_replace('/href="\/.+"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateNodeDataForm(0, JSON.parse(JSON.stringify(' . json_encode($ndata_includes) . ')))\'', $pager);
+  
+  $headers = ['Node Name'];
+  foreach ($ndata_includes as $term_id) {
+    $headers[] = $attributes[$term_id];
+  }
+  $rows = [];
+  for ($i = $page * $per_page; $i < min(($page+1) * $per_page, count($node_indexes)); $i++) {
+    $row = [
+      $nodes[$node_indexes[$i]]['node_name'],
+    ];
+    foreach ($ndata_includes as $term_id) {
+      $row[] = $nodes[$node_indexes[$i]][$term_id];
+    }
+    $rows[] = $row;
+  }
+  $data_table = [
+    'header' => $headers,
+    'rows' => $rows,
+    'attributes' => ['id' => 'tripal-network-data-node-table'],
+    'caption' => '',
+    'sticky' => TRUE,
+    'colgroups' => [],
+    'empty' => 'No nodes',
+  ];
+  $form['data_table'] = [
+    '#type' => 'item',
+    '#title' => 'Nodes',
+    '#markup' => theme_table($data_table) . $pager
+  ];  
+  
+  $form['node_tab_wrapper_end'] = [
+    '#type' => 'markup',
+    '#markup' => '</div>'
+  ];
+  
+  return $form;
 }
 
 /**
@@ -1494,7 +1616,12 @@ function tripal_network_viewer_get_session_network($network_session_id) {
 /**
  *
  **/
-function tripal_network_viewer_data_form_ajax_callback($form, $form_state) {
+function tripal_network_viewer_edge_data_form_ajax_callback($form, $form_state) {
     
+  return $form;
+}
+
+function tripal_network_viewer_node_data_form_ajax_callback($form, $form_state) {
+  
   return $form;
 }

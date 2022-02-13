@@ -313,8 +313,7 @@ class TripalNetwork {
   /**
    * 
    */
-  public function retrieveNodeProp($term_id) {
-    
+  public function retrieveNodeProp($term_id) {    
     $props = [];
     
     $term_split = preg_split('/:/', $term_id);
@@ -322,31 +321,22 @@ class TripalNetwork {
       return $props;
     }
         
+    $sql = "
+      SELECT NNP.network_node_id, NNP.value, NNP.value_num
+      FROM {network_nodeprop} NNP
+        INNER JOIN {cvterm} CVT on CVT.cvterm_id = NNP.type_id
+        INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
+        INNER JOIN {db} DB on DB.db_id = DBX.db_id
+      WHERE
+        NNP.network_node_id in (:ids) AND
+        DB.name = :db_name AND
+        DBX.accession = :accession
+    ";  
     $args = [
       ':ids' => array_keys($this->nodes),
       ':db_name' => $term_split[0],
       ':accession' => $term_split[1],
     ];
-    $sql = "
-      SELECT NN.network_node_id, F.feature_id, NNP.value
-      FROM {network_nodeprop} NNP
-        INNER JOIN {network_node} NN on NN.network_node_id = NNP.network_node_id
-        INNER JOIN {network} N on N.network_id = NN.network_id
-        INNER JOIN {cvterm} CVT on CVT.cvterm_id = NNP.type_id
-        INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
-        INNER JOIN {db} DB on DB.db_id = DBX.db_id
-      WHERE
-        NN.network_node_id in (:ids) AND
-        DB.name = :db_name AND
-        DBX.accession = :accession
-    ";
-    if (count($this->selection['network_ids']) > 0) {
-      $sql .= " AND NN.network_id IN (:network_ids) ";
-      $args[':network_ids'] = $this->selection['network_ids'];
-    }
-    $sql .= " AND N.organism_id = :organism_id ";
-    $args['organism_id'] = $this->selection['organism_id'];
-    
     $results = chado_query($sql, $args);
     $num_found = 0;
     while ($property = $results->fetchObject()) {
@@ -423,14 +413,51 @@ class TripalNetwork {
     
     // Add the degree attrbute to the node.
     foreach ($this->nodes as $node_id => $node) {
-      $this->nodes[$node_id]['SIO:0200130'] = 1;
+      $this->nodes[$node_id]['OBI:0200130'] = 1;
     }
     
     foreach ($this->edges as $edge) {
       $node1_id = $edge['source_node_id'];
       $node2_id = $edge['target_node_id'];      
-      $this->nodes[$node1_id]['SIO:0200130']++;
-      $this->nodes[$node2_id]['SIO:0200130']++;
+      $this->nodes[$node1_id]['OBI:0200130']++;
+      $this->nodes[$node2_id]['OBI:0200130']++;
     }    
-  }     
+    
+    // Add the degree attribute as if it were in the databas.
+    $domain_term = chado_get_cvterm(['id' => 'NCIT:C75907']);
+    $term = chado_get_cvterm(['id' => 'OBI:0200130']);
+    $this->node_attributes['OBI:0200130'][0] = [
+      'attr' => (object)[
+        'network_id' => 0,
+        'attr_id' => $term,
+        'domain_id' => $domain_term
+      ]      
+    ];   
+  }
+  
+  public function calculateLocalCC() {
+     $neighbors = [];
+     foreach ($this->edges as $edge_id => $edge_details) {
+       $source_node_id = $edge_details['source_node_id'];
+       $target_node_id = $edge_details['target_node_id'];
+       $neighbors[$source_node_id][] = $edge_details[$target_node_id];
+       $neighbors[$target_node_id][] = $edge_details[$source_node_id];
+     }
+     
+     foreach ($neighbors as $node_id => $firstn) {
+       $k = count($firstn);
+       $this->nodes[$node_id]['local:local_clustering_coefficient'] = $k / ($k*($k-1));
+     }
+     
+     // Add the degree attribute as if it were in the databas.
+     $domain_term = chado_get_cvterm(['id' => 'NCIT:C75907']);
+     $term = chado_get_cvterm(['id' => 'local:local_clustering_coefficient']);
+     $this->node_attributes['local:local_clustering_coefficient'][0] = [
+       'attr' => (object)[
+         'network_id' => 0,
+         'attr_id' => $term,
+         'domain_id' => $domain_term         
+       ]      
+     ];  
+  }
 }

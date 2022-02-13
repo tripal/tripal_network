@@ -228,6 +228,12 @@ function tripal_network_add_terms() {
     'cv_name' => 'local',
     'definition' => 'The edge weight from a WGCNA network is the distance (e.g., euclidean) between the vector of topological overlap measures of each node with every other node.',
   ]);
+  $term = tripal_insert_cvterm([
+    'id' => 'local:local_clustering_coefficient',
+    'name' => 'Local clustering coefficient',
+    'cv_name' => 'local',
+    'definition' => 'The local clustering coefficient for a vertex is the proportion of the number of links between the vertices within its neighbourhood divided by the number of links that could possibly exist between them.',
+  ]);
   
   $term = tripal_insert_cvterm([
     'id' => 'NCIT:C44185',
@@ -2758,4 +2764,22 @@ function tripal_network_add_pathway_reaction_table(&$schema) {
     'referring_tables' => [
     ],
   ];
+}
+
+/**
+ * Adds the local_clustering_coefficient term.
+ */
+function tripal_network_update_7100() {
+  try {
+    $term = tripal_insert_cvterm([
+      'id' => 'local:local_clustering_coefficient',
+      'name' => 'local_clustering_coefficient',
+      'cv_name' => 'local',
+      'definition' => 'The local clustering coefficient for a vertex is the proportion of the number of links between the vertices within its neighbourhood divided by the number of links that could possibly exist between them.',
+    ]);
+  }
+  catch (\PDOException $e) {
+    $error = $e->getMessage();
+    throw new DrupalUpdateException('Could not perform update: ' . $error);
+  }
 }

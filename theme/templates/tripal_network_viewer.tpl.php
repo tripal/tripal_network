@@ -16,6 +16,9 @@ drupal_add_js($js_path . '/tripal_network_viewer.js');
 drupal_add_css($css_path . '/tripal_network_viewer.css', 'external');
 drupal_add_js('misc/form.js');
 drupal_add_js('misc/collapse.js');
+drupal_add_js("https://code.jquery.com/ui/1.13.1/jquery-ui.js");
+drupal_add_css("https://code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css", 'external');
+
 
 $args = [];
 if ($organism_id) {
@@ -55,8 +58,11 @@ $node_details = drupal_render($node_details);
 $edge_details = drupal_get_form('tripal_network_viewer_edge_details_form');
 $edge_details = drupal_render($edge_details);
 
-$data_form = drupal_get_form('tripal_network_viewer_data_form', $network_session_id, $organism_id, $network_id);
-$data_form = drupal_render($data_form);
+$edge_data_form = drupal_get_form('tripal_network_viewer_edge_data_form', $network_session_id, $organism_id, $network_id);
+$edge_data_form = drupal_render($edge_data_form);
+
+$node_data_form = drupal_get_form('tripal_network_viewer_node_data_form', $network_session_id, $organism_id, $network_id);
+$node_data_form = drupal_render($node_data_form);
 
 ?>
 <div id="tripal-network-viewer-app">
@@ -117,7 +123,19 @@ $data_form = drupal_render($data_form);
        </div>
        <div id="tripal-network-viewer-data-box" class="tripal-network-viewer-sidebar-box">
          	<h2>Data Tables</h2>
-         	<?php print $data_form ?> 
+          <div id="tripal-network-viewer-data-tabs">
+            <ul> 
+              <li><a href="#tripal-network-viewer-edge-data-tab">Edges</a></li>
+              <li><a href="#tripal-network-viewer-node-data-tab">Nodes</a></li>
+            </ul>
+            <div id="tripal-network-viewer-edge-data-tab">
+            	<?php print $edge_data_form ?>          		
+            </div>
+            <div id="tripal-network-viewer-node-data-tab">
+            	<?php print $node_data_form ?>
+            </div>
+          </div>
+        </div>         	 
        </div>
        <div id="tripal-network-viewer-analysis-box" class="tripal-network-viewer-sidebar-box">
          	<h2>Analysis</h2>   

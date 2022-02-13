@@ -29,14 +29,15 @@
   // All code within this Drupal.behavior.tripal_network array is 
   // executed everytime a page load occurs or when an ajax call returns.
   Drupal.behaviors.tripal_network = {
-    attach: function (context, settings) {
-
+    attach: function (context, settings) {		
     } 
   } 
 
   // Code that must be executed when the document is ready and never again
   // goes in this section
   $(document).ready(function() {
+	
+	$("#tripal-network-viewer-data-tabs").tabs();
 	
 	// For displays that don't fit the navbar and the sidebar we will scale
 	// the sidebar to fit the width. Otherwise we need to remember the
@@ -318,7 +319,7 @@
   /**
    *
    */
-  $.fn.updateDataForm = function(page, edata_includes) {
+  $.fn.updateEdgeDataForm = function(page, edata_includes) {
 	var data = state;
 	data['page'] = page
 	data['edata_includes'] = edata_includes
@@ -326,13 +327,40 @@
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
-      url: baseurl + '/networks/viewer/update/data',
+      url: baseurl + '/networks/viewer/update/edgedata',
       type: "GET",
       dataType: 'json',
       data: data,
       success: function(response) {
-	    $('#tripal-network-viewer-data-box form').replaceWith(response[1]['data']);
-		Drupal.attachBehaviors($('#tripal-network-viewer-data-box form'), response[0]['settings']);
+	    $('#tripal-network-viewer-edge-data-tab form').replaceWith(response[1]['data']);
+		Drupal.attachBehaviors($('#tripal-network-viewer-edge-data-tab form'), response[0]['settings']);
+		$.fn.hideSpinner();
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+		$.fn.hideSpinner();
+      }
+    }) 
+   };
+   
+   /**
+   *
+   */
+  $.fn.updateNodeDataForm = function(page, ndata_includes) {
+	var data = state;
+	data['page'] = page
+	data['ndata_includes'] = ndata_includes
+    $.fn.showSpinner()
+    $.ajax({
+      // The baseurl is a variable set by Tripal that indicates the
+      // "base" of the URL for this site.
+      url: baseurl + '/networks/viewer/update/nodedata',
+      type: "GET",
+      dataType: 'json',
+      data: data,
+      success: function(response) {
+	    $('#tripal-network-viewer-node-data-tab form').replaceWith(response[1]['data']);
+		Drupal.attachBehaviors($('#tripal-network-viewer-node-data-tab form'), response[0]['settings']);
 		$.fn.hideSpinner();
       },
       error: function(xhr, textStatus, thrownError) {
@@ -446,7 +474,8 @@
 		$.fn.updateNetworkPlots();
 		$.fn.updateFilterForm();
         $.fn.updateLayersForm();
-        $.fn.updateDataForm();
+        $.fn.updateEdgeDataForm();
+        $.fn.updateNodeDataForm();
 
         // Turn off the spinner.
         $.fn.hideSpinner();

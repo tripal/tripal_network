@@ -156,12 +156,13 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
       // present.
       $num_x_coords = $this->network->retreiveNodeProp('SIO:000400');
       $num_y_coords = $this->network->retrieveNodeProp('SIO:000401');
-      $num_degree = $this->network->retreiveNodeProp('SIO:0200130');   
+      $num_degree = $this->network->retreiveNodeProp('OBI:0200130');   
       
       // If we don't have a degree for every node then recalucate it.
       if ($num_degree != count(array_keys($nodes))) {
         $this->network->calculateDegree();
-      }
+        $this->network->calculateLocalCC();
+      }      
       
       // If the x and y coordiantes aren't avaialble for all nodes then
       // regenerate a new layout.
@@ -172,6 +173,7 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
     }
     else {
       $this->network->calculateDegree();
+      $this->network->calculateLocalCC();
       $layout2d = new TripalNetworkLayoutFA2($this->network);
       $layout2d->applyLayout();
     }
@@ -285,7 +287,7 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
       $traces['nodes']['z'][] = $node_coords[$node_id]['z'];
       $traces['nodes']['ids'][] = $node_id;
       $traces['nodes']['text'][] = $node['node_name'];
-      $traces['nodes']['marker']['size'][] = max(round(log10($nodes[$node_id]['SIO:0200130'])*10), 5);
+      $traces['nodes']['marker']['size'][] = max(round(log10($nodes[$node_id]['OBI:0200130'])*10), 5);
       $traces['nodes']['marker']['color'][] = in_array($node_id, $selection['feature_ids']) ? '#FFFF00AA': '#AAAAAAAA';
     }
     
@@ -622,11 +624,13 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
     $nodes = $this->network->getNodes();
     
     foreach ($nodes as $node) {
-      if (!array_key_exists($node['SIO:0200130'], $degree_count)) {
-        $degree_count[$node['SIO:0200130']] = 1;
-      }
-      else {
-        $degree_count[$node['SIO:0200130']]++;
+      if (array_key_exists('OBI:0200130', $node)) {
+        if (!array_key_exists($node['OBI:0200130'], $degree_count)) {
+          $degree_count[$node['OBI:0200130']] = 1;
+        }
+        else {
+          $degree_count[$node['OBI:0200130']]++;
+        }
       }
     }
     foreach ($degree_count as $degree => $cnt) {
