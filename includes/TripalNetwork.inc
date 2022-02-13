@@ -25,10 +25,22 @@ class TripalNetwork {
   private $nodes = [];  
   private $edges = [];
   
+  private $session_node_attrs = [];
+  private $session_edge_attrs = [];
+  
+  private $quantitative_term = NULL;
+  private $categorical_term = NULL;
+  private $ordinal_term = NULL;
+  
+  
   /**
    *  
    */
   public function __construct($selection) {  
+    
+    $this->quantitative_term = chado_get_cvterm(['id' => 'NCIT:C142658']);
+    $this->categorical_term = chado_get_cvterm(['id' => 'NCIT:C142657']);
+    $this->ordinal_term = chado_get_cvterm(['id' => 'NCIT:C47797']);
     
     $this->selection['organism_id'] = array_key_exists('organism_id', $selection) ? $selection['organism_id'] : NULL;    
     $this->selection['network_ids'] = (array_key_exists('network_ids', $selection) and is_array($selection['network_ids'])) ? $selection['network_ids'] : [];
@@ -52,6 +64,9 @@ class TripalNetwork {
   }
   public function getNodes() {
     return $this->nodes;
+  }
+  public function getNode($node_id) {
+    return $this->nodes[$node_id];
   }
   public function getEdgeAttrs() {
     return $this->edge_attributes;    
@@ -208,25 +223,21 @@ class TripalNetwork {
     
     $this->network_ids = $network_ids;
     $this->edges = $edges;
-    $this->nodes = $nodes;
+    $this->nodes = $nodes;   
     
-    $this->getEdgeAttributes();
+    $this->loadEdgeAttributes();
     //$this->getNodeAttributes();
   } 
   
   /**
    * 
    */
-  private function getEdgeAttributes() {
+  private function loadEdgeAttributes() {
     
     if (count($this->edges) == 0) {
       return;
     }
-    
-    $quantitative_term = chado_get_cvterm(['id' => 'NCIT:C142658']);
-    $categorical_term = chado_get_cvterm(['id' => 'NCIT:C142657']);
-    $ordinal_term = chado_get_cvterm(['id' => 'NCIT:C47797']);
-    
+        
     $sql = "
       SELECT DISTINCT NE.network_id, NEP.type_id
       FROM {network_edgeprop} NEP 
@@ -246,13 +257,13 @@ class TripalNetwork {
       ];
       $attr = chado_expand_var($attr, 'table', 'network_attrprop', $options);      
       $term_id = $attr->attr_id->dbxref_id->db_id->name . ":" . $attr->attr_id->dbxref_id->accession;
-      $data_type = $categorical_term;
+      $data_type = $this->categorical_term;
       foreach ($attr->network_attrprop as $attrprop) {
-        if ($attrprop->value_id == $quantitative_term->cvterm_id) {
-          $data_type = $quantitative_term;
+        if ($attrprop->value_id == $this->quantitative_term->cvterm_id) {
+          $data_type = $this->quantitative_term;
         }
-        if ($attrprop->value_id == $ordinal_term->cvterm_id) {
-          $data_type = $ordinal_term;
+        if ($attrprop->value_id == $this->ordinal_term->cvterm_id) {
+          $data_type = $this->ordinal_term;
         }
       }
       $this->edge_attributes[$term_id][$attr_type->network_id] = [
@@ -265,16 +276,12 @@ class TripalNetwork {
   /**
    *
    */
-  private function getNodeAttributes() {
+  private function loadNodeAttributes() {
     
     if (count($this->nodes) == 0) {
       return;
     }
-    
-    $quantitative_term = chado_get_cvterm(['id' => 'NCIT:C142658']);
-    $categorical_term = chado_get_cvterm(['id' => 'NCIT:C142657']);
-    $ordinal_term = chado_get_cvterm(['id' => 'NCIT:C47797']);
-    
+        
     $sql = "
       SELECT DISTINCT NE.network_id, NNP.type_id
       FROM {network_nodeprop} NNP
@@ -293,13 +300,13 @@ class TripalNetwork {
         'return_array' => TRUE,
       ];
       $attr = chado_expand_var($attr, 'table', 'network_attrprop', $options);
-      $data_type = $categorical_term;
+      $data_type = $this->categorical_term;
       foreach ($attr->network_attrprop as $attrprop) {
-        if ($attrprop->value_id == $quantitative_term->cvterm_id) {
-          $data_type = $quantitative_term;
+        if ($attrprop->value_id == $this->quantitative_term->cvterm_id) {
+          $data_type = $this->quantitative_term;
         }
-        if ($attrprop->value_id == $ordinal_term->cvterm_id) {
-          $data_type = $ordinal_term;
+        if ($attrprop->value_id == $this->ordinal_term->cvterm_id) {
+          $data_type = $this->ordinal_term;
         }
       }
       $term_id = $attr->type_id->dbxref_id->db_id->name . ":" . $attr->type_id->dbxref_id->accession;
@@ -315,10 +322,16 @@ class TripalNetwork {
    */
   public function retrieveNodeProp($term_id) {    
     $props = [];
-    
+        
     $term_split = preg_split('/:/', $term_id);
     if (!$term_split) {
-      return $props;
+      return 0;
+    }     
+    
+    // Don't lookup session attributes properties as these
+    // are already in the nodes.    
+    if (in_array($term_id, $this->session_node_attrs)) {
+      return count($this->nodes);
     }
         
     $sql = "
@@ -362,6 +375,12 @@ class TripalNetwork {
       return $props;
     }
     
+    // Don't lookup session attributes properties as these
+    // are already in the nodes.
+    if (in_array($term_id, $this->session_edge_attrs)) {
+      return count($this->edges);
+    }
+    
     $sql = "
       SELECT NEP.network_edge_id, NEP.value, NEP.value_num
       FROM {network_edgeprop} NEP
@@ -395,15 +414,25 @@ class TripalNetwork {
   /**
    *
    */
-  public function addNodeProp($node_id, $term_id, $value) {
+  public function addNodeProp($node_id, $term_id, $value, $type = 'numeric') {
+    $data_type = $this->categorical_term;
+    if ($type == 'numeric') {
+      $data_type = $this->quantitative_term;
+    }
     $this->nodes[$node_id][$term_id] = $value;
+    $this->addNodeSessionAttr($term_id, $data_type);
   }
   
   /**
    *
    */
-  public function addEdgeProp($edge_id, $term_id, $value) {
+  public function addEdgeProp($edge_id, $term_id, $value, $type = 'numeric') {
+    $data_type = $this->categorical_term;
+    if ($type == 'numeric') {
+      $data_type = $this->quantitative_term;
+    }
     $this->edges[$edge_id][$term_id] = $value;
+    $this->addEdgeSessionAttr($term_id, $data_type);
   }
   
   /**
@@ -411,9 +440,9 @@ class TripalNetwork {
    */
   public function calculateDegree() {
     
-    // Add the degree attrbute to the node.
+    // Initalized the degree attrbute for each node.
     foreach ($this->nodes as $node_id => $node) {
-      $this->nodes[$node_id]['OBI:0200130'] = 1;
+      $this->nodes[$node_id]['OBI:0200130'] = 0;
     }
     
     foreach ($this->edges as $edge) {
@@ -422,42 +451,191 @@ class TripalNetwork {
       $this->nodes[$node1_id]['OBI:0200130']++;
       $this->nodes[$node2_id]['OBI:0200130']++;
     }    
+    $this->addNodeSessionAttr('OBI:0200130', $this->quantitative_term);
     
-    // Add the degree attribute as if it were in the databas.
-    $domain_term = chado_get_cvterm(['id' => 'NCIT:C75907']);
-    $term = chado_get_cvterm(['id' => 'OBI:0200130']);
-    $this->node_attributes['OBI:0200130'][0] = [
-      'attr' => (object)[
-        'network_id' => 0,
-        'attr_id' => $term,
-        'domain_id' => $domain_term
-      ]      
-    ];   
   }
   
+  /**
+   * Sorts the edges array by the specified property.
+   *
+   * @param $property The name of the property by which to sort
+   */
+  public function sortEdges($property, $sort_order = SORT_ASC) {
+    
+   // Get the data type for this property
+    $sort_flags = SORT_STRING;
+    foreach ($this->node_attributes[$property] as $network_id => $attr) {
+      if ($attr['type']->cvterm_id == $this->quantitative_term->cvterm_id) {
+        $sort_flags = SORT_NUMERIC;
+      }
+      if ($attr['type']->cvterm_id == $this->ordinal_term->cvterm_id) {
+        $sort_flags = SORT_NUMERIC;
+      }
+    }
+    
+    uasort($this->nodes, function($a, $b) use ($property, $sort_order, $sort_flags) {
+      if ($sort_flags == SORT_STRING) {
+        if ($sort_order == SORT_ASC) {
+          return strnatcmp($a[$property], $b[$property]);
+        }
+        else {
+          return strnatcmp($b[$property], $a[$property]);
+        }
+      }
+      if ($sort_flags == SORT_NUMERIC) {
+        if ($a[$property] == $b[$property]) {
+          return 0;
+        }
+        if ($sort_order == SORT_ASC) {
+          return ($a[$property] < $b[$property]) ? -1 : 1;
+        }
+        else {
+          return ($b[$property] < $a[$property]) ? -1 : 1;
+        }
+      }
+    });
+  }
+  
+  /**
+   * Sorts the nodes array by the specified property.
+   * 
+   * @param $property The name of the property by which to sort
+   */
+  public function sortNodes($property, $sort_order = SORT_ASC) {
+    
+    $allowed_properties = ['node_name'];
+    
+    if (!array_key_exists($property, $this->node_attributes) and !in_array($property, $allowed_properties)) {
+      return;
+    }
+    
+    // Get the data type for this property
+    $sort_flags = SORT_STRING;
+    if (!in_array($property, $allowed_properties)) {
+      foreach ($this->node_attributes[$property] as $network_id => $attr) {       
+        if ($attr['type']->cvterm_id == $this->quantitative_term->cvterm_id) {
+          $sort_flags = SORT_NUMERIC;
+        }
+        if ($attr['type']->cvterm_id == $this->ordinal_term->cvterm_id) {
+          $sort_flags = SORT_NUMERIC;
+        }
+      }
+    }
+    
+    uasort($this->nodes, function($a, $b) use ($property, $sort_order, $sort_flags) {
+      if ($sort_flags == SORT_STRING) {
+        if ($sort_order == SORT_ASC) {
+          return strnatcmp($a[$property], $b[$property]);
+        }
+        else {
+          return strnatcmp($b[$property], $a[$property]);
+        }
+      }
+      if ($sort_flags == SORT_NUMERIC) {
+        if ($a[$property] == $b[$property]) {
+          return 0;
+        }
+        if ($sort_order == SORT_ASC) {
+          return ($a[$property] < $b[$property]) ? -1 : 1;
+        }
+        else {
+          return ($b[$property] < $a[$property]) ? -1 : 1;
+        }
+      }
+      
+    });
+  }
+
+  
+  /**
+   * 
+   */
   public function calculateLocalCC() {
+    
+     // organize the neighbros fo each node for quick lookup.
      $neighbors = [];
      foreach ($this->edges as $edge_id => $edge_details) {
        $source_node_id = $edge_details['source_node_id'];
        $target_node_id = $edge_details['target_node_id'];
-       $neighbors[$source_node_id][] = $edge_details[$target_node_id];
-       $neighbors[$target_node_id][] = $edge_details[$source_node_id];
+       $neighbors[$source_node_id][] = $target_node_id;
+       $neighbors[$target_node_id][] = $source_node_id;
      }
      
-     foreach ($neighbors as $node_id => $firstn) {
-       $k = count($firstn);
-       $this->nodes[$node_id]['local:local_clustering_coefficient'] = $k / ($k*($k-1));
+     // Calculate the clustering coefficient for each node.
+     foreach ($neighbors as $node_id => $node_neighbors) {  
+       // Get the number of neighbors for this node.
+       $num_n = count($node_neighbors);
+       // Count the number of edges shared by these neighbors.
+       $k = 0;
+       foreach ($node_neighbors as $neighbor) {
+         $neighbor_neighbors = $neighbors[$neighbor];
+         $k += count(array_intersect($node_neighbors, $neighbor_neighbors)); 
+       }
+       $k = $k / 2;
+       $this->nodes[$node_id]['local:local_clustering_coefficient'] = $k / ($num_n+1*($num_n));
      }
-     
-     // Add the degree attribute as if it were in the databas.
-     $domain_term = chado_get_cvterm(['id' => 'NCIT:C75907']);
-     $term = chado_get_cvterm(['id' => 'local:local_clustering_coefficient']);
-     $this->node_attributes['local:local_clustering_coefficient'][0] = [
-       'attr' => (object)[
-         'network_id' => 0,
-         'attr_id' => $term,
-         'domain_id' => $domain_term         
-       ]      
-     ];  
+     $this->addNodeSessionAttr('local:local_clustering_coefficient', $this->quantitative_term);
+  }
+  
+  /**
+   * Adds a session attribute for nodes.
+   * 
+   * A session attribute is one which only exists in the network
+   * viewing session and is not stored in the database. These are
+   * usually calculated attributes.
+   * 
+   * @param $term_id The term to add as a session variable.
+   */
+  protected function addNodeSessionAttr($term_id, $data_type) {
+    
+    if (in_array($term_id, $this->session_node_attrs)) {
+      return;
+    }
+    
+    // Add the degree attribute as if it were in the databas.
+    $domain_term = chado_get_cvterm(['id' => 'NCIT:C75907']);
+    $term = chado_get_cvterm(['id' => $term_id]);
+    if ($term) {
+      $this->node_attributes[$term_id][0] = [
+        'attr' => (object)[
+          // A network ID of 0 means this is a session atribute.
+          'network_id' => 0,
+          'attr_id' => $term,
+          'domain_id' => $domain_term
+        ],
+        'type' => $data_type,
+      ];
+      $this->session_node_attrs[] = $term_id;
+    }
+  }
+  /**
+   * Adds a session attribute for nodes.
+   *
+   * A session attribute is one which only exists in the network
+   * viewing session and is not stored in the database. These are
+   * usually calculated attributes.
+   *
+   * @param $term_id The term to add as a session variable.
+   */
+  protected function addEdgeSessionAttr($term_id) {
+    
+    if (array_key_exists($term_id, $this->session_edge_attrs)) {
+      return;
+    }
+    // Add the degree attribute as if it were in the databas.
+    $domain_term = chado_get_cvterm(['id' => 'NCIT:C75923']);
+    $term = chado_get_cvterm(['id' => $term_id]);
+    if ($term) {
+      $this->edge_attributes[$term_id][0] = [
+        'attr' => (object)[
+          // A network ID of 0 means this is a session atribute.
+          'network_id' => 0,
+          'attr_id' => $term,
+          'domain_id' => $domain_term
+        ],
+        'type' => $data_type,
+      ];
+      $this->session_edge_attrs[] = $term_id;
+    }
   }
 }

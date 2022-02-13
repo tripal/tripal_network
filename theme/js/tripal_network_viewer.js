@@ -346,10 +346,12 @@
    /**
    *
    */
-  $.fn.updateNodeDataForm = function(page, ndata_includes) {
+  $.fn.updateNodeDataForm = function(page, ndata_includes, sort_by, sort_dir) {
 	var data = state;
-	data['page'] = page
-	data['ndata_includes'] = ndata_includes
+	data['page'] = page;
+	data['ndata_includes'] = ndata_includes;
+	data['sort_by'] = sort_by;
+	data['sort_dir'] = sort_dir;
     $.fn.showSpinner()
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
@@ -489,8 +491,45 @@
     })
   };
   
+  /**
+   *
+   */
+  $.fn.selectNodeByID = function(node_id) {
+	
+	var myPlot = document.getElementById('tripal-network-viewer');
+	for (var i in myPlot.data) {
+	  if (myPlot.data[i]['mode'] == 'markers') {		
+	    for (var j in myPlot.data[i]['ids']) {
+		  if (myPlot.data[i]['ids'][j] == node_id) {
+			var data = [];
+	        data['points'] = [];	
+	        data['points'][0] = [];	
+			data['points'][0]['curveNumber'] = i;
+			data['points'][0]['id'] = node_id;
+			data['points'][0]['pointNumber'] = j;
+			data['points'][0]['text'] = myPlot.data[i]['text'][j];
+			data['points'][0]['x'] = myPlot.data[i]['x'][j];
+			data['points'][0]['y'] = myPlot.data[i]['y'][j];
+			data['points'][0]['z'] = myPlot.data[i]['z'][j];
+			data['points'][0]['marker.size'] = myPlot.data[i]['marker']['size'][j];
+			data['points'][0]['marker.color'] = myPlot.data[i]['marker']['color'][j];
+			data['points'][0]['data'] = [];
+			data['points'][0]['data']['hovertemplate'] = myPlot.data[i]['hovertemplate'];
+			data['points'][0]['data']['ids'] = myPlot.data[i]['ids'];
+			data['points'][0]['data']['mode'] = myPlot.data[i]['mode'];
+			data['points'][0]['data']['marker'] = myPlot.data[i]['marker'];
+			data['points'][0]['data']['text'] = myPlot.data[i]['marker'];
+			data['points'][0]['data']['type'] = myPlot.data[i]['type'];
+			$.fn.selectNode(data);
+			break;
+		  }
+	    }	
+	  }
+	}			
+  }
   
-    /**
+  
+  /**
    *
    */
   $.fn.selectNode = function(data) {       
@@ -502,7 +541,7 @@
     
     in_selection = true;
     
-    if (selected_node ) {
+    if (selected_node) {
       var spn = selected_node['points'][0]['pointNumber'];
       var stn = selected_node['points'][0]['curveNumber'];
       var smarker = selected_node['points'][0]['data']['marker'];

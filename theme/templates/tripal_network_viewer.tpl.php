@@ -134,8 +134,7 @@ $node_data_form = drupal_render($node_data_form);
             <div id="tripal-network-viewer-node-data-tab">
             	<?php print $node_data_form ?>
             </div>
-          </div>
-        </div>         	 
+          </div>         	 
        </div>
        <div id="tripal-network-viewer-analysis-box" class="tripal-network-viewer-sidebar-box">
          	<h2>Analysis</h2>   

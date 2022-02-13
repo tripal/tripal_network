@@ -88,9 +88,11 @@ function tripal_network_viewer_ajax_get_edge_data_form() {
   $network_session_id  = array_key_exists('network_session_id', $_GET) ? $_GET['network_session_id'] : NULL;
   $page = array_key_exists('page', $_GET) ? $_GET['page'] : 0;
   $edata_includes = array_key_exists('edata_includes', $_GET) ? $_GET['edata_includes'] : [];
+  $sort_by = array_key_exists('sort_by', $_GET) ? $_GET['sort_by'] : 'source_node_name';
+  $sort_dir = array_key_exists('sort_dir', $_GET) ? $_GET['sort_dir'] : 'asc';
     
   $form = drupal_get_form('tripal_network_viewer_edge_data_form', $network_session_id,
-      $organism_id, $network_id, $filters, $page, $edata_includes);
+      $organism_id, $network_id, $filters, $page, $edata_includes, $sort_by, $sort_dir);
   $form = drupal_render($form);
   
   ajax_deliver($form);
@@ -106,9 +108,11 @@ function tripal_network_viewer_ajax_get_node_data_form() {
   $network_session_id  = array_key_exists('network_session_id', $_GET) ? $_GET['network_session_id'] : NULL;
   $page = array_key_exists('page', $_GET) ? $_GET['page'] : 0;
   $ndata_includes = array_key_exists('ndata_includes', $_GET) ? $_GET['ndata_includes'] : [];
+  $sort_by = array_key_exists('sort_by', $_GET) ? $_GET['sort_by'] : 'node_name';
+  $sort_dir = array_key_exists('sort_dir', $_GET) ? $_GET['sort_dir'] : 'asc';
   
   $form = drupal_get_form('tripal_network_viewer_node_data_form', $network_session_id,
-      $organism_id, $network_id, $filters, $page, $ndata_includes);
+      $organism_id, $network_id, $filters, $page, $ndata_includes, $sort_by, $sort_dir);
   $form = drupal_render($form);
   
   ajax_deliver($form);
@@ -119,9 +123,10 @@ function tripal_network_viewer_ajax_get_node_data_form() {
  */
 function tripal_network_viewer_ajax_get_node_details() {
   $node_id = array_key_exists('node_id', $_GET) ? $_GET['node_id'] : NULL;
+  $network_session_id  = array_key_exists('network_session_id', $_GET) ? $_GET['network_session_id'] : NULL;
   $state = $_GET;
 
-  $form = drupal_get_form('tripal_network_viewer_node_details_form', $node_id, $state);
+  $form = drupal_get_form('tripal_network_viewer_node_details_form', $node_id, $state, $network_session_id);
   $form = drupal_render($form);
 
   ajax_deliver($form);
@@ -217,8 +222,9 @@ function tripal_network_viewer_network_details_form($form, &$form_state,
 /**
  *
  */
-function tripal_network_viewer_node_details_form($form, &$form_state, $node_id = NULL, $state = NULL) {
-
+function tripal_network_viewer_node_details_form($form, &$form_state, $node_id = NULL, $state = NULL, 
+    $network_session_id = NULL) {
+  
   $default_field = 'summary';
   if ($state and array_key_exists('node_field_name', $state)) {
     $default_field = $state['node_field_name'];
@@ -243,6 +249,8 @@ function tripal_network_viewer_node_details_form($form, &$form_state, $node_id =
     return $form;
   }
   
+  $network = tripal_network_viewer_get_session_network($network_session_id);
+   
   $node_name = '';
   $feature = tripal_network_get_nodes([$node_id])[$node_id];  
   $entity_id = chado_get_record_entity_by_table('feature', $feature->feature_id);
@@ -315,6 +323,24 @@ function tripal_network_viewer_node_details_form($form, &$form_state, $node_id =
         $value,
       ];
     }
+    
+    // Add in any network attributes for the node
+    $node = $network->getNode($node_id); 
+    $nattrs = $network->getNodeAttrs();
+    foreach ($nattrs as  $term_id => $network_ids) {
+      foreach ($network_ids as $network_id => $attr_details) {
+        $rows[] = [
+          [
+            'data' => ucfirst($attr_details['attr']->attr_id->name),
+            'header' => TRUE,
+            'width' => '20%',
+          ],
+          $node[$term_id],
+        ];
+      }
+    }
+    array_multisort($attributes);
+    
     $headers = ['Attribute', 'Value'];
     $summary_table = [
       'header' => $headers,
@@ -1393,7 +1419,8 @@ function tripal_network_viewer_layers_form_ajax_callback($form, $form_state) {
  *
  **/
 function tripal_network_viewer_edge_data_form($form, $form_state,  $network_session_id,
-    $organism_id = NULL, $network_id = NULL, $filters = [], $page = 0, $edata_includes = []) {
+    $organism_id = NULL, $network_id = NULL, $filters = [], $page = 0, $edata_includes = [],
+    $sort_by = 'source_node_name', $sort_dir = 'asc') {
 
   $network = tripal_network_viewer_get_session_network($network_session_id);
   $details = 'Please select a network to view details.';
@@ -1498,7 +1525,8 @@ function tripal_network_viewer_edge_data_form($form, $form_state,  $network_sess
  * 
  */
 function tripal_network_viewer_node_data_form($form, $form_state,  $network_session_id,
-    $organism_id = NULL, $network_id = NULL, $filters = [], $page = 0, $ndata_includes = []) {
+    $organism_id = NULL, $network_id = NULL, $filters = [], $page = 0, $ndata_includes = [], 
+    $sort_by = 'node_name', $sort_dir = 'asc') {
       
   $network = tripal_network_viewer_get_session_network($network_session_id);
   $details = 'Please select a network to view details.';
@@ -1519,11 +1547,11 @@ function tripal_network_viewer_node_data_form($form, $form_state,  $network_sess
     '#type' => 'markup',
     '#markup' => '<div id ="tripal-network-viewer-node-data-form">'
   ];
-  
+      
   $attributes = [];
   $nattrs = $network->getNodeAttrs();
-  foreach ($nattrs as  $term_id => $networks) {
-    foreach ($networks as $attr_details) {
+  foreach ($nattrs as  $term_id => $network_ids) {
+    foreach ($network_ids as $network_id => $attr_details) {
       $attributes[$term_id] = ucfirst($attr_details['attr']->attr_id->name);
     }
   }
@@ -1546,10 +1574,27 @@ function tripal_network_viewer_node_data_form($form, $form_state,  $network_sess
   
   // Load the included properties
   foreach ($ndata_includes as $term_id) {
+    
+    // Don't retreive properties for session attirubtes
+    if (array_key_exists($term_id, $session_attrs)) {
+      continue;
+    }
     $network->retrieveNodeProp($term_id);
   }
   
-  $nodes = $network->getNodes();
+  // Determine how to order the nodes, then flip it 
+  // so that the table headers have the opposite direction.
+  $header_sort_dir = $sort_dir;
+  if ($sort_dir == 'desc') {
+    $network->sortNodes($sort_by, SORT_DESC);
+    $header_sort_dir = 'asc';
+  } 
+  else if ($sort_dir == 'asc') {
+    $network->sortNodes($sort_by, SORT_ASC);
+    $header_sort_dir = 'desc';
+  }  
+  
+  $nodes = $network->getNodes();  
   $node_indexes = array_keys($nodes);
   
   // Initialize the pager
@@ -1558,23 +1603,28 @@ function tripal_network_viewer_node_data_form($form, $form_state,  $network_sess
   $pager = theme('pager', ['quantity', count($node_indexes)]);
   
   // Fix the pager so it works with ajax
-  $pager = preg_replace('/href="\/.+\?page=(\d+).*"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateNodeDataForm($1, JSON.parse(JSON.stringify('. json_encode($ndata_includes) . ')))\'', $pager);
-  $pager = preg_replace('/href="\/.+"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateNodeDataForm(0, JSON.parse(JSON.stringify(' . json_encode($ndata_includes) . ')))\'', $pager);
+  $pager = preg_replace('/href="\/.+\?page=(\d+).*"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateNodeDataForm($1, JSON.parse(JSON.stringify('. json_encode($ndata_includes) . ')), "' . $sort_by . '", "' . $sort_dir . '")\'', $pager);
+  $pager = preg_replace('/href="\/.+"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateNodeDataForm(0, JSON.parse(JSON.stringify(' . json_encode($ndata_includes) . ')), "' . $sort_by . '", "' . $sort_dir . '")\'', $pager);
   
-  $headers = ['Node Name'];
+  // Build the headers array.
+  $headers = ['<a href="header:node_name">Node Name</a>'];
   foreach ($ndata_includes as $term_id) {
-    $headers[] = $attributes[$term_id];
+    $headers[] = '<a href="header:' . $term_id . '">' . $attributes[$term_id] . '</a>';
   }
+    
+  // Build the rows of the table.
   $rows = [];
   for ($i = $page * $per_page; $i < min(($page+1) * $per_page, count($node_indexes)); $i++) {
     $row = [
-      $nodes[$node_indexes[$i]]['node_name'],
+      '<a href="node-select:' . $node_indexes[$i] . '">' . $nodes[$node_indexes[$i]]['node_name'] . '</a>'
     ];
     foreach ($ndata_includes as $term_id) {
-      $row[] = $nodes[$node_indexes[$i]][$term_id];
+      $row[] = $nodes[$node_indexes[$i]][$term_id] ;
     }
     $rows[] = $row;
   }
+  
+  // Create the table.
   $data_table = [
     'header' => $headers,
     'rows' => $rows,
@@ -1584,10 +1634,17 @@ function tripal_network_viewer_node_data_form($form, $form_state,  $network_sess
     'colgroups' => [],
     'empty' => 'No nodes',
   ];
+  
+  $data_table = theme_table($data_table);
+  
+  // Fix the links in the table to work with ajax
+  $data_table = preg_replace('/href="header:(.+?)"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateNodeDataForm('. $page . ', JSON.parse(JSON.stringify('. json_encode($ndata_includes) . ')), "$1", "' . $header_sort_dir . '")\'', $data_table);
+  $data_table = preg_replace('/href="node-select:(.+?)"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.selectNodeByID("$1")\'', $data_table);
+  
   $form['data_table'] = [
     '#type' => 'item',
     '#title' => 'Nodes',
-    '#markup' => theme_table($data_table) . $pager
+    '#markup' =>  $data_table . $pager
   ];  
   
   $form['node_tab_wrapper_end'] = [
