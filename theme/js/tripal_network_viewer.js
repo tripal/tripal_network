@@ -319,10 +319,12 @@
   /**
    *
    */
-  $.fn.updateEdgeDataForm = function(page, edata_includes) {
+  $.fn.updateEdgeDataForm = function(page, edata_includes, sort_by, sort_dir) {
 	var data = state;
 	data['page'] = page
 	data['edata_includes'] = edata_includes
+	data['sort_by'] = sort_by;
+	data['sort_dir'] = sort_dir;
     $.fn.showSpinner()
     $.ajax({
       // The baseurl is a variable set by Tripal that indicates the

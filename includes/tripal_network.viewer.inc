@@ -88,7 +88,7 @@ function tripal_network_viewer_ajax_get_edge_data_form() {
   $network_session_id  = array_key_exists('network_session_id', $_GET) ? $_GET['network_session_id'] : NULL;
   $page = array_key_exists('page', $_GET) ? $_GET['page'] : 0;
   $edata_includes = array_key_exists('edata_includes', $_GET) ? $_GET['edata_includes'] : [];
-  $sort_by = array_key_exists('sort_by', $_GET) ? $_GET['sort_by'] : 'source_node_name';
+  $sort_by = array_key_exists('sort_by', $_GET) ? $_GET['sort_by'] : 'source_name';
   $sort_dir = array_key_exists('sort_dir', $_GET) ? $_GET['sort_dir'] : 'asc';
     
   $form = drupal_get_form('tripal_network_viewer_edge_data_form', $network_session_id,
@@ -1420,7 +1420,7 @@ function tripal_network_viewer_layers_form_ajax_callback($form, $form_state) {
  **/
 function tripal_network_viewer_edge_data_form($form, $form_state,  $network_session_id,
     $organism_id = NULL, $network_id = NULL, $filters = [], $page = 0, $edata_includes = [],
-    $sort_by = 'source_node_name', $sort_dir = 'asc') {
+    $sort_by = 'source_name', $sort_dir = 'asc') {
 
   $network = tripal_network_viewer_get_session_network($network_session_id);
   $details = 'Please select a network to view details.';
@@ -1471,6 +1471,18 @@ function tripal_network_viewer_edge_data_form($form, $form_state,  $network_sess
     $network->retrieveEdgeProp($term_id);
   }
   
+  // Determine how to order the nodes, then flip it
+  // so that the table headers have the opposite direction.
+  $header_sort_dir = $sort_dir;
+  if ($sort_dir == 'desc') {
+    $network->sortEdges($sort_by, SORT_DESC);
+    $header_sort_dir = 'asc';
+  }
+  else if ($sort_dir == 'asc') {
+    $network->sortEdges($sort_by, SORT_ASC);
+    $header_sort_dir = 'desc';
+  }  
+  
   $edges = $network->getEdges();
   $edge_indexes = array_keys($edges);
   
@@ -1483,21 +1495,29 @@ function tripal_network_viewer_edge_data_form($form, $form_state,  $network_sess
   $pager = preg_replace('/href="\/.+\?page=(\d+).*"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateEdgeDataForm($1, JSON.parse(JSON.stringify('. json_encode($edata_includes) . ')))\'', $pager);
   $pager = preg_replace('/href="\/.+"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateEdgeDataForm(0, JSON.parse(JSON.stringify(' . json_encode($edata_includes) . ')))\'', $pager);
   
-  $headers = ['Source', 'Target'];
+  // Build the headers array.
+  $headers = [
+    '<a href="header:source_name">Source</a>', 
+    '<a href="header:target_name">Target</a>',    
+  ];
   foreach ($edata_includes as $term_id) {
-    $headers[] = $attributes[$term_id];
+    $headers[] = '<a href="header:' . $term_id . '">' . $attributes[$term_id] . '</a>';
   }
+  
+  // Build the rows of the table.
   $rows = [];
   for ($i = $page * $per_page; $i < min(($page+1) * $per_page, count($edge_indexes)); $i++) {
     $row = [
-      $edges[$edge_indexes[$i]]['source_name'],
-      $edges[$edge_indexes[$i]]['target_name'],
+      '<a href="node-select:' . $edges[$edge_indexes[$i]]['source_node_id'] . '">' . $edges[$edge_indexes[$i]]['source_name'] . '</a>',
+      '<a href="node-select:' . $edges[$edge_indexes[$i]]['target_node_id'] . '">' . $edges[$edge_indexes[$i]]['target_name'] . '</a>'
     ];
     foreach ($edata_includes as $term_id) {
       $row[] = $edges[$edge_indexes[$i]][$term_id];
     }
     $rows[] = $row;
   }
+  
+  // Create the table.
   $data_table = [
     'header' => $headers,
     'rows' => $rows,
@@ -1507,10 +1527,17 @@ function tripal_network_viewer_edge_data_form($form, $form_state,  $network_sess
     'colgroups' => [],
     'empty' => 'No edges',
   ];
+  $data_table  = theme_table($data_table);
+  
+  // Fix the links in the table to work with ajax
+  $data_table = preg_replace('/href="header:(.+?)"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateEdgeDataForm('. $page . ', JSON.parse(JSON.stringify('. json_encode($ndata_includes) . ')), "$1", "' . $header_sort_dir . '")\'', $data_table);
+  $data_table = preg_replace('/href="node-select:(.+?)"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.selectNodeByID("$1")\'', $data_table);
+  
+  
   $form['data_table'] = [
     '#type' => 'item',
     '#title' => 'Edges',
-    '#markup' => theme_table($data_table) . $pager
+    '#markup' =>  $data_table . $pager
   ];  
   
   $form['edge_tab_wrapper_end'] = [
@@ -1574,11 +1601,6 @@ function tripal_network_viewer_node_data_form($form, $form_state,  $network_sess
   
   // Load the included properties
   foreach ($ndata_includes as $term_id) {
-    
-    // Don't retreive properties for session attirubtes
-    if (array_key_exists($term_id, $session_attrs)) {
-      continue;
-    }
     $network->retrieveNodeProp($term_id);
   }
   
