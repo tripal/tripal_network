@@ -572,6 +572,15 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
     // Convert the layer bin into a color
     $labels = [];
     foreach ($layers['item_layer'] as $network_edge_id => $layer) {
+      // Sanity checks.
+      if ($layer < 0) {
+        $layer = 0;
+      }
+      if ($layer > 20) {
+        $layer = 20;
+      }
+
+      // Calculate the index into the color array.
       $ci = floor($layer * ($num_colors / $num_layers));
       
       // Reverse the colors for the rank property.

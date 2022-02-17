@@ -464,7 +464,7 @@ class TripalNetwork {
     
    // Get the data type for this property
     $sort_flags = SORT_STRING;
-    foreach ($this->node_attributes[$property] as $network_id => $attr) {
+    foreach ($this->edge_attributes[$property] as $network_id => $attr) {
       if ($attr['type']->cvterm_id == $this->quantitative_term->cvterm_id) {
         $sort_flags = SORT_NUMERIC;
       }
@@ -474,6 +474,9 @@ class TripalNetwork {
     }
     
     uasort($this->nodes, function($a, $b) use ($property, $sort_order, $sort_flags) {
+      if (!array_key_exists($property, $a) or !array_key_exists($property, $b)) {
+        return 0;
+      }
       if ($sort_flags == SORT_STRING) {
         if ($sort_order == SORT_ASC) {
           return strnatcmp($a[$property], $b[$property]);
