@@ -17,6 +17,11 @@ body {
   color: black !important;
 }
 
+a {
+  color: #0071B3 !important;
+  text-decoration: none !important;
+}
+
 #tripal-network-viewer-app {
   padding: 0px;
   margin: 0px;
@@ -211,6 +216,9 @@ h3 {
 /**
  Tables
  **/
+#tripal-network-viewer-app table {
+  width: 100%;
+}
 #tripal-network-viewer-app table tr th {
   background-color: rgba(0, 0, 0, 0.51);
   padding: 4px 9px;
@@ -218,6 +226,13 @@ h3 {
   text-align: left;
   color: #FFFFFF;
 }
+#tripal-network-viewer-app table tr th a {
+  color: #FFFFFF !important;
+}
+#tripal-network-viewer-app table tr th a:hover {
+  color: #CCCCCC !important;
+}
+
 #tripal-network-viewer-app table tr td {
   padding: 4px 9px;
   border: 1px solid #fff;
@@ -231,5 +246,36 @@ h3 {
 
 #tripal-network-viewer-app .help-block {
   color: #000000 !important;
+}
+
+/**
+ JQuery UI Overrides
+ **/
+
+#tripal-network-viewer-app .ui-widget-content {
+  background-color: #EEEEEE !important;
+}
+
+#tripal-network-viewer-app .ui-widget-header {
+  background-color: #EEEEEE !important;
+}
+
+#tripal-network-viewer-app .ui-widget.ui-widget-content {
+  border: 0px !important;
+}
+
+#tripal-network-viewer-app .ui-state-active, 
+#tripal-network-viewer-app .ui-widget-content .ui-state-active, 
+#tripal-network-viewer-app .ui-widget-header .ui-state-active, 
+#tripal-network-viewer-app a.ui-button:active, 
+#tripal-network-viewer-app .ui-button:active, 
+#tripal-network-viewer-app .ui-button.ui-state-active:hover {
+  background-color: #CCCCCC !important;
+  border: 1px solid #c5c5c5 !important;
+}
+
+#tripal-network-viewer-edge-data-tab,
+#tripal-network-viewer-node-data-tab {
+  border: 1px solid #c5c5c5;
 }
 
