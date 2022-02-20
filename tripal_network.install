@@ -2850,7 +2850,7 @@ function tripal_network_update_7101() {
   try {
     $schema = [];
     tripal_network_add_network_contact_table($schema);
-    chado_create_custom_table('network_contact', $schema, TRUE, NULL, FALSE);    
+    chado_create_custom_table('network_contact', $schema['network_contact'], TRUE, NULL, FALSE);    
   }
   catch (\PDOException $e) {
     $error = $e->getMessage();
