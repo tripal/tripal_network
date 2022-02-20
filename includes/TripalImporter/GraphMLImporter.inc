@@ -1377,7 +1377,7 @@ class GraphMLImporter extends TripalImporter {
         // can be multiple edges between the same nodes
         $edge_name = $e->$source_name_column . ' (-) ' . $e->$target_name_column;
         if ($edge['schema:name'] != $edge_name) {
-          throw new Exception(t('Something went wrong and edges are out of order', []));
+          throw new Exception(t('Something went wrong and edges are out of order. Did you use the correct feature type for the nodes?', []));
         }
         $this->edges[$edge_id]['network_edge_id'] = $e->network_edge_id;
       }

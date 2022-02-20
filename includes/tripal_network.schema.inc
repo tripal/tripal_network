@@ -235,14 +235,14 @@ function tripal_network_chado_schema_v1_2_cvterm() {
  *
  * @ingroup tripal_schema_api
  */
-function tripal_network_chado_schema_v1_3_file() {
-  $description = array();
+// function tripal_network_chado_schema_v1_3_file() {
+//   $description = array();
   
-  $description['referring_tables'] = [
-    'network_file',
-  ];
-  return $description;
-}
+//   $description['referring_tables'] = [
+//     'network_file',
+//   ];
+//   return $description;
+// }
 
 /**
  * Implements hook_chado_schema_v1_2_table()
@@ -255,13 +255,13 @@ function tripal_network_chado_schema_v1_3_file() {
  *
  * @ingroup tripal_schema_api
  */
-function tripal_network_chado_schema_v1_2_file() {
-  $description = array();
+// function tripal_network_chado_schema_v1_2_file() {
+//   $description = array();
   
-  $description['referring_tables'] = [
-    'network_file',
-  ];
-  return $description;
-}
+//   $description['referring_tables'] = [
+//     'network_file',
+//   ];
+//   return $description;
+// }
 
 
