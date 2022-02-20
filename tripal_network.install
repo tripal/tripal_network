@@ -35,6 +35,7 @@ function tripal_network_install() {
   tripal_network_add_network_cvterm_table($schema);
   tripal_network_add_network_file_table($schema);
   tripal_network_add_network_pub_table($schema);
+  tripal_network_add_network_contact_table($schema);
 
   // Tables for storing the network nodes.
   tripal_network_add_network_node_table($schema);
@@ -1799,6 +1800,64 @@ function tripal_network_add_network_pub_table(&$schema) {
   ];
 }
 
+/**
+ *
+ */
+function tripal_network_add_network_contact_table(&$schema) {
+  
+  $schema['network_contact'] = [
+    'table' => 'network_contact',
+    'fields' => [
+      'network_contact_id' => [
+        'size' => 'big',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'network_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'contact_id' => [
+        'size' => 'big',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => [
+      0 => 'network_contact_id',
+    ],
+    'unique keys' => [
+      'network_contact_c1' => [
+        0 => 'network_id',
+        1 => 'contact_id',
+      ],
+    ],
+    'indexes' => [
+      'network_contact_idx1' => [
+        0 => 'network_id',
+      ],
+      'network_contact_idx2' => [
+        0 => 'contact_id',
+      ],
+    ],
+    'foreign keys' => [
+      'contact' => [
+        'table' => 'contact',
+        'columns' => [
+          'contact_id' => 'contact_id',
+        ],
+      ],
+      'network' => [
+        'table' => 'network',
+        'columns' => [
+          'network_id' => 'network_id',
+        ],
+      ],
+    ],
+  ];
+}
+
 
 /**
  *
@@ -2777,6 +2836,21 @@ function tripal_network_update_7100() {
       'cv_name' => 'local',
       'definition' => 'The local clustering coefficient for a vertex is the proportion of the number of links between the vertices within its neighbourhood divided by the number of links that could possibly exist between them.',
     ]);
+  }
+  catch (\PDOException $e) {
+    $error = $e->getMessage();
+    throw new DrupalUpdateException('Could not perform update: ' . $error);
+  }
+}
+
+/**
+ * Adds the network_contact table..
+ */
+function tripal_network_update_7101() {
+  try {
+    $schema = [];
+    tripal_network_add_network_contact_table($schema);
+    chado_create_custom_table('network_contact', $schema, TRUE, NULL, FALSE);    
   }
   catch (\PDOException $e) {
     $error = $e->getMessage();

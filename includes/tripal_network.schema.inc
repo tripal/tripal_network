@@ -10,6 +10,48 @@
  *
  * @ingroup tripal_schema_api
  */
+function tripal_network_chado_schema_v1_3_contact() {
+  $description = array();
+  
+  // add the 'network' table as a referring table to the organism table
+  $description['referring_tables'] = array(
+    'network_contact',
+  );
+  
+  return $description;
+}
+/**
+ * Implements hook_chado_schema_v1_3_table()
+ *
+ * Purpose: To add descriptions and foreign keys to default table description
+ * Note: This array will be merged with the array from all other implementations
+ *
+ * @return
+ *    Array describing the network table
+ *
+ * @ingroup tripal_schema_api
+ */
+function tripal_network_chado_schema_v1_2_contact() {
+  $description = array();
+  
+  // add the 'network' table as a referring table to the organism table
+  $description['referring_tables'] = array(
+    'network_contact',
+  );
+  
+  return $description;
+}
+/**
+ * Implements hook_chado_schema_v1_3_table()
+ *
+ * Purpose: To add descriptions and foreign keys to default table description
+ * Note: This array will be merged with the array from all other implementations
+ *
+ * @return
+ *    Array describing the network table
+ *
+ * @ingroup tripal_schema_api
+ */
 function tripal_network_chado_schema_v1_3_organism() {
   $description = array();
 
