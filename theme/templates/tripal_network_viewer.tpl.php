@@ -20,6 +20,13 @@ drupal_add_js("https://code.jquery.com/ui/1.13.1/jquery-ui.js");
 drupal_add_css("https://code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css", 'external');
 
 
+// We want to suppor tthe analysis expression bargraph field but that gets loaded by AJAX
+// so we need to maake sure it's JS is present.
+$tae_js_path = url(drupal_get_path('module', 'tripal_analysis_expression') . '/theme/js', array('absolute' => TRUE));
+$tae_css_path = url(drupal_get_path('module', 'tripal_analysis_expression') . '/theme/css', array('absolute' => TRUE));
+//drupal_add_js($tae_js_path . '/expression.js');
+//drupal_add_css($tae_css_path . '/expression.css');
+
 $args = [];
 if ($organism_id) {
   $args['organism_id'] = $organism_id;

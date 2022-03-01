@@ -13,3 +13,4 @@ dependencies[] = tripal_chado
 dependencies[] = libraries
 dependencies[] = tripal_file
 dependencies[] = tripal_bulk_loader
+dependencies[] = tripal_analysis_expression

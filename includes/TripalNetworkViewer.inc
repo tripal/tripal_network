@@ -20,16 +20,23 @@ class TripalNetworkViewer {
   /**
    * Returns the data needed for display 
    */
-  public function getNetworkPlot() {    
-    return [
-      
-    ];
+  public function plotNetwork() {    
+    return [];
+  }
+  
+  public function plotNodeExpression() {
+    return [];
+  }
+  
+  public function plotEdgeExpression($edge_id) {
+    return [];
+    
   }
   
   /**
    * Returns the data needed for display
    */
-  public function getDegreeDistPlot() {
+  public function plotDegreeDist() {
     return [
       
     ];

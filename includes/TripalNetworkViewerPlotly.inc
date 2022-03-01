@@ -120,10 +120,65 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
     return [$edge_trace_defaults, $node_trace_defaults];    
   }
   
+  public function plotNodeExpression() {
+
+  }
+  
+  public function plotEdgeExpression($edge_id) {
+    
+    if (!$this->network) {
+      return;
+    }
+    
+    $expression = $this->network->getEdgeExpression($edge_id);
+    
+    // TODO: can we gauarantee all expression data is log transformed?
+    
+    $layout = [
+      'title' => "",
+      'xaxis' => [
+        'type' => "log",
+        'title' => 'log2(expression)'
+      ],
+      'yaxis' => [
+        'type' => "log",
+        'title' => 'log2(expression)'
+      ],
+      'width' => 380,
+      'height' => 380,
+      'margin' => [
+        'l' => 60,
+        'r' => 50,
+        't' => 70,
+        'b' => 70,
+      ],
+    ];
+    
+    $plot_data = [
+      'x' => [],
+      'y' => [],
+      'mode' => 'markers',
+      'type' => 'scatter'
+    ];
+    
+    foreach ($expression['feature1'] as $biomaterial_id => $signal) {
+      $plot_data['x'][] = $signal;
+    }
+    foreach ($expression['feature2'] as $biomaterial_id => $signal) {
+      $plot_data['y'][] = $signal;
+    }
+    
+    return [
+      'layout' => $layout,
+      'data' => $plot_data,
+      'expression' => $expression,
+    ];
+  }
+  
   /**
    * 
    */
-  public function getNetworkPlot() {
+  public function plotNetwork() {
     
     // If there is no network object then return an empty network,
     if (!$this->network) {
@@ -602,7 +657,7 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
   /**
    * 
    */
-  public function getDegreeDistPlot() {
+  public function plotDegreeDist() {
     $layout = [
       'title' => "",
       'xaxis' => [

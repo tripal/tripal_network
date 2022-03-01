@@ -65,6 +65,9 @@ class TripalNetwork {
   public function getNodes() {
     return $this->nodes;
   }
+  public function getEdge($edge_id) {
+    return $this->edges[$edge_id];
+  }
   public function getNode($node_id) {
     return $this->nodes[$node_id];
   }
@@ -76,6 +79,69 @@ class TripalNetwork {
   }
   public function getNetworkIDs() {
     return $this->network_ids;
+  }
+  
+  public function getEdgeExpression($edge_id) {
+    $edge = $this->edges[$edge_id];
+    $network_id = $edge['network_id'];
+    $source = $edge['source_feature_id']; 
+    $target = $edge['target_feature_id'];
+    
+    // The SQL for getting the expression.
+    $sql = "
+       SELECT F.name, F.name as fname, B.biomaterial_id, B.name as bname, ER.signal
+       FROM {elementresult} ER
+         INNER JOIN {element} E ON E.element_id = ER.element_id
+         INNER JOIN {feature} F ON F.feature_id = E.feature_id
+         INNER JOIN {quantification} Q ON ER.quantification_id = Q.quantification_id
+         INNER JOIN {acquisition} ACQ ON ACQ.acquisition_id = Q.acquisition_id
+         INNER JOIN {assay} A ON A.assay_id = ACQ.assay_id
+         INNER JOIN {assay_biomaterial} AB ON A.assay_id = AB.assay_id
+         INNER JOIN {biomaterial} B ON AB.biomaterial_id = B.biomaterial_id
+         INNER JOIN {network_analysis} NA ON NA.analysis_id = Q.analysis_id 
+       WHERE F.feature_id = :feature_id and NA.network_id = :network_id
+       ORDER BY B.biomaterial_id
+    ";
+    
+    // TODO: what if the network analysis and the expression analysis are not the same!!
+    
+    // Get the first feature expression data.
+    $f1_exp = [];
+    $args = [':feature_id' => $source, ':network_id' => $network_id];    
+    $results = chado_query($sql, $args);
+    while ($exp_vals = $results->fetchObject()) {
+      $f1_exp[$exp_vals->biomaterial_id] = $exp_vals->signal;
+    }
+    
+    // Get the second feature expression data.
+    $f2_exp = [];
+    $args = [':feature_id' => $target, ':network_id' => $network_id];
+    $results = chado_query($sql, $args);
+    while ($exp_vals = $results->fetchObject()) {
+      $f2_exp[$exp_vals->biomaterial_id] = $exp_vals->signal;
+    }
+    
+    // Get the properties of the biomaterials for this edge.
+    $biomaterial_ids = array_unique(array_merge(array_keys($f1_exp), array_keys($f2_exp)));
+    $sql = "
+      SELECT BP.biomaterial_id, CVT.name, BP.value
+      FROM {biomaterialprop} BP
+        INNER JOIN {cvterm} CVT on CVT.cvterm_id = BP.type_id 
+      WHERE BP.biomaterial_id IN (:biomaterial_ids)
+    ";
+    $args = [':biomaterial_ids' => $biomaterial_ids];
+    $results = chado_query($sql, $args);
+    $attributes = [];
+    while($attr = $results->fetchObject()) {
+      $attr_name = ucfirst($attr->name);
+      $attributes[$attr->biomaterial_id][$attr_name] = $attr->value;
+    }
+    
+    return [
+      'feature1' => $f1_exp, 
+      'feature2' => $f2_exp, 
+      'attributes' => $attributes      
+    ];
   }
   
   /**

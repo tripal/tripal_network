@@ -210,6 +210,7 @@
     };
 	Plotly.newPlot('tripal-network-degree-dist-plot', [dist_data], dist_layout, settings);
   }
+  
   /**
    *
    */
@@ -246,18 +247,35 @@
   $.fn.updateEdgeDetails = function(args) {
 	 $.fn.showSpinner()
 	
-     var edge_id = args['edge_id'];
+	 var data = state;
+     data['edge_id'] = args['edge_id'];
+     
      $.ajax({
       // The baseurl is a variable set by Tripal that indicates the
       // "base" of the URL for this site.
       url: baseurl + '/networks/viewer/details/edge',
       type: "GET",
       dataType: 'json',
-      data: {'edge_id': edge_id},
+      data: data,
       success: function(response) {
 		 $('#tripal-network-viewer-edge-box form').replaceWith(response[1]['data']);
+		 
+		 // The plotly data for the edge expression plot data comes within the callback.
+		 var plot_data = JSON.parse($('#tripal-network-edge-expression-plot-data').val())
+		 var plot_layout = JSON.parse($('#tripal-network-edge-expression-plot-layout').val())
+		
+		 var settings = {
+		   'displaylogo': false, 
+		   'toImageButtonOptions' : {
+		     'filename': 'tripal_network_edge-expression_distribution',
+		     'format': 'png',
+		     'scale' : 10
+		   }
+		 };
+		 Plotly.newPlot('tripal-network-edge-expression-plot', [plot_data], plot_layout, settings);	 
+		 
 	     Drupal.attachBehaviors($('#tripal-network-viewer-edge-box form'), response[0]['settings']);
-         $.fn.showBox('tripal-network-viewer-edge-box');
+         $.fn.showBox('tripal-network-viewer-edge-box');                           
          $.fn.hideSpinner();
       },
       error: function(xhr, textStatus, thrownError) {
