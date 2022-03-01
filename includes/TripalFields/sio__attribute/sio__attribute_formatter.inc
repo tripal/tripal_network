@@ -102,6 +102,7 @@ function tripal_network_sio__attribute_formatter_form($form, &$form_state, $item
       'header' => $headers,
       'rows' => $rows,
       'attributes' => [
+        'class' => ['table', 'tripal-network-attribute-table'],
       ],
       'caption' => '',
       'sticky' => FALSE,
