@@ -136,7 +136,7 @@ function tripal_network_viewer_ajax_get_node_details() {
  *
  */
 function tripal_network_viewer_network_details_form($form, &$form_state, 
-    TripalNetwork $network = NULl, $viewer = NULL) {
+    TripalNetwork $network = NULl) {
   
   
   if (!$network) {
@@ -203,17 +203,18 @@ function tripal_network_viewer_network_details_form($form, &$form_state,
     '#markup' => '<br><div id="tripal-network-degree-dist-plot"></div>',    
   ];
   
-  $degplot = $viewer->plotDegreeDist();
+  $degplot = new TripalNetworkPlotlyDegreeDist($network);
+  $degplot_data = $degplot->data();
   
   $form['network_details_degree_dist_plot_layout'] = [
     '#type' => 'hidden',
     '#attributes' => ['id' => 'tripal-network-degree-dist-plot-layout'],
-    '#value' => json_encode($degplot['layout']),
+    '#value' => json_encode($degplot_data['layout']),
   ];
   $form['network_details_degree_dist_plot_data'] = [
     '#type' => 'hidden',
     '#attributes' => ['id' => 'tripal-network-degree-dist-plot-data'],
-    '#value' => json_encode($degplot['data']),
+    '#value' => json_encode($degplot_data['data']),
   ];
   
   return $form;
@@ -436,6 +437,21 @@ function tripal_network_viewer_ajax_get_edge_details() {
 /**
  *
  */
+function tripal_network_viewer_ajax_get_edge_expression() {
+  $edge_id = array_key_exists('edge_id', $_GET) ? $_GET['edge_id'] : NULL;
+  $z_axis = array_key_exists('z_axis', $_GET) ? $_GET['z_axis'] : NULL;
+  $network_session_id  = array_key_exists('network_session_id', $_GET) ? $_GET['network_session_id'] : NULL;
+  
+  $network = tripal_network_viewer_get_session_network($network_session_id);
+  $expplot = new TripalNetworkPlotly3DExpression($network, $edge_id, $z_axis);
+  $expplot_data = $expplot->data();
+  
+  drupal_json_output($expplot_data);
+}
+
+/**
+ *
+ */
 function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id = NULL, 
     $network_session_id = NULL) {
 
@@ -481,7 +497,7 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
     $rows = [];
     while ($prop = $results->fetchObject()) {
       if ($prop->db_name . ':' . $prop->accession == 'local:KINC_sample_string') {
-        continue;
+        $prop->value = '<pre>' . wordwrap($prop->value, 30, "\n", TRUE) . '</pre>';
       }
       $rows[] = [
         [
@@ -505,8 +521,9 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
   }
 
   $form['edge_id'] = [
-    '#type' => 'value',
+    '#type' => 'hidden',
     '#value' => $edge_id,
+    '#attributes' => ['id' => 'tripal-network-edge-id'],
   ];
   $form['edge_name'] = [
     '#type' => 'item',
@@ -524,42 +541,45 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
     '#prefix' => '<div id="tripal-network-viewer-edge-details-details">',
     '#suffix' => '</div>',
   ];
-
   
   
   if ($edge_id) {
     $network = tripal_network_viewer_get_session_network($network_session_id);
-    $viewer = new TripalNetworkViewerPlotly($network);
-    $expplot = $viewer->plotEdgeExpression($edge_id);
+    $expplot = new TripalNetworkPlotly3DExpression($network, $edge_id);
+    $expplot_data = $expplot->data();
     
     $attr_names = [];
-    foreach($expplot['expression']['attributes'] as $biomaterial_id => $attrs) {
+    foreach($expplot_data['expression']['attributes'] as $biomaterial_id => $attrs) {
       foreach ($attrs as $attr_name => $values) {
         $attr_names[$attr_name] = $attr_name;
       }
     }
     
-    $form['network_details_degree_dist_plot'] = [
+    $form['network_details_expresssion_plot'] = [
       '#type' => 'item',
       '#title' => 'Edge Expression',
       '#markup' => '<br><div id="tripal-network-edge-expression-plot"></div>',
     ];
     
-    $form['network_details_degree_dist_plot_color_by'] = [
+    $sample_attributes = $expplot->sampleAttributes();
+    $attr_names = array_keys($sample_attributes);
+    sort($attr_names, NUMERIC_SORT);
+    $form['network_details_expresssion_plot_color_by'] = [
       '#type' => 'select',
-      '#title' => 'Color By',
+      '#description' => 'Color the nodes in the scatterplot by the selected attribute.',
       '#options' => $attr_names,
+      '#attributes' => ['id' => 'tripal-network-edge-expression-plot-color-by'],
     ];
         
-    $form['network_details_degree_dist_plot_layout'] = [
+    $form['network_details_expresssion_plot_layout'] = [
       '#type' => 'hidden',
       '#attributes' => ['id' => 'tripal-network-edge-expression-plot-layout'],
-      '#value' => json_encode($expplot['layout']),
+      '#value' => json_encode($expplot_data['layout']),
     ];
-    $form['network_details_degree_dist_plot_data'] = [
+    $form['network_details_expresssion_plot_data'] = [
       '#type' => 'hidden',
       '#attributes' => ['id' => 'tripal-network-edge-expression-plot-data'],
-      '#value' => json_encode($expplot['data']),
+      '#value' => json_encode($expplot_data['data']),
     ];
   }
     
@@ -679,17 +699,17 @@ function tripal_network_viewer_ajax_retrieve() {
   $network->loadNetwork();  
    
   // Generate the plotly data.
-  $viewer = new TripalNetworkViewerPlotly($network);
+  $network_plot = new TripalNetworkPlotlyNetwork($network);
   if ($layer_by) {
-    $viewer->layerBy($layer_by);
+    $network_plot->layerBy($layer_by);
   }
   if ($color_by) {
-    $viewer->ColorBy($color_by);
+    $network_plot->ColorBy($color_by);
   }
-  $plotly_data = $viewer->plotNetwork();
+  $plotly_data = $network_plot->data();
 
   // Build the network details content.
-  $details = drupal_get_form('tripal_network_viewer_network_details_form', $network, $viewer);
+  $details = drupal_get_form('tripal_network_viewer_network_details_form', $network);
   $details = drupal_render($details);
   
   $plotly_data['details'] = $details;

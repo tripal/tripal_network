@@ -1,8 +1,21 @@
 <?php
 
-class TripalNetworkViewerPlotly extends TripalNetworkViewer {
+class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
   
-  private function getDefaultLayout() {
+
+  /**
+   * Constructor 
+   * 
+   * @param TripalNetwork $network
+   *   The TripalNetwork instance.
+   */
+  public function __construct(TripalNetwork $network) {
+    parent::__construct($network);
+    
+    $this->engine = new TripalNetworkPlotlyEngine(); 
+  }  
+  
+  protected function defaultLayout() {
     return [
       'autosize' => TRUE,
       'paper_bgcolor' => "#000000",
@@ -67,7 +80,7 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
   /**
    * 
    */
-  private function getEdgeTraceDefaults() {
+  private function edgeTraceDefaults() {
     return [
       'mode' => 'lines',
       'type' => 'scatter3d',
@@ -89,7 +102,7 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
   /**
    * 
    */
-  private function getNodeTraceDefaults() {
+  private function nodeTraceDefaults() {
     return [
       'mode'  => 'markers',
       'type' => 'scatter3d',
@@ -114,86 +127,33 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
     ];
   }
   
-  private function getEmptyNetwork () {
-    $edge_trace_defaults = $this->getEdgeTraceDefaults();
-    $node_trace_defaults = $this->getNodeTraceDefaults();
+  private function emptyNetwork () {
+    $edge_trace_defaults = $this->edgeTraceDefaults();
+    $node_trace_defaults = $this->nodeTraceDefaults();
     return [$edge_trace_defaults, $node_trace_defaults];    
   }
   
-  public function plotNodeExpression() {
-
-  }
   
-  public function plotEdgeExpression($edge_id) {
-    
-    if (!$this->network) {
-      return;
-    }
-    
-    $expression = $this->network->getEdgeExpression($edge_id);
-    
-    // TODO: can we gauarantee all expression data is log transformed?
-    
-    $layout = [
-      'title' => "",
-      'xaxis' => [
-        'type' => "log",
-        'title' => 'log2(expression)'
-      ],
-      'yaxis' => [
-        'type' => "log",
-        'title' => 'log2(expression)'
-      ],
-      'width' => 380,
-      'height' => 380,
-      'margin' => [
-        'l' => 60,
-        'r' => 50,
-        't' => 70,
-        'b' => 70,
-      ],
-    ];
-    
-    $plot_data = [
-      'x' => [],
-      'y' => [],
-      'mode' => 'markers',
-      'type' => 'scatter'
-    ];
-    
-    foreach ($expression['feature1'] as $biomaterial_id => $signal) {
-      $plot_data['x'][] = $signal;
-    }
-    foreach ($expression['feature2'] as $biomaterial_id => $signal) {
-      $plot_data['y'][] = $signal;
-    }
-    
-    return [
-      'layout' => $layout,
-      'data' => $plot_data,
-      'expression' => $expression,
-    ];
-  }
   
   /**
    * 
    */
-  public function plotNetwork() {
+  public function data() {
     
     // If there is no network object then return an empty network,
     if (!$this->network) {
-      return $this->getEmptyNetwork();
+      return $this->emptyNetwork();
     }
     
     // If this network has no edges then return an empty network.
     $edges = $this->network->getEdges();  
     $network_ids = $this->network->getNetworkIDs();
     if (count(array_keys($edges)) == 0) {
-      return $this->getEmptyNetwork();
+      return $this->emptyNetwork();
     }
     
-    $edge_trace_defaults = $this->getEdgeTraceDefaults();    
-    $node_trace_defaults = $this->getNodeTraceDefaults();
+    $edge_trace_defaults = $this->edgeTraceDefaults();    
+    $node_trace_defaults = $this->nodeTraceDefaults();
     
     $selection = $this->network->getSelection();    
     
@@ -347,7 +307,7 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
     }
     
     // Now set the tick labels
-    $layout = $this->getDefaultLayout();
+    $layout = $this->defaultLayout();
     if ($layers['data_class'] == 'categorical') {
       $layout['scene']['zaxis']['tickmode'] = "array";
       $layout['scene']['zaxis']['tickvals'] = $layers['layers'];
@@ -582,6 +542,8 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
     ];
   }
   
+  
+  
   /**
    * 
    */
@@ -651,60 +613,6 @@ class TripalNetworkViewerPlotly extends TripalNetworkViewer {
       'labels' => $labels,
       'data_class' => $layers['data_class'],
       'data_type' => $layers['data_type'],
-    ];
-  }
-  
-  /**
-   * 
-   */
-  public function plotDegreeDist() {
-    $layout = [
-      'title' => "",
-      'xaxis' => [
-        'type' => "log",
-        'title' => 'log(degree)'
-      ],
-      'yaxis' => [
-        'type' => "log",
-        'title' => 'log(count)'
-      ],
-      'width' => 380,
-      'height' => 380,
-      'margin' => [
-        'l' => 60,
-        'r' => 50,
-        't' => 70,
-        'b' => 70,
-      ],
-    ];
-          
-    $plot_data = [
-      'x' => [],
-      'y' => [],
-      'mode' => 'markers',
-      'type' => 'scatter'
-    ];
-    $degree_count = [];
-    $nodes = $this->network->getNodes();
-    
-    foreach ($nodes as $node) {
-      if (array_key_exists('OBI:0200130', $node)) {
-        if (!array_key_exists($node['OBI:0200130'], $degree_count)) {
-          $degree_count[$node['OBI:0200130']] = 1;
-        }
-        else {
-          $degree_count[$node['OBI:0200130']]++;
-        }
-      }
-    }
-    foreach ($degree_count as $degree => $cnt) {
-      $plot_data['x'][] = $degree;
-      $plot_data['y'][] = $cnt;
-    }
-    
-    return [
-      'layout' => $layout,
-      'data' => $plot_data,
     ];
   }
 }

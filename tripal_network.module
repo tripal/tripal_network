@@ -1,18 +1,30 @@
 <?php
 
+require_once "api/tripal_network.api.inc";
 
 require_once "includes/tripal_network.schema.inc";
 require_once "includes/tripal_network.fields.inc";
-require_once "api/tripal_network.api.inc";
 require_once "includes/tripal_network.viewer.inc";
 require_once "includes/tripal_network.neighborhood_viewer.inc";
 require_once "includes/tripal_network.entity.inc";
+
 require_once "includes/TripalNetwork.inc";
-require_once "includes/TripalNetworkViewer.inc";
-require_once "includes/TripalNetworkViewerPlotly.inc";
-require_once "includes/TripalNetworkLayout.inc";
-require_once "includes/TripalNetworkLayoutFA2.inc";
-require_once "includes/TripalNetworkLayoutRandom.inc";
+
+require_once "includes/TripalNetworkPlot/TripalNetworkPlot.inc";
+require_once "includes/TripalNetworkPlot/TripalNetworkPlotDegreeDist.inc";
+require_once "includes/TripalNetworkPlot/TripalNetworkPlot3DExpression.inc";
+require_once "includes/TripalNetworkPlot/TripalNetworkPlotNetwork.inc";
+
+require_once "includes/TripalNetworkPlotEngine/TripalNetworkPlotEngine.inc";
+require_once "includes/TripalNetworkPlotEngine/TripalNetworkPlotlyEngine.inc";
+
+require_once "includes/TripalNetworkPlotly/TripalNetworkPlotlyDegreeDist.inc";
+require_once "includes/TripalNetworkPlotly/TripalNetworkPlotly3DExpression.inc";
+require_once "includes/TripalNetworkPlotly/TripalNetworkPlotlyNetwork.inc";
+
+require_once "includes/TripalNetworkLayout/TripalNetworkLayout.inc";
+require_once "includes/TripalNetworkLayout/TripalNetworkLayoutFA2.inc";
+require_once "includes/TripalNetworkLayout/TripalNetworkLayoutRandom.inc";
 
 /**
  * Implements hook_permission().
@@ -110,6 +122,14 @@ function tripal_network_menu() {
   ];
   $items['networks/viewer/details/edge'] = [
     'page callback' => 'tripal_network_viewer_ajax_get_edge_details',
+    'page arguments' => [],
+    'access arguments' => ['view ' . $bundle->name],
+    'file' => '/includes/tripal_network.viewer.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'type' => MENU_CALLBACK,
+  ];
+  $items['networks/viewer/details/edge-expression'] = [
+    'page callback' => 'tripal_network_viewer_ajax_get_edge_expression',
     'page arguments' => [],
     'access arguments' => ['view ' . $bundle->name],
     'file' => '/includes/tripal_network.viewer.inc',

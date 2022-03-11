@@ -86,10 +86,11 @@ class TripalNetwork {
     $network_id = $edge['network_id'];
     $source = $edge['source_feature_id']; 
     $target = $edge['target_feature_id'];
+    $biomaterials = [];
     
     // The SQL for getting the expression.
     $sql = "
-       SELECT F.name, F.name as fname, B.biomaterial_id, B.name as bname, ER.signal
+       SELECT F.name as fname, B.biomaterial_id, B.name as bname, ER.signal
        FROM {elementresult} ER
          INNER JOIN {element} E ON E.element_id = ER.element_id
          INNER JOIN {feature} F ON F.feature_id = E.feature_id
@@ -107,22 +108,28 @@ class TripalNetwork {
     
     // Get the first feature expression data.
     $f1_exp = [];
+    $f1_name = '';
     $args = [':feature_id' => $source, ':network_id' => $network_id];    
     $results = chado_query($sql, $args);
     while ($exp_vals = $results->fetchObject()) {
       $f1_exp[$exp_vals->biomaterial_id] = $exp_vals->signal;
+      $f1_name = $exp_vals->fname;
+      $biomaterials[$exp_vals->biomaterial_id] = $exp_vals->bname;
     }
     
     // Get the second feature expression data.
     $f2_exp = [];
+    $f2_name = '';
     $args = [':feature_id' => $target, ':network_id' => $network_id];
     $results = chado_query($sql, $args);
     while ($exp_vals = $results->fetchObject()) {
       $f2_exp[$exp_vals->biomaterial_id] = $exp_vals->signal;
+      $f2_name = $exp_vals->fname;
+      $biomaterials[$exp_vals->biomaterial_id] = $exp_vals->bname;
     }
     
     // Get the properties of the biomaterials for this edge.
-    $biomaterial_ids = array_unique(array_merge(array_keys($f1_exp), array_keys($f2_exp)));
+    $biomaterial_ids = array_keys($biomaterials);
     $sql = "
       SELECT BP.biomaterial_id, CVT.name, BP.value
       FROM {biomaterialprop} BP
@@ -138,8 +145,9 @@ class TripalNetwork {
     }
     
     return [
-      'feature1' => $f1_exp, 
-      'feature2' => $f2_exp, 
+      'feature1' => ['name' => $f1_name, 'values' => $f1_exp], 
+      'feature2' => ['name' => $f2_name, 'values' => $f2_exp], 
+      'samples' => $biomaterials,
       'attributes' => $attributes      
     ];
   }
