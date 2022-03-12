@@ -1,11 +1,11 @@
 <?php 
 
 abstract class TripalNetworkPlot3DExpression extends TripalNetworkPlot {
-  
+   
   /**
-   * The ID of the edge to plot.
+   * An array containing details about the edge.
    */
-  protected $edge_id = NULL;
+  protected $edge = NULL;
   
   /**
    * The attribute name to use for the z-axis dimension.
@@ -18,25 +18,9 @@ abstract class TripalNetworkPlot3DExpression extends TripalNetworkPlot {
    */
   protected $expression = NULL;
   
-  /**
-   * A list of sample attribute values, keyed by attribute name
-   */
-  protected $sample_attributes = NULL;
   
-  /**
-   * A list of edge attributes.
-   */
-  protected $edge_attributes = NULL;
+  protected $available_sample_attributes = [];
   
-  /**
-   * Indicates if attributes are categorical or numeric.
-   */
-  protected $sample_attribute_types = NULL;
-  
-  /**
-   * The number of samples with expression data.
-   */
-  protected $num_samples = 0;
 
   /**
    * Generates data for a 3D visualization of pairwise gene expression.
@@ -50,51 +34,55 @@ abstract class TripalNetworkPlot3DExpression extends TripalNetworkPlot {
    */
   public function __construct(TripalNetwork $network, $edge_id, $z = NULL) {
     parent::__construct($network);
+       
     
-    $this->edge_id = $edge_id;
-    $this->z_axis = $z;
+    $this->edge = new TripalNetworkEdge($edge_id);
+    $this->z_axis = $z;       
+    $this->expression = $this->edge->expression();
+    $sample_names = $this->expression['samples']['names'];
+    $sample_attributes = $this->expression['samples']['attributes'];
     
-    $this->expression = $this->network->getEdgeExpression($this->edge_id);
-    
-    // Get the list of values for each attribute.
-    foreach ($this->expression['samples'] as $biomaterial_id => $bname) {
-      $this->num_samples++;
-      $attrs = $this->expression['attributes'][$biomaterial_id];
-      foreach ($attrs as $attr_name => $value) {
-        $this->sample_attributes[$attr_name][] = $value;
+    // Don't use sample attributes that have one value per sample or
+    // or only 1 unique value.
+    foreach ($sample_attributes['names'] as $attr_name) {
+      $num_labels = count($sample_attributes['labels'][$attr_name]); 
+      if ($num_labels < count($sample_names)) {
+        if ($num_labels > 1) {
+          $this->available_sample_attributes[] = $attr_name;
+        }
       }
     }
-    array_multisort($this->sample_attributes);
-    
-    // Determine the type (categorical or numeric) for each attribute.
-    foreach ($this->sample_attributes as $attr_name => $values) {
-      $this->attribute_types[$attr_name] = 'numeric';
-      foreach ($values as $value) {
-        if (!is_numeric($value)) {
-          $this->attribute_types[$attr_name] = 'categorical';
-        }
-      }
-    }    
-    
-    // Remove attributes that are not numerical but which are a 1 to 1
-    foreach ($this->attribute_types as $attr_name => $attr_type) {
-      if ($attr_type == 'categorical') {
-        if (count($this->sample_attributes[$attr_name]) == count($this->num_samples)) {
-          unset($this->attribute_types[$attr_name]);
-        }
-      }
-    }    
+    sort($this->available_sample_attributes);
     
     // If the Z value isn't set then pick the first one alphabetically.
     if (!$this->z_axis) {
-      $this->z_axis = array_keys($this->sample_attributes)[0];
+      $this->z_axis = $this->available_sample_attributes[0];
     }
-  }   
+  }
+  
+  public function sampleAttrNames() {
+    return $this->available_sample_attributes;
+  }
   
   /**
    * 
    */
-  public function sampleAttributes() {
-    return $this->sample_attributes;
+  public function expression() {
+    return $this->expression['expression'];
   }
+  
+  /**
+   * 
+   */
+  public function samples() {
+    return $this->expression['samples'];
+  }
+  
+  /**
+   * @return TripalnetworkEdge
+   */
+  public function edge() {
+    return $this->edge;
+  }
+  
 }

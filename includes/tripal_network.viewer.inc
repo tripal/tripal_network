@@ -465,46 +465,30 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
   $details = '';
   
   if ($edge_id) {
-    $sql = "
-      SELECT N.name as net_name, FS.name as source, FT.name as target
-      FROM {network_edge} NE
-        INNER JOIN {network} N on NE.network_id = N.network_id
-        INNER JOIN {network_node} NNS on NNS.network_node_id = NE.source_id
-        INNER JOIN {network_node} NNT on NNT.network_node_id = NE.target_id
-        INNER JOIN {network_feature} NFS on NNS.network_node_id = NFS.network_node_id
-        INNER JOIN {network_feature} NFT on NNT.network_node_id = NFT.network_node_id
-        INNER JOIN {feature} FS on FS.feature_id = NFS.feature_id
-        INNER JOIN {feature} FT on FT.feature_id = NFT.feature_id
-     WHERE NE.network_edge_id = :network_edge_id
-    ";
-    $args[':network_edge_id'] = $edge_id;
-    $results = chado_query($sql, $args);
-    $edge = $results->fetchObject();
-    $edge_name = $edge->source . ' (-) ' . $edge->target;
-    $net_name = $edge->net_name;
-
-    $sql = "
-      SELECT CVT.name, NEP.value, NEP.value_num, DBX.accession, DB.name as db_name
-      FROM {network_edgeprop} NEP
-        INNER JOIN {cvterm} CVT ON CVT.cvterm_id = NEP.type_id
-        INNER JOIN {dbxref} DBX on DBX.dbxref_id = CVT.dbxref_id
-        INNER JOIN {db} DB on DB.db_id = DBX.db_id
-      WHERE NEP.network_edge_id = :network_edge_id
-    ";
-    $args[':network_edge_id'] = $edge_id;
-    $results = chado_query($sql, $args);
-
+    $network = tripal_network_viewer_get_session_network($network_session_id);
+    $expplot = new TripalNetworkPlotly3DExpression($network, $edge_id);
+    $expplot_data = $expplot->data();
+    $edge = $expplot->edge();
+    $edge_name = $edge->edgeName();
+    $net_name = $edge->netName();
+    $attrs = $edge->attributes();
+    $attr_values = $edge->attributeValues();
+        
     $rows = [];
-    while ($prop = $results->fetchObject()) {
-      if ($prop->db_name . ':' . $prop->accession == 'local:KINC_sample_string') {
-        $prop->value = '<pre>' . wordwrap($prop->value, 30, "\n", TRUE) . '</pre>';
+    foreach ($attrs as $term_id => $attr) { 
+      $term_id = $attr['attr']->attr_id->dbxref_id->db_id->name . ":" . 
+                 $attr['attr']->attr_id->dbxref_id->accession;
+      
+      $value = $attr_values[$term_id];
+      if ($term_id == 'local:KINC_sample_string') {
+        $value = '<pre>' . wordwrap($value, 30, "\n", TRUE) . '</pre>';
       }
       $rows[] = [
         [
-          'data' => ucfirst($prop->name),
+          'data' => ucfirst($attr['attr']->attr_id->name),
           'header' => TRUE,
         ],
-        $prop->value ? $prop->value : $prop->value_num
+        $value
       ];
     }
     $headers = ['Attribute', 'Value'];
@@ -517,43 +501,29 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
       'colgroups' => [],
       'empty' => 'No attributes for this edge',
     ];
-    $details = theme_table($summary_table);
-  }
+    $details = theme_table($summary_table);  
 
-  $form['edge_id'] = [
-    '#type' => 'hidden',
-    '#value' => $edge_id,
-    '#attributes' => ['id' => 'tripal-network-edge-id'],
-  ];
-  $form['edge_name'] = [
-    '#type' => 'item',
-    '#title' => 'Edge Name',
-    '#markup' => $edge_name,
-  ];
-  $form['net_name'] = [
-    '#type' => 'item',
-    '#title' => 'Network Name',
-    '#markup' => $net_name,
-  ];
-  $form['details'] = [
-    '#type' => 'markup',
-    '#markup' => $details,
-    '#prefix' => '<div id="tripal-network-viewer-edge-details-details">',
-    '#suffix' => '</div>',
-  ];
-  
-  
-  if ($edge_id) {
-    $network = tripal_network_viewer_get_session_network($network_session_id);
-    $expplot = new TripalNetworkPlotly3DExpression($network, $edge_id);
-    $expplot_data = $expplot->data();
-    
-    $attr_names = [];
-    foreach($expplot_data['expression']['attributes'] as $biomaterial_id => $attrs) {
-      foreach ($attrs as $attr_name => $values) {
-        $attr_names[$attr_name] = $attr_name;
-      }
-    }
+    $form['edge_id'] = [
+      '#type' => 'hidden',
+      '#value' => $edge_id,
+      '#attributes' => ['id' => 'tripal-network-edge-id'],
+    ];
+    $form['edge_name'] = [
+      '#type' => 'item',
+      '#title' => 'Edge Name',
+      '#markup' => $edge_name,
+    ];
+    $form['net_name'] = [
+      '#type' => 'item',
+      '#title' => 'Network Name',
+      '#markup' => $net_name,
+    ];
+    $form['details'] = [
+      '#type' => 'markup',
+      '#markup' => $details,
+      '#prefix' => '<div id="tripal-network-viewer-edge-details-details">',
+      '#suffix' => '</div>',
+    ];
     
     $form['network_details_expresssion_plot'] = [
       '#type' => 'item',
@@ -561,13 +531,12 @@ function tripal_network_viewer_edge_details_form($form, &$form_state, $edge_id =
       '#markup' => '<br><div id="tripal-network-edge-expression-plot"></div>',
     ];
     
-    $sample_attributes = $expplot->sampleAttributes();
-    $attr_names = array_keys($sample_attributes);
-    sort($attr_names, NUMERIC_SORT);
+    $samples = $expplot->samples();
+    $sample_attribute_names = $expplot->sampleAttrNames();
     $form['network_details_expresssion_plot_color_by'] = [
       '#type' => 'select',
       '#description' => 'Color the nodes in the scatterplot by the selected attribute.',
-      '#options' => $attr_names,
+      '#options' => $sample_attribute_names,
       '#attributes' => ['id' => 'tripal-network-edge-expression-plot-color-by'],
     ];
         

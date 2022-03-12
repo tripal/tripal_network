@@ -19,29 +19,50 @@ class TripalNetwork {
   ];
    
   private $node_attributes = [];
+    
+  /**
+   * Attributes for the edges in the network. 
+   * 
+   * The array is In the form:
+   * 
+   *   [term_id][network_id]['attr'] 
+   *   [term_id][network_id]['type']
+   *   
+   * Where the 'attr' value is a an object returned from
+   * chado_generate_var, and type is a cvterm object indicating
+   * if the attribute is quantitative, ordinal or categorical.  
+   */
   private $edge_attributes = [];
   
   private $network_ids = [];
-  private $nodes = [];  
+  private $nodes = [];
+   
+  
+  /**
+   * A list of edges in the network. 
+   * 
+   * The array is keyed by the edge ID and the value is
+   * an array with the the following keys:
+   * 
+   *   source_feature_id
+   *   source_name
+   *   target_feature_id
+   *   target_name
+   *   source_node_id
+   *   target_node_id
+   *   network_edge_id
+   *   network_id 
+   */
   private $edges = [];
   
   private $session_node_attrs = [];
-  private $session_edge_attrs = [];
-  
-  private $quantitative_term = NULL;
-  private $categorical_term = NULL;
-  private $ordinal_term = NULL;
-  
+  private $session_edge_attrs = []; 
   
   /**
    *  
    */
   public function __construct($selection) {  
-    
-    $this->quantitative_term = chado_get_cvterm(['id' => 'NCIT:C142658']);
-    $this->categorical_term = chado_get_cvterm(['id' => 'NCIT:C142657']);
-    $this->ordinal_term = chado_get_cvterm(['id' => 'NCIT:C47797']);
-    
+        
     $this->selection['organism_id'] = array_key_exists('organism_id', $selection) ? $selection['organism_id'] : NULL;    
     $this->selection['network_ids'] = (array_key_exists('network_ids', $selection) and is_array($selection['network_ids'])) ? $selection['network_ids'] : [];
     $this->selection['feature_ids'] = (array_key_exists('feature_ids', $selection)  and is_array($selection['feature_ids'])) ? $selection['feature_ids'] : [];
@@ -81,76 +102,7 @@ class TripalNetwork {
     return $this->network_ids;
   }
   
-  public function getEdgeExpression($edge_id) {
-    $edge = $this->edges[$edge_id];
-    $network_id = $edge['network_id'];
-    $source = $edge['source_feature_id']; 
-    $target = $edge['target_feature_id'];
-    $biomaterials = [];
-    
-    // The SQL for getting the expression.
-    $sql = "
-       SELECT F.name as fname, B.biomaterial_id, B.name as bname, ER.signal
-       FROM {elementresult} ER
-         INNER JOIN {element} E ON E.element_id = ER.element_id
-         INNER JOIN {feature} F ON F.feature_id = E.feature_id
-         INNER JOIN {quantification} Q ON ER.quantification_id = Q.quantification_id
-         INNER JOIN {acquisition} ACQ ON ACQ.acquisition_id = Q.acquisition_id
-         INNER JOIN {assay} A ON A.assay_id = ACQ.assay_id
-         INNER JOIN {assay_biomaterial} AB ON A.assay_id = AB.assay_id
-         INNER JOIN {biomaterial} B ON AB.biomaterial_id = B.biomaterial_id
-         INNER JOIN {network_analysis} NA ON NA.analysis_id = Q.analysis_id 
-       WHERE F.feature_id = :feature_id and NA.network_id = :network_id
-       ORDER BY B.biomaterial_id
-    ";
-    
-    // TODO: what if the network analysis and the expression analysis are not the same!!
-    
-    // Get the first feature expression data.
-    $f1_exp = [];
-    $f1_name = '';
-    $args = [':feature_id' => $source, ':network_id' => $network_id];    
-    $results = chado_query($sql, $args);
-    while ($exp_vals = $results->fetchObject()) {
-      $f1_exp[$exp_vals->biomaterial_id] = $exp_vals->signal;
-      $f1_name = $exp_vals->fname;
-      $biomaterials[$exp_vals->biomaterial_id] = $exp_vals->bname;
-    }
-    
-    // Get the second feature expression data.
-    $f2_exp = [];
-    $f2_name = '';
-    $args = [':feature_id' => $target, ':network_id' => $network_id];
-    $results = chado_query($sql, $args);
-    while ($exp_vals = $results->fetchObject()) {
-      $f2_exp[$exp_vals->biomaterial_id] = $exp_vals->signal;
-      $f2_name = $exp_vals->fname;
-      $biomaterials[$exp_vals->biomaterial_id] = $exp_vals->bname;
-    }
-    
-    // Get the properties of the biomaterials for this edge.
-    $biomaterial_ids = array_keys($biomaterials);
-    $sql = "
-      SELECT BP.biomaterial_id, CVT.name, BP.value
-      FROM {biomaterialprop} BP
-        INNER JOIN {cvterm} CVT on CVT.cvterm_id = BP.type_id 
-      WHERE BP.biomaterial_id IN (:biomaterial_ids)
-    ";
-    $args = [':biomaterial_ids' => $biomaterial_ids];
-    $results = chado_query($sql, $args);
-    $attributes = [];
-    while($attr = $results->fetchObject()) {
-      $attr_name = ucfirst($attr->name);
-      $attributes[$attr->biomaterial_id][$attr_name] = $attr->value;
-    }
-    
-    return [
-      'feature1' => ['name' => $f1_name, 'values' => $f1_exp], 
-      'feature2' => ['name' => $f2_name, 'values' => $f2_exp], 
-      'samples' => $biomaterials,
-      'attributes' => $attributes      
-    ];
-  }
+  
   
   /**
    * 
@@ -236,11 +188,11 @@ class TripalNetwork {
       if (array_key_exists('limit_by', $filter) and $filter['limit_by']) {
         $limit_term = chado_get_cvterm(['id' => $filter['limit_by']]);
         $sql = "
-        SELECT TBL${fi}.*
-        FROM ($sql) as TBL${fi}
-          INNER JOIN {network_edgeprop} NEP${fi} on NEP${fi}.network_edge_id = TBL${fi}.network_edge_id
-        WHERE NEP${fi}.type_id = :fi_${fi}_cvterm_id
-      ";
+          SELECT TBL${fi}.*
+          FROM ($sql) as TBL${fi}
+            INNER JOIN {network_edgeprop} NEP${fi} on NEP${fi}.network_edge_id = TBL${fi}.network_edge_id
+          WHERE NEP${fi}.type_id = :fi_${fi}_cvterm_id
+        ";
         
         # Add min and max limits.
         if (array_key_exists('max_value', $filter) and is_numeric($filter['max_value'])) {
@@ -309,6 +261,9 @@ class TripalNetwork {
   private function loadEdgeAttributes() {
     
     if (count($this->edges) == 0) {
+      return;
+    }
+    if (!empty($this->edge_attributes)) {
       return;
     }
         

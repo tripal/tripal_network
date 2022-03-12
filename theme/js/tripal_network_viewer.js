@@ -18,14 +18,13 @@
   // spinner. The spinner should turn off once all have completed.
   var spinner_waiting = 0;
    
-  // Plotly has a bug. When a relayout is called it triggers a click
-  // event which causes an eternal loop. So, we'll use this to keep 
-  // that loop from happening when nodes and edges are being selected.
-  var in_selection = false;
+  // Plotly has a bug. When a relayout is called within a listener then 
+  // it triggers a click event which calls the listner and creates an
+  // eternal loop. So, we'll use this to keep that from happening.
+  var in_listener = false;
   
   // Indicates the openness state of the sidebar
   var sidebar_state = 'partial';
-  
     
   // All code within this Drupal.behavior.tripal_network array is 
   // executed everytime a page load occurs or when an ajax call returns.
@@ -510,10 +509,14 @@
 
         Plotly.newPlot('tripal-network-viewer', response['data'], response['layout'], settings);
         
-        // Add event handlers. We don't use Jquery because it's not fully
-        // compatible with Plotly.
+        // Add event handlers. We don't use Jquery as the selector because 
+        // it's not fully compatible with Plotly.
         var myPlot = document.getElementById('tripal-network-viewer')
         myPlot.on('plotly_click', function(data){ 
+		  if (in_listener) {
+			return;
+		  }
+		  in_listener = true;
           var mode =  data['points'][0]['data']['mode'];
           var id = data['points'][0]['id'];
           if (mode == 'markers') {
@@ -524,6 +527,7 @@
             $.fn.selectEdge(data);     
             $.fn.updateEdgeDetails({'edge_id': id})
           }
+          in_listener = false;
         });
         
         // If the graph is reloaded we want to preserve the selected 
@@ -604,13 +608,7 @@
    */
   $.fn.selectNode = function(data) {       
     var update = {};
-    
-    if (in_selection) {
-      return;
-    }
-    
-    in_selection = true;
-    
+        
     if (selected_node) {
       var spn = selected_node['points'][0]['pointNumber'];
       var stn = selected_node['points'][0]['curveNumber'];
@@ -638,11 +636,6 @@
   $.fn.selectEdge = function(data) {       
     var update = {};
     var id = data['points'][0]['id'];
-    
-    if (in_selection) {
-      return;
-    }
-    in_selection = true;
     
     if (selected_edge) {
       var sid = selected_edge['points'][0]['id'];

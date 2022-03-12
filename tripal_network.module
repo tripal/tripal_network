@@ -9,6 +9,7 @@ require_once "includes/tripal_network.neighborhood_viewer.inc";
 require_once "includes/tripal_network.entity.inc";
 
 require_once "includes/TripalNetwork.inc";
+require_once "includes/TripalNetworkEdge.inc";
 
 require_once "includes/TripalNetworkPlot/TripalNetworkPlot.inc";
 require_once "includes/TripalNetworkPlot/TripalNetworkPlotDegreeDist.inc";
