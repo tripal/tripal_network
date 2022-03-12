@@ -148,21 +148,21 @@ class TripalNetwork {
     
     // Get the edges from the network
     $sql = "
-    SELECT
-      FS.feature_id as source_feature_id, FS.name as source_name,
-      FT.feature_id as target_feature_id, FT.name as target_name,
-      NNS.network_node_id as source_node_id,
-      NNT.network_node_id as target_node_id,
-      NE.network_edge_id,
-      N.network_id
-    FROM {network_edge} NE
-      INNER JOIN {network} N on N.network_id = NE.network_id
-      INNER JOIN {network_node} NNS on NNS.network_node_id = NE.source_id
-      INNER JOIN {network_node} NNT on NNT.network_node_id = NE.target_id
-      INNER JOIN {network_feature} NFS on NFS.network_node_id = NNS.network_node_id
-      INNER JOIN {network_feature} NFT on NFT.network_node_id = NNT.network_node_id
-      INNER JOIN {feature} FS on FS.feature_id = NFS.feature_id
-      INNER JOIN {feature} FT on FT.feature_id = NFT.feature_id
+      SELECT
+        FS.feature_id as source_feature_id, FS.name as source_name,
+        FT.feature_id as target_feature_id, FT.name as target_name,
+        NNS.network_node_id as source_node_id,
+        NNT.network_node_id as target_node_id,
+        NE.network_edge_id,
+        N.network_id
+      FROM {network_edge} NE
+        INNER JOIN {network} N on N.network_id = NE.network_id
+        INNER JOIN {network_node} NNS on NNS.network_node_id = NE.source_id
+        INNER JOIN {network_node} NNT on NNT.network_node_id = NE.target_id
+        INNER JOIN {network_feature} NFS on NFS.network_node_id = NNS.network_node_id
+        INNER JOIN {network_feature} NFT on NFT.network_node_id = NNT.network_node_id
+        INNER JOIN {feature} FS on FS.feature_id = NFS.feature_id
+        INNER JOIN {feature} FT on FT.feature_id = NFT.feature_id
     ";
     $where = " WHERE N.organism_id = :organism_id ";
     
@@ -261,9 +261,6 @@ class TripalNetwork {
   private function loadEdgeAttributes() {
     
     if (count($this->edges) == 0) {
-      return;
-    }
-    if (!empty($this->edge_attributes)) {
       return;
     }
         

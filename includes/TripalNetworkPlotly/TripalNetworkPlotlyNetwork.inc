@@ -231,6 +231,7 @@ class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
         $traces[$layer_name] = $edge_trace_defaults;
         $traces[$layer_name]['name'] = $layer_name;
         $traces[$layer_name]['line']['color'] = $color;
+        
       }
       
       $source_node_id = $edge['source_node_id'];
@@ -254,6 +255,7 @@ class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
       $traces[$layer_name]['text'][] = $text;
       $traces[$layer_name]['text'][] = $text;
       $traces[$layer_name]['text'][] = $text;
+      
       
       // Set the line ids.
       $traces[$layer_name]['ids'][] = $network_edge_id;
@@ -342,7 +344,7 @@ class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
     if (!array_key_exists($layer_by, $attributes)) {
       return [];
     }   
-    $attribute = $attributes[$layer_by];   
+    $attribute = $attributes[$layer_by];     
    
     $data_class = NULL;
     $data_type = NULL;
@@ -351,7 +353,7 @@ class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
     $min = INF;
     $categories = [];
     $num_categories = 0;
-    $term = NULL;
+    $term = NULL;     
     
     // The module stores propeties about each attribute in the
     // network_attrprop table which has a network_id field.  
@@ -363,6 +365,8 @@ class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
         $term = $property->type_id;
         $prop_term = $property->type_id->dbxref_id->db_id->name . ':' . $property->type_id->dbxref_id->accession;
         $value_name = $property->value_id ? $property->value_id->name : '';
+        
+        // Classification.
         if ($prop_term == 'NCIT:C25161') {
           if ($value_name == 'Quantitative Variable') {
             $data_class = 'quantitative';
@@ -374,26 +378,24 @@ class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
             $data_class = 'ordinal';
           }
         }
+        
+        // Minimum.
         if ($prop_term == 'NCIT:C25570') {
           $min = $property->value_num;
         }
+        
+        // Maximum.
         if ($prop_term == 'NCIT:C25564') {
           $max = $property->value_num;
         }
+        
+        // Category Name.
         if ($prop_term == 'NCIT:C114464') {
-          if (count(array_keys($filters)) > 0) {
-            $categories = [];
-            foreach ($filters as $filter) {
-              if ($filter['limit_by'] == $layer_by) {
-                $categories = array_merge($categories, array_keys($filter['categories']));
-              }
-            }
-          }
-          else {
-            $categories[] = $property->value;
-          }                  
+          $categories[] = $property->value;                  
           $num_categories = count($categories);
         }
+        
+        // Data Type.
         if ($prop_term == 'NCIT:C42645') {
           $data_type = $value_name;
         }
