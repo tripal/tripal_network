@@ -9,12 +9,15 @@ class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
    * @param TripalNetwork $network
    *   The TripalNetwork instance.
    */
-  public function __construct(TripalNetwork $network) {
-    parent::__construct($network);
+  public function __construct(TripalNetwork $network, $layout='random') {
+    parent::__construct($network, $layout);
     
     $this->engine = new TripalNetworkPlotlyEngine(); 
   }  
   
+  /**
+   * 
+   */
   protected function defaultLayout() {
     return [
       'autosize' => TRUE,
@@ -146,8 +149,7 @@ class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
     }
     
     // If this network has no edges then return an empty network.
-    $edges = $this->network->getEdges();  
-    $network_ids = $this->network->getNetworkIDs();
+    $edges = $this->network->getEdges();      
     if (count(array_keys($edges)) == 0) {
       return $this->emptyNetwork();
     }
@@ -155,52 +157,26 @@ class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
     $edge_trace_defaults = $this->edgeTraceDefaults();    
     $node_trace_defaults = $this->nodeTraceDefaults();
     
-    $selection = $this->network->getSelection();    
-    
-    $network_ids = array_key_exists('network_ids', $selection) ? $selection['network_ids'] : NULL;
-    
-    module_load_include("inc", "tripal_network", "api/tripal_network.fa2.api");
-     
-    // If this is a single network then we may already have the x,y coordinates
-    // loaded, in which case, let's use those. Otherwise, we need to
-    // create a new graph layout.
-    if (count(array_keys($network_ids)) == 1) {
-      $nodes = $this->network->getNodes(); 
-      
-      // Load the x, y coordiantes and degree properties if they are already
-      // present.
-      $num_x_coords = $this->network->retreiveNodeProp('SIO:000400');
-      $num_y_coords = $this->network->retrieveNodeProp('SIO:000401');
-      $num_degree = $this->network->retreiveNodeProp('OBI:0200130');   
-      
-      // If we don't have a degree for every node then recalucate it.
-      if ($num_degree != count(array_keys($nodes))) {
-        $this->network->calculateDegree();
-        $this->network->calculateLocalCC();
-      }      
-      
-      // If the x and y coordiantes aren't avaialble for all nodes then
-      // regenerate a new layout.
-      if ($num_x_coords != count(array_keys($nodes)) or $num_y_coords != count(array_keys($nodes))) {        
-        $layout2d = new TripalNetworkLayoutFA2($this->network);
-        $layout2d->applyLayout();
-      }       
-    }
-    else {
-      $this->network->calculateDegree();
-      $this->network->calculateLocalCC();
-      $layout2d = new TripalNetworkLayoutFA2($this->network);
-      $layout2d->applyLayout();
-    }
-       
+    $network_ids = $this->network->getNetworkIDs();
+    $selection = $this->network->getSelection();        
+    $network_ids = array_key_exists('network_ids', $selection) ? $selection['network_ids'] : NULL;          
     
     // Initialize the array to calculate the z coordianates for nodes.
     $nodes = $this->network->getNodes(); 
     $node_coords = [];
     foreach ($nodes as $node_id => $node) {
+      $x_coord = 1;
+      if (array_key_exists('SIO:000400', $nodes[$node_id])) {
+        $x_coord = $nodes[$node_id]['SIO:000400'];
+      }
+      $y_coord = 1;
+      if (array_key_exists('SIO:000401', $nodes[$node_id])) {
+        $y_coord = $nodes[$node_id]['SIO:000401'];
+      }
+      
       $node_coords[$node_id] = [
-        'x' => $node['SIO:000400'],
-        'y' => $node['SIO:000401'],
+        'x' => $x_coord,
+        'y' => $y_coord,
         'z' => 0
       ];    
     }
@@ -231,7 +207,7 @@ class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
         $traces[$layer_name] = $edge_trace_defaults;
         $traces[$layer_name]['name'] = $layer_name;
         $traces[$layer_name]['line']['color'] = $color;
-        
+        $traces[$layer_name]['line']['width'] = 5;        
       }
       
       $source_node_id = $edge['source_node_id'];
@@ -297,6 +273,11 @@ class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
     $traces['nodes'] = $node_trace_defaults;
     foreach ($nodes as $node_id => $node) {
       
+      $degree = 1;
+      if (array_key_exists('OBI:0200130', $nodes[$node_id])) {
+        $degree = $nodes[$node_id]['OBI:0200130'];
+      }
+      
       // The bin for the node is the z coordinate assigned to the node.
       $layer = $node_coords[$node_id]['layer'];
       $traces['nodes']['x'][] = $node_coords[$node_id]['x'];
@@ -304,7 +285,7 @@ class TripalNetworkPlotlyNetwork extends TripalNetworkPlotNetwork {
       $traces['nodes']['z'][] = $node_coords[$node_id]['z'];
       $traces['nodes']['ids'][] = $node_id;
       $traces['nodes']['text'][] = $node['node_name'];
-      $traces['nodes']['marker']['size'][] = max(round(log10($nodes[$node_id]['OBI:0200130'])*10), 5);
+      $traces['nodes']['marker']['size'][] = max(round(log10($degree)*25), 10);
       $traces['nodes']['marker']['color'][] = in_array($node_id, $selection['feature_ids']) ? '#FFFF00AA': '#AAAAAAAA';
     }
     

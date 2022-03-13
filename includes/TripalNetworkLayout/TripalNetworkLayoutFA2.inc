@@ -12,7 +12,8 @@ class TripalNetworkLayoutFA2 extends TripalNetworkLayout {
   
   protected $options = [
     'ticks' => 100,
-    'repulsion_coefficient' => 2,
+    // i.e.: scaling ratio.
+    'repulsion_coefficient' => 2, 
     'gravity_coefficient' => 0.5,
     'barnes_hut_optimize' => TRUE,
     'barnes_hut_theta' => 1.2,
@@ -63,7 +64,6 @@ class TripalNetworkLayoutFA2 extends TripalNetworkLayout {
     $ticks = $this->options['ticks'];
     $kg = $this->options['gravity_coefficient'];
     $kr = $this->options['repulsion_coefficient'];
-    $bho = $this->options['barnes_hut_optimize'];
     $bht = $this->options['barnes_hut_theta'];
     $ewi = $this->options['edge_weight_influence'];
     $da = $this->options['distribute_attraction'];
@@ -91,8 +91,8 @@ class TripalNetworkLayoutFA2 extends TripalNetworkLayout {
       $nodes[$node_id]['prev_dx'] = 0.0;
       $nodes[$node_id]['prev_dy'] = 0.0;
       $nodes[$node_id]['mass'] = 2.0;
-      if (array_key_exists('degree', $nodes[$node_id])) {
-        $nodes[$node_id]['mass'] = 1.0 + $nodes[$node_id]['degree'];
+      if (array_key_exists('OBI:0200130', $nodes[$node_id])) {
+        $nodes[$node_id]['mass'] = 1.0 + $nodes[$node_id]['OBI:0200130'];
       }
       $oac += $nodes[$node_id]['mass'];
     }
@@ -111,7 +111,7 @@ class TripalNetworkLayoutFA2 extends TripalNetworkLayout {
       
       
       // Calculate the repulsion forces (region by region or node by node).
-      if ($bho) {
+      if ($this->options['barnes_hut_optimize']) {
         // Use the Barnes Hut optimization.
         $this->calculateBHOrepulsion($nodes, $bht, $kr);
       }
@@ -333,18 +333,15 @@ class TripalNetworkLayoutFA2 extends TripalNetworkLayout {
         
         $xdist = $nodes[$node1_id]['x'] - $nodes[$node2_id]['x'];
         $ydist = $nodes[$node1_id]['y'] - $nodes[$node2_id]['y'];
-        $distance_squared = $xdist * $xdist + $ydist * $ydist;
-        $distance = sqrt($distance_squared);
         
         if (!$da) {
           $Fa = $ka * $ew;
         }
         else {
-          $Fa = $ka * $ew / $nodes[$node1_id]['mass'];
+          $Fa = $ka * ($ew / max($nodes[$node1_id]['mass'], $nodes[$node2_id]['mass']));
         }
         
         //$Fa = log(1 + $distance);
-        $Fa = 1;
         
         // Nodes will move closer to each other proportional equal to
         // their distance times a factor.
@@ -364,14 +361,15 @@ class TripalNetworkLayoutFA2 extends TripalNetworkLayout {
       // Set the attraction coefficient to be 1 or the outbound
       // attraction comparison average.
       $ka = $da ? $oac : 1.0;
-      
+
+      // Get the edge weight.
+      $ew = 1;
       if ($ewi == 0) {
-        // If there is no influecne of the edge weight then set it to 1.
-        $ew = 1;
+        // Do nothing, the edge weight stays at 1.
       }
       elseif ($ewi == 1) {
-        // Edge weights aren't supported so just set to 1 for now.
-        $ew = 1;
+        // TODO: set a weight based on an edge attribute.
+        // for now, just keep it at 1.
       }
       else {
         $ew = pow($ew, $ewi);
@@ -403,19 +401,19 @@ class TripalNetworkLayoutFA2 extends TripalNetworkLayout {
   private function calculateRepulsionVSregions(&$nodes, $node_id, $region, $theta = 1.2, $kr=1) {
     
     if (count($region['node_ids']) < 2) {
-      _tripal_network_fa2_calculate_repulsion_vs_node($nodes, $node_id, $region['node_ids'][0], $kr);
+      $this->calculateRepulsionVSnode($nodes, $node_id, $region['node_ids'][0], $kr);
     }
     else {
       $n = $nodes[$node_id];
       $distance = sqrt((($n['x'] - $region['mass_center_x']) * ($n['x'] - $region['mass_center_x'])) +
-          (($n['y'] - $region['mass_center_y']) * ($n['y'] - $region['mass_center_y'])));
+                       (($n['y'] - $region['mass_center_y']) * ($n['y'] - $region['mass_center_y'])));
       if ($distance * $theta > $region['size']) {
-        _tripal_network_fa2_calculate_repulsion_vs_region($nodes, $node_id, $region, $kr);
+        $this->calculateRepulsionVSregion($nodes, $node_id, $region, $kr);
       }
       else {
         // Now recurse though each subregion.
         foreach ($region['subregions'] as $subregion) {
-          _tripal_network_fa2_calculate_repulsion_vs_regions($nodes, $node_id, $subregion, $theta, $kr);
+          $this->calculateRepulsionVSregions($nodes, $node_id, $subregion, $theta, $kr);
         }
       }
     }
@@ -424,79 +422,79 @@ class TripalNetworkLayoutFA2 extends TripalNetworkLayout {
   /**
    *
    */
-  private function applyForcesOnNodes(&$nodes, $speed=1.0, $speed_efficiency = 1.0,
+  private function applyForcesOnNodes(&$nodes, $speed = 1.0, $speed_efficiency = 1.0,
       $jitter_tolerance = 1.0) {
         
-        // Calculate some global swing stats.
-        $total_swinging = 0.0;
-        $total_effective_traction = 0.0;
-        foreach ($nodes as $node_id => $node) {
-          $dx = $nodes[$node_id]['dx'];
-          $dy = $nodes[$node_id]['dy'];
-          $prev_dx = $nodes[$node_id]['prev_dx'];
-          $prev_dy = $nodes[$node_id]['prev_dy'];
-          $mass = $nodes[$node_id]['mass'];
-          
-          $swinging = sqrt(($prev_dx - $dx) * ($prev_dx - $dx) + ($prev_dy - $dy) * ($prev_dy - $dy));
-          $total_swinging += $mass * $swinging;
-          $total_effective_traction +=  0.5 * $mass *
-          sqrt(($prev_dx + $dx) * ($prev_dx + $dx) + ($prev_dy + $dy) * ($prev_dy + $dy));
-        }
-        
-        # Optimize jitter tolerance.  The 'right' jitter tolerance for
-        # this network. Bigger networks need more tolerance. Denser
-        # networks need less tolerance. Totally empiric.
-        $estimated_optimal_jitter_tolerance = 0.05 * sqrt(count(array_keys($nodes)));
-        $min_JT = sqrt($estimated_optimal_jitter_tolerance);
-        $max_JT = 10;
-        $jt = $jitter_tolerance * max($min_JT,
-            min($max_JT, $estimated_optimal_jitter_tolerance * $total_effective_traction / (
-                count(array_keys($nodes)) * count(array_keys($nodes)))));
-        
-        $min_speed_efficiency = 0.05;
-        
-        # Protective against erratic behavior
-        if ($total_effective_traction and ($total_swinging / $total_effective_traction) > 2.0) {
-          if ($speed_efficiency > $min_speed_efficiency) {
-            $speed_efficiency *= 0.5;
-            $jt = max($jt, $jitter_tolerance);
-          }
-        }
-        
-        $target_speed = INF;
-        if ($total_swinging > 0) {
-          $target_speed = $jt * $speed_efficiency * $total_effective_traction / $total_swinging;
-        }
-        
-        if ($total_swinging > $jt * $total_effective_traction) {
-          if ($speed_efficiency > $min_speed_efficiency) {
-            $speed_efficiency *= 0.7;
-          }
-          elseif ($speed < 1000) {
-            $speed_efficiency *= 1.3;
-          }
-        }
-        
-        # But the speed shoudn't rise too much too quickly, since it would
-        # make the convergence drop dramatically.
-        $max_rise = 0.5;
-        $speed = $speed + min($target_speed - $speed, $max_rise * $speed);
-        
-        # Apply forces.
-        foreach ($nodes as $node_id => $node) {
-          $dx = $nodes[$node_id]['dx'];
-          $dy = $nodes[$node_id]['dy'];
-          $prev_dx = $nodes[$node_id]['prev_dx'];
-          $prev_dy = $nodes[$node_id]['prev_dy'];
-          $mass = $nodes[$node_id]['mass'];
-          
-          $swinging = $mass * sqrt(($prev_dx - $dx) * ($prev_dx - $dx) + ($prev_dy - $dy) * ($prev_dy - $dy));
-          $factor = $speed / (1.0 + sqrt($speed * $swinging));
-          $nodes[$node_id]['x'] += $dx * $factor;
-          $nodes[$node_id]['y'] += $dy * $factor;
-        }
-        
-        return ['speed' => $speed, 'speed_efficiency' => $speed_efficiency];
+    // Calculate some global swing stats.
+    $total_swinging = 0.0;
+    $total_effective_traction = 0.0;
+    foreach ($nodes as $node_id => $node) {
+      $dx = $nodes[$node_id]['dx'];
+      $dy = $nodes[$node_id]['dy'];
+      $prev_dx = $nodes[$node_id]['prev_dx'];
+      $prev_dy = $nodes[$node_id]['prev_dy'];
+      $mass = $nodes[$node_id]['mass'];
+      
+      $swinging = sqrt(($prev_dx - $dx) * ($prev_dx - $dx) + ($prev_dy - $dy) * ($prev_dy - $dy));
+      $total_swinging += $mass * $swinging;
+      $total_effective_traction +=  0.5 * $mass *
+      sqrt(($prev_dx + $dx) * ($prev_dx + $dx) + ($prev_dy + $dy) * ($prev_dy + $dy));
+    }
+    
+    # Optimize jitter tolerance.  The 'right' jitter tolerance for
+    # this network. Bigger networks need more tolerance. Denser
+    # networks need less tolerance. Totally empiric.
+    $estimated_optimal_jitter_tolerance = 0.05 * sqrt(count(array_keys($nodes)));
+    $min_JT = sqrt($estimated_optimal_jitter_tolerance);
+    $max_JT = 10;
+    $jt = $jitter_tolerance * max($min_JT,
+        min($max_JT, $estimated_optimal_jitter_tolerance * $total_effective_traction / (
+            count(array_keys($nodes)) * count(array_keys($nodes)))));
+    
+    $min_speed_efficiency = 0.05;
+    
+    # Protective against erratic behavior
+    if ($total_effective_traction and ($total_swinging / $total_effective_traction) > 2.0) {
+      if ($speed_efficiency > $min_speed_efficiency) {
+        $speed_efficiency *= 0.5;
+        $jt = max($jt, $jitter_tolerance);
+      }
+    }
+    
+    $target_speed = INF;
+    if ($total_swinging > 0) {
+      $target_speed = $jt * $speed_efficiency * $total_effective_traction / $total_swinging;
+    }
+    
+    if ($total_swinging > $jt * $total_effective_traction) {
+      if ($speed_efficiency > $min_speed_efficiency) {
+        $speed_efficiency *= 0.7;
+      }
+      elseif ($speed < 1000) {
+        $speed_efficiency *= 1.3;
+      }
+    }
+    
+    # But the speed shoudn't rise too much too quickly, since it would
+    # make the convergence drop dramatically.
+    $max_rise = 0.5;
+    $speed = $speed + min($target_speed - $speed, $max_rise * $speed);
+    
+    # Apply forces.
+    foreach ($nodes as $node_id => $node) {
+      $dx = $nodes[$node_id]['dx'];
+      $dy = $nodes[$node_id]['dy'];
+      $prev_dx = $nodes[$node_id]['prev_dx'];
+      $prev_dy = $nodes[$node_id]['prev_dy'];
+      $mass = $nodes[$node_id]['mass'];
+      
+      $swinging = $mass * sqrt(($prev_dx - $dx) * ($prev_dx - $dx) + ($prev_dy - $dy) * ($prev_dy - $dy));
+      $factor = $speed / (1.0 + sqrt($speed * $swinging));
+      $nodes[$node_id]['x'] += $dx * $factor;
+      $nodes[$node_id]['y'] += $dy * $factor;
+    }
+    
+    return ['speed' => $speed, 'speed_efficiency' => $speed_efficiency];
   }
    
 }

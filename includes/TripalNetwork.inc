@@ -2,7 +2,7 @@
 
 class TripalNetwork {
   
-  private $filters = [
+  protected $filters = [
     0 => [
       'limit' => 500,
       'limit_by' => 'NCIT:C48834',
@@ -11,14 +11,14 @@ class TripalNetwork {
     ],  
   ];
   
-  private $selection = [
+  protected $selection = [
     'organism_id' => NULL,    
     'network_ids' => [],
     'feature_ids' => [],
     'term_ids' => [],
   ];
    
-  private $node_attributes = [];
+  protected $node_attributes = [];
     
   /**
    * Attributes for the edges in the network. 
@@ -32,10 +32,10 @@ class TripalNetwork {
    * chado_generate_var, and type is a cvterm object indicating
    * if the attribute is quantitative, ordinal or categorical.  
    */
-  private $edge_attributes = [];
+  protected $edge_attributes = [];
   
-  private $network_ids = [];
-  private $nodes = [];
+  protected $network_ids = [];
+  protected $nodes = [];
    
   
   /**
@@ -44,24 +44,34 @@ class TripalNetwork {
    * The array is keyed by the edge ID and the value is
    * an array with the the following keys:
    * 
-   *   source_feature_id
+   *   source_id
    *   source_name
-   *   target_feature_id
+   *   target_id
    *   target_name
    *   source_node_id
    *   target_node_id
    *   network_edge_id
    *   network_id 
    */
-  private $edges = [];
+  protected $edges = [];
   
-  private $session_node_attrs = [];
-  private $session_edge_attrs = []; 
+  protected $session_node_attrs = [];
+  protected $session_edge_attrs = []; 
+  
+  protected $quantitative_term = NULL;
+  
+  protected $categorical_term = NULL;
+  
+  protected $ordinal_term = NULL;
   
   /**
    *  
    */
   public function __construct($selection) {  
+    
+    $this->quantitative_term = chado_get_cvterm(['id' => 'NCIT:C142658']);
+    $this->categorical_term = chado_get_cvterm(['id' => 'NCIT:C142657']);
+    $this->ordinal_term = chado_get_cvterm(['id' => 'NCIT:C47797']);
         
     $this->selection['organism_id'] = array_key_exists('organism_id', $selection) ? $selection['organism_id'] : NULL;    
     $this->selection['network_ids'] = (array_key_exists('network_ids', $selection) and is_array($selection['network_ids'])) ? $selection['network_ids'] : [];
@@ -149,8 +159,8 @@ class TripalNetwork {
     // Get the edges from the network
     $sql = "
       SELECT
-        FS.feature_id as source_feature_id, FS.name as source_name,
-        FT.feature_id as target_feature_id, FT.name as target_name,
+        FS.feature_id as source_id, FS.name as source_name,
+        FT.feature_id as target_id, FT.name as target_name,
         NNS.network_node_id as source_node_id,
         NNT.network_node_id as target_node_id,
         NE.network_edge_id,
@@ -238,11 +248,11 @@ class TripalNetwork {
       $network_ids[$record['network_id']] = $record['network_id'];
       $edges[$record['network_edge_id']] = $record;
       $nodes[$record['source_node_id']] = [
-        'feature_id' => $record['source_feature_id'],
+        'feature_id' => $record['source_id'],
         'node_name' => $record['source_name'],
       ];
       $nodes[$record['target_node_id']] = [
-        'feature_id' => $record['target_feature_id'],
+        'feature_id' => $record['target_id'],
         'node_name' => $record['target_name'],
       ];
     }
@@ -258,7 +268,7 @@ class TripalNetwork {
   /**
    * 
    */
-  private function loadEdgeAttributes() {
+  protected function loadEdgeAttributes() {
     
     if (count($this->edges) == 0) {
       return;
@@ -302,7 +312,7 @@ class TripalNetwork {
   /**
    *
    */
-  private function loadNodeAttributes() {
+  protected function loadNodeAttributes() {
     
     if (count($this->nodes) == 0) {
       return;
@@ -487,6 +497,12 @@ class TripalNetwork {
    * @param $property The name of the property by which to sort
    */
   public function sortEdges($property, $sort_order = SORT_ASC) {
+    
+    // If the property doesn't exist for this network then just
+    // return.
+    if (!array_key_exists($property, $this->edge_attributes)) {
+      return;
+    }
     
    // Get the data type for this property
     $sort_flags = SORT_STRING;

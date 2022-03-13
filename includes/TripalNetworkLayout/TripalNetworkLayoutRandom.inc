@@ -10,9 +10,9 @@ class TripalNetworkLayoutRandom extends TripalNetworkLayout {
     // Now update the network node properties with x/y coordinates.
     foreach ($nodes as $node_id => $node) {
       // Add a random x coordiante.
-      $this->network->addNodeProp($node_id, $this->x_coord_term, mt_rand(0, 10));
+      $this->network->addNodeProp($node_id, $this->x_coord_term, floatval(mt_rand(-100, 100))/100);
       // Add a random y coordinate.
-      $this->network->addNodeProp($node_id, $this->y_coord_term, mt_rand(0, 10));
+      $this->network->addNodeProp($node_id, $this->y_coord_term, floatval(mt_rand(-100, 100))/100);
     }
   }    
 }

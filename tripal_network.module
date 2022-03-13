@@ -97,6 +97,16 @@ function tripal_network_menu() {
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
   ];
+    
+  $items['networks/viewer/update/node-neighbors'] = [
+    'page callback' => 'tripal_network_viewer_ajax_get_node_neighbors',
+    'page arguments' => [],
+    'access arguments' => ['view ' . $bundle->name],
+    'file' => '/includes/tripal_network.viewer.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'type' => MENU_CALLBACK,
+  ];
+  
   $items['networks/viewer/update/nodedata'] = [
     'page callback' => 'tripal_network_viewer_ajax_get_node_data_form',
     'page arguments' => [],

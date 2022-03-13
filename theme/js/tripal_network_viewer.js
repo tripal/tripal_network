@@ -58,22 +58,8 @@
     }).mouseover(); 
 	
 	$("#tripal-network-viewer-data-tabs").tabs();
-	$("#tripal-network-viewer-node-menu").menu();
-	
-	// Node menu item handlers.
-	$("#tripal-network-viewer-node-menu #node-select").click(function(){
-	  $("#tripal-network-viewer-node-menu").hide();
-	  if ($("#tripal-network-viewer-node-menu #node-select").text() == 'Unselect') {
-		$.fn.unselectNode(clicked_node);
-	  }
-	  else {
-		$.fn.selectNode(clicked_node);
-	  }
-	});
-	$("#tripal-network-viewer-node-menu #node-inspect").click(function(){
-		$("#tripal-network-viewer-node-menu").hide(); 
-		$.fn.updateNodeDetails({'node_id': clicked_node['points'][0]['id']})		
-	});
+	$.fn.setupNodeMenu();
+
 
 	
 	// For displays that don't fit the navbar and the sidebar we will scale
@@ -149,12 +135,47 @@
 	})
   });
     
+  /**
+   *
+   */
   $.fn.setState = function(args) {
     for (var key in args) {
       state[key] = args[key];
     } 
   }
   
+  /**
+   *
+   */
+  $.fn.setupNodeMenu = function() {
+    $("#tripal-network-viewer-node-menu").menu();
+	
+	// Node menu item handlers.
+	$("#tripal-network-viewer-node-menu #node-select").click(function(){
+	  $("#tripal-network-viewer-node-menu").hide();
+	  if ($("#tripal-network-viewer-node-menu #node-select").text() == 'Unselect') {
+		$.fn.unselectNode(clicked_node);
+	  }
+	  else {
+		$.fn.selectNode(clicked_node);
+	  }
+	});
+	$("#tripal-network-viewer-node-menu #node-menu-header").click(function() {
+	  $("#tripal-network-viewer-node-menu").hide();
+	});
+	$("#tripal-network-viewer-node-menu #node-inspect").click(function(){
+	  $("#tripal-network-viewer-node-menu").hide(); 
+	  $.fn.updateNodeDetails({'node_id': clicked_node['points'][0]['id']})		
+	});
+	$("#tripal-network-viewer-node-menu #node-select-neighbors").click(function(){
+	  $("#tripal-network-viewer-node-menu").hide(); 
+	  $.fn.selectNeighbors(clicked_node);		
+	});
+  }
+  
+  /**
+   *
+   */
   $.fn.showBox = function(id) {
     $.fn.partialSidebar(id);
     var icon = id.replace('box', 'icon');
@@ -579,10 +600,10 @@
       var id = data['points'][0]['id'];        
       if (mode == 'markers') {
         if (selected_nodes.hasOwnProperty(id)) {
-	      $("#tripal-network-viewer-node-menu #node-select").text('Unselect');
+	      $("#tripal-network-viewer-node-menu #node-select").html('<span class="ui-icon ui-icon-cart"></span>Unselect');
         }
         else {
-	      $("#tripal-network-viewer-node-menu #node-select").text('Select');
+	      $("#tripal-network-viewer-node-menu #node-select").html('<span class="ui-icon ui-icon-cart"></span>Select');
         }
 		$("#tripal-network-viewer-node-menu").css('left', mouseX);
 		$("#tripal-network-viewer-node-menu").css('top', mouseY);
@@ -675,6 +696,37 @@
     marker['color'][point_number] = '#FF0000';    
     Plotly.restyle('tripal-network-viewer', {'marker': marker}, [trace_number]);
     selected_nodes[id] = node;
+  }
+  
+    
+  /**
+   *
+   */
+  $.fn.selectNeighbors = function(node) {
+	var id = node['points'][0]['id'];
+	
+	var data = state;
+    data['node_id'] = id;
+     
+	$.fn.showSpinner()
+    $.ajax({
+      // The baseurl is a variable set by Tripal that indicates the
+      // "base" of the URL for this site.
+      url: baseurl + '/networks/viewer/update/node-neighbors',
+      type: "GET",
+      dataType: 'json',
+      data: data,
+      success: function(nodes) {
+	    for (var i = 0; i < nodes.length; i++) {
+			$.fn.selectNodeByID(nodes[i]);
+		}
+		$.fn.hideSpinner();
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+		$.fn.hideSpinner();
+      }
+    }) 
   }
   
   /**

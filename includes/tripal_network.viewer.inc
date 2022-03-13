@@ -47,6 +47,27 @@ function tripal_network_viewer_ajax_init() {
 /**
  *
  */
+function tripal_network_viewer_ajax_get_node_neighbors() {
+  $network_session_id = array_key_exists('network_session_id', $_GET) ? $_GET['network_session_id'] : NULL;
+  $node_id = array_key_exists('node_id', $_GET) ? $_GET['node_id'] : NULL;
+  $network = tripal_network_viewer_get_session_network($network_session_id);
+  $edges = $network->getEdges();
+    
+  $neighbors = [$node_id];
+  foreach ($edges as $edge_id => $edge) {
+    if ($edge['source_node_id'] == $node_id) {
+      $neighbors[] = $edge['target_node_id'];
+    }
+    else if ($edge['target_node_id'] == $node_id) {
+      $neighbors[] = $edge['source_node_id'];
+    }
+  }
+  drupal_json_output(array_unique($neighbors));
+}
+
+/**
+ *
+ */
 function tripal_network_viewer_ajax_get_layers_form() {
   $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
   $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
@@ -668,7 +689,7 @@ function tripal_network_viewer_ajax_retrieve() {
   $network->loadNetwork();  
    
   // Generate the plotly data.
-  $network_plot = new TripalNetworkPlotlyNetwork($network);
+  $network_plot = new TripalNetworkPlotlyNetwork($network, 'fa2');
   if ($layer_by) {
     $network_plot->layerBy($layer_by);
   }
@@ -688,7 +709,6 @@ function tripal_network_viewer_ajax_retrieve() {
   // Save this network to the session variable so we don't have to look it up again.
   $_SESSION['tripal_network_current'][$network_session_id] = [
     'network' => serialize($network),
-    'viewer' => serialize($viewer)
   ];
   
 
@@ -1566,7 +1586,7 @@ function tripal_network_viewer_edge_data_form($form, $form_state,  $network_sess
   $data_table  = theme_table($data_table);
   
   // Fix the links in the table to work with ajax
-  $data_table = preg_replace('/href="header:(.+?)"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateEdgeDataForm('. $page . ', JSON.parse(JSON.stringify('. json_encode($ndata_includes) . ')), "$1", "' . $header_sort_dir . '")\'', $data_table);
+  $data_table = preg_replace('/href="header:(.+?)"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.updateEdgeDataForm('. $page . ', JSON.parse(JSON.stringify('. json_encode($edata_includes) . ')), "$1", "' . $header_sort_dir . '")\'', $data_table);
   $data_table = preg_replace('/href="node-select:(.+?)"/', 'href="javascript:void(0)" onclick=\'jQuery.fn.selectNodeByID("$1")\'', $data_table);
   
   
