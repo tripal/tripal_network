@@ -9,8 +9,12 @@
   };
    
   var sidebar_default_width = null;
-   
-  var selected_node = null;
+  
+  // When a node is clicked, this will hold the plotly information
+  // so that the node menu knows which node was clicked. 
+  var clicked_node = null;
+  
+  var selected_nodes = {};
   var selected_edge = null;
   var selected_edge_prev_color = null;
    
@@ -25,6 +29,11 @@
   
   // Indicates the openness state of the sidebar
   var sidebar_state = 'partial';
+
+  // For storing the current position of the mouse.  
+  var mouseX;
+  var mouseY;
+
     
   // All code within this Drupal.behavior.tripal_network array is 
   // executed everytime a page load occurs or when an ajax call returns.
@@ -43,7 +52,29 @@
   // goes in this section
   $(document).ready(function() {
 	
+	$(document).mousemove(function(e) {
+      mouseX = e.pageX;
+      mouseY = e.pageY;
+    }).mouseover(); 
+	
 	$("#tripal-network-viewer-data-tabs").tabs();
+	$("#tripal-network-viewer-node-menu").menu();
+	
+	// Node menu item handlers.
+	$("#tripal-network-viewer-node-menu #node-select").click(function(){
+	  $("#tripal-network-viewer-node-menu").hide();
+	  if ($("#tripal-network-viewer-node-menu #node-select").text() == 'Unselect') {
+		$.fn.unselectNode(clicked_node);
+	  }
+	  else {
+		$.fn.selectNode(clicked_node);
+	  }
+	});
+	$("#tripal-network-viewer-node-menu #node-inspect").click(function(){
+		$("#tripal-network-viewer-node-menu").hide(); 
+		$.fn.updateNodeDetails({'node_id': clicked_node['points'][0]['id']})		
+	});
+
 	
 	// For displays that don't fit the navbar and the sidebar we will scale
 	// the sidebar to fit the width. Otherwise we need to remember the
@@ -198,7 +229,7 @@
   }
   
   
-  $.fn.updateNetworkPlots = function() {
+  $.fn.updateDegreeDistPlot = function() {
 	
 	// The plotly data for the degree distribution plot
 	// is set by the tripal_network Drupal code as form elements
@@ -495,59 +526,13 @@
       dataType: 'json',
       data: state,
       success: function(json) {
-        var response = json;
-        
-        // Create the new plot.
-        settings = {
-          'displaylogo': false, 
-          'toImageButtonOptions' : {
-             'filename': 'tripal_network_view',
-             'format': 'svg',
-             'scale' : 10
-           }
-        };
-
-        Plotly.newPlot('tripal-network-viewer', response['data'], response['layout'], settings);
-        
-        // Add event handlers. We don't use Jquery as the selector because 
-        // it's not fully compatible with Plotly.
-        var myPlot = document.getElementById('tripal-network-viewer')
-        myPlot.on('plotly_click', function(data){ 
-		  if (in_listener) {
-			return;
-		  }
-		  in_listener = true;
-          var mode =  data['points'][0]['data']['mode'];
-          var id = data['points'][0]['id'];
-          if (mode == 'markers') {
-            $.fn.selectNode(data);            
-            $.fn.updateNodeDetails({'node_id': id})
-          }
-          if (mode == 'lines') {   
-            $.fn.selectEdge(data);     
-            $.fn.updateEdgeDetails({'edge_id': id})
-          }
-          in_listener = false;
-        });
-        
-        // If the graph is reloaded we want to preserve the selected 
-        // node.
-        if (selected_node) {
-          var data = selected_node;
-          selected_node = null;
-          $.fn.selectNode(data);
-        }
-        
-        // If the graph is reloaded do not preserve the highlight of the 
-        // selected node.
-        if (selected_edge) {
-          selected_edge = null;
-          selected_edge_prev_color = null;
-        }
+        $.fn.updateNetworkPlot(json);               
 
         // Add in the network details and switch to that box.
-		$('#tripal-network-viewer-network-details-box form').replaceWith(response['details']);		
-		$.fn.updateNetworkPlots();
+		$('#tripal-network-viewer-network-details-box form').replaceWith(json['details']);
+		
+		// Now update other elements on the page.		
+		$.fn.updateDegreeDistPlot();
 		$.fn.updateFilterForm();
         $.fn.updateLayersForm();
         $.fn.updateEdgeDataForm();
@@ -564,6 +549,69 @@
       }
     })
   };
+  
+  /**
+   *
+   */
+  $.fn.updateNetworkPlot = function(data) {
+	
+	// Create the new plot.
+    settings = {
+      'displaylogo': false, 
+      'toImageButtonOptions' : {
+         'filename': 'tripal_network_view',
+         'format': 'svg',
+         'scale' : 10
+       }
+    };
+
+    Plotly.newPlot('tripal-network-viewer', data['data'], data['layout'], settings);
+    
+    // Add event handlers. We don't use Jquery as the selector because 
+    // it's not fully compatible with Plotly.
+    var myPlot = document.getElementById('tripal-network-viewer')
+    myPlot.on('plotly_click', function(data){ 
+	  if (in_listener) {
+		return;
+	  }
+	  in_listener = true;
+      var mode = data['points'][0]['data']['mode'];  
+      var id = data['points'][0]['id'];        
+      if (mode == 'markers') {
+        if (selected_nodes.hasOwnProperty(id)) {
+	      $("#tripal-network-viewer-node-menu #node-select").text('Unselect');
+        }
+        else {
+	      $("#tripal-network-viewer-node-menu #node-select").text('Select');
+        }
+		$("#tripal-network-viewer-node-menu").css('left', mouseX);
+		$("#tripal-network-viewer-node-menu").css('top', mouseY);
+		$("#tripal-network-viewer-node-menu").show();
+		clicked_node = data;
+      }
+      if (mode == 'lines') {   			
+        $.fn.selectEdge(data);     
+        $.fn.updateEdgeDetails({'edge_id': id})
+      }
+      in_listener = false;
+    });
+    
+    // If the graph is reloaded we want to preserve the selected 
+    // node.
+    if (Object.keys(selected_nodes).length > 0) {
+      for (const id in selected_nodes) {
+	    data = selected_nodes[id];
+	    $.fn.selectNode(data);
+	  }           
+    }
+    
+    // If the graph is reloaded do not preserve the highlight of the 
+    // selected node.
+    if (selected_edge) {
+      selected_edge = null;
+      selected_edge_prev_color = null;
+    }
+  }
   
   /**
    *
@@ -602,32 +650,31 @@
 	}			
   }
   
+  /**
+   *
+   */
+  $.fn.unselectNode = function(node) {
+	var id = node['points'][0]['id'];
+    var point_number = node['points'][0]['pointNumber'];
+    var trace_number = node['points'][0]['curveNumber'];
+    var marker = node['points'][0]['data']['marker'];
+    marker['color'][point_number] = '#AAAAAA';
+    Plotly.restyle('tripal-network-viewer', {'marker': marker}, [trace_number]);
+    delete selected_nodes[id];
+  }
+  
   
   /**
    *
    */
-  $.fn.selectNode = function(data) {       
-    var update = {};
-        
-    if (selected_node) {
-      var spn = selected_node['points'][0]['pointNumber'];
-      var stn = selected_node['points'][0]['curveNumber'];
-      var smarker = selected_node['points'][0]['data']['marker'];
-      smarker['color'][spn] = '#AAAAAA';
-      update = {'marker': smarker};
-      selected_node = null;
-      Plotly.restyle('tripal-network-viewer', update, [stn]);
-    }
-    
-    var pn = data['points'][0]['pointNumber'];
-    var tn = data['points'][0]['curveNumber'];
-    var marker = data['points'][0]['data']['marker'];
-    marker['color'][pn] = '#FF0000';
-    update = {'marker': marker};
-    selected_node = data;
-    Plotly.restyle('tripal-network-viewer', update, [tn]);
-    
-    in_selection = false;
+  $.fn.selectNode = function(node) {
+	var id = node['points'][0]['id'];
+    var point_number = node['points'][0]['pointNumber'];
+    var trace_number = node['points'][0]['curveNumber'];
+    var marker = node['points'][0]['data']['marker'];
+    marker['color'][point_number] = '#FF0000';    
+    Plotly.restyle('tripal-network-viewer', {'marker': marker}, [trace_number]);
+    selected_nodes[id] = node;
   }
   
   /**

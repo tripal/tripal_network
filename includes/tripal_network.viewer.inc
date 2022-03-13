@@ -1491,6 +1491,7 @@ function tripal_network_viewer_edge_data_form($form, $form_state,  $network_sess
     '#title' => 'Columns to Include',
     '#options' => $attributes,
     '#multiple' => TRUE,
+    '#size' => 10,
     '#default_value' => $edata_includes,
     '#description' => t('Select Properties to include in the table.'),
     '#ajax' => array(

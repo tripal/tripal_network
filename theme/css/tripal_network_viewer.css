@@ -37,6 +37,18 @@ a {
   display: none; 
 }
 
+#tripal-network-viewer-node-menu {
+  position: absolute;
+  left: 0;
+  top: 0;	
+  display: none;
+  z-index: 110;
+}
+
+ul#tripal-network-viewer-node-menu {
+  padding: 0px;
+}
+
 @keyframes tripal-network-spinner{
   100%{
     transform:rotatez(360deg);
@@ -279,3 +291,6 @@ h3 {
   border: 1px solid #c5c5c5;
 }
 
+#tripal-network-viewer-app .ui-menu {
+  
+}

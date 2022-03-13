@@ -76,6 +76,11 @@ $node_data_form = drupal_render($node_data_form);
    <div id="tripal-network-viewer-loading">
    	 <div id="tripal-network-viewer-loading-spinner"></div>
    </div>
+   <ul id="tripal-network-viewer-node-menu">
+      <li class="ui-widget-header"><div>Node Menu</div></li>
+      <li><div id="node-select"><span class="ui-icon ui-icon-flag"></span>Select</div></li>
+      <li><div id="node-inspect"><span class="ui-icon ui-icon-document"></span>Inspect</div></li>
+   </ul>
    <div id="tripal-network-viewer-navbar">
      <div><img id="tripal-network-viewer-network-select-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_selection_2256434.png"></div>
      <div><img id="tripal-network-viewer-network-details-icon" class="tripal-network-viewer-navbar-icon" src="<?php print $theme_path?>/images/noun_Network_1571006.png"></div>
