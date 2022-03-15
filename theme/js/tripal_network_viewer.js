@@ -15,6 +15,7 @@
   var clicked_node = null;
   
   var selected_nodes = {};
+  var reported_selection = [];
   var selected_edge = null;
   var selected_edge_prev_color = null;
    
@@ -44,6 +45,13 @@
 		var z_axis = $('#tripal-network-edge-expression-plot-color-by').find(":selected").text();
 		var edge_id = $('#tripal-network-edge-id').val();
 		$.fn.updateEdgeExpressionPlot({z_axis: z_axis, edge_id: edge_id})
+	  });
+	  
+	  $('.tripal-network-analysis-select').change(function() {
+	    var atype = $('.tripal-network-analysis-select').find(":selected").val();
+	    if (atype == 'funce') {
+		  $.fn.reportSelectedNodes();
+	    }
 	  });
     } 
   } 
@@ -250,9 +258,22 @@
   }
   
   $.fn.reportSelectedNodes = function() {
+	
+	// Only report selected nodes if the selection has changed
+	// since the last time we reported.
+	var num_reported = 0;
+	for (var i = 0; i < reported_selection.length; i++) {
+	  if (selected_nodes.hasOwnProperty(reported_selection[i])) {
+		num_reported++;
+	  }
+	}
+	if (num_reported == Object.keys(selected_nodes).length) {
+	  return;
+	}
+	
 	$.fn.showSpinner()
 	
-    var data = state;
+    var data = state; 
     data['selected_nodes'] = Object.keys(selected_nodes);
     
     $.ajax({
@@ -263,7 +284,7 @@
       dataType: 'json',
       data: data,
       success: function(nodes) {
-        // Do nothing
+        reported_selection = Object.keys(selected_nodes);
         $.fn.hideSpinner();
       },
       error: function(xhr, textStatus, thrownError) {

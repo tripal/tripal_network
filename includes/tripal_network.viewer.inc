@@ -1516,24 +1516,29 @@ function tripal_network_viewer_analysis_form($form, $form_state,  $network_sessi
     return $form;
   }
   
+  // Get the included columns.
+  $pvalue_threshold = 0.001;
+  $analysis_type = 0;
+  if (array_key_exists('values', $form_state)) {
+    $analysis_type = array_key_exists('analysis_type', $form_state['values']) ? $form_state['values']['analysis_type'] : $analysis_type;
+    $pvalue_threshold = array_key_exists('pvalue_threshold', $form_state['values']) ? $form_state['values']['pvalue_threshold'] : $pvalue_threshold;
+  }
+  
   $form['analysis_tab_wrapper_start'] = [
     '#type' => 'markup',
     '#markup' => '<div id ="tripal-network-viewer-analysis-form">'
   ];
   
-  $selected_nodes = $network->selectedNodes();  
-  $form['analysis_node_select'] = [
-    '#type' => 'markup',
-    '#markup' => implode(', ', $selected_nodes),
+  $analysis_types = [
+    0 => '--Select--',
+    'funce' => 'Functional Enrichment',
   ];
-  
   $form['analysis_type'] = [
     '#type' => 'select',
     '#title' => 'Analysis to Perform',
-    '#options' => [
-      0 => '--Select--',
-      'funce' => 'Functional Enrichment',      
-    ],
+    '#options' => $analysis_types,
+    '#default_value' => $analysis_type,
+    '#attributes' => ['class' => ['tripal-network-analysis-select']],    
     '#ajax' => array(
       'callback' => 'tripal_network_viewer_analysis_form_ajax_callback',
       'wrapper' => 'tripal-network-viewer-analysis-form',
@@ -1541,6 +1546,28 @@ function tripal_network_viewer_analysis_form($form, $form_state,  $network_sessi
       'method' => 'replace',
     ),
   ];
+  
+  
+  if ($analysis_type == 'funce') {
+    $form['pvalue_threshold'] = [
+      '#type' => 'textfield',
+      '#title' => 'p-value Threshold',
+      '#default_value' => $pvalue_threshold,
+      '#description' => 'Enter the p-value threshold (e.g. 0.001)'
+    ]; 
+    
+    $form['funce_submit'] = [
+      '#type' => 'submit',
+      '#value' => 'Run Analysis',
+      '#name' => 'funce_submit_button',
+      '#ajax' => array(
+        'callback' => 'tripal_network_viewer_analysis_form_ajax_callback',
+        'wrapper' => 'tripal-network-viewer-analysis-form',
+        'effect' => 'fade',
+        'method' => 'replace',
+      ),
+    ];
+  }
   
   $form['analysis_tab_wrapper_end'] = [
     '#type' => 'markup',
