@@ -65,6 +65,12 @@ class TripalNetwork {
   protected $ordinal_term = NULL;
   
   /**
+   * An array of network node IDs indicating a set of nodes selected by the user. 
+   *  
+   */
+  protected $selected_nodes = [];
+  
+  /**
    *  
    */
   public function __construct($selection) {  
@@ -81,6 +87,22 @@ class TripalNetwork {
   
   public function getSelection() {
     return $this->selection;
+  }
+  
+  public function selectedNodes() {
+    return $this->selected_nodes;
+  }
+  
+  public function setSelectedNodes($nodes = []) {
+    
+    $this->selected_nodes = [];
+    foreach ($nodes as $node_id) {
+      if (array_key_exists($node_id, $this->nodes)) { 
+        $this->selected_nodes[] = $node_id;
+      }
+    }
+    
+    return (count($this->selected_nodes));
   }
     
   /**

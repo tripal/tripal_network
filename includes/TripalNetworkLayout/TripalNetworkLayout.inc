@@ -1,6 +1,6 @@
 <?php 
 
-class TripalNetworkLayout {
+abstract class TripalNetworkLayout {
   
   protected $network = NULL;
   protected $options = [];
@@ -13,7 +13,5 @@ class TripalNetworkLayout {
     $this->options = $options;
   }
   
-  public function applyLayout() {
-    
-  }    
+  abstract public function applyLayout();   
 }

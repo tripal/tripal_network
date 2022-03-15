@@ -169,7 +169,7 @@
 	});
 	$("#tripal-network-viewer-node-menu #node-select-neighbors").click(function(){
 	  $("#tripal-network-viewer-node-menu").hide(); 
-	  $.fn.selectNeighbors(clicked_node);		
+	  $.fn.selectNeighbors(clicked_node);	
 	});
   }
   
@@ -249,6 +249,29 @@
 	}
   }
   
+  $.fn.reportSelectedNodes = function() {
+	$.fn.showSpinner()
+	
+    var data = state;
+    data['selected_nodes'] = Object.keys(selected_nodes);
+    
+    $.ajax({
+      // The baseurl is a variable set by Tripal that indicates the
+      // "base" of the URL for this site.
+      url: baseurl + '/networks/viewer/select/nodes',
+      type: "GET",
+      dataType: 'json',
+      data: data,
+      success: function(nodes) {
+        // Do nothing
+        $.fn.hideSpinner();
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+        $.fn.hideSpinner();
+      }
+    }) 
+  }
   
   $.fn.updateDegreeDistPlot = function() {
 	
@@ -467,6 +490,31 @@
    /**
    *
    */
+  $.fn.updateAnalysisForm = function() {
+	var data = state;
+    $.fn.showSpinner()
+    $.ajax({
+      // The baseurl is a variable set by Tripal that indicates the
+      // "base" of the URL for this site.
+      url: baseurl + '/networks/viewer/update/analysis',
+      type: "GET",
+      dataType: 'json',
+      data: data,
+      success: function(response) {
+	    $('#tripal-network-viewer-analysis-box form').replaceWith(response[1]['data']);
+		Drupal.attachBehaviors($('#tripal-network-viewer-analysis-box form'), response[0]['settings']);
+		$.fn.hideSpinner();
+      },
+      error: function(xhr, textStatus, thrownError) {
+        alert(thrownError);
+		$.fn.hideSpinner();
+      }
+    }) 
+   };
+   
+   /**
+   *
+   */
   $.fn.updateNodeDataForm = function(page, ndata_includes, sort_by, sort_dir) {
 	var data = state;
 	data['page'] = page;
@@ -558,6 +606,7 @@
         $.fn.updateLayersForm();
         $.fn.updateEdgeDataForm();
         $.fn.updateNodeDataForm();
+        $.fn.updateAnalysisForm();
 
         // Turn off the spinner.
         $.fn.hideSpinner();
@@ -695,7 +744,7 @@
     var marker = node['points'][0]['data']['marker'];
     marker['color'][point_number] = '#FF0000';    
     Plotly.restyle('tripal-network-viewer', {'marker': marker}, [trace_number]);
-    selected_nodes[id] = node;
+    selected_nodes[id] = node;       
   }
   
     

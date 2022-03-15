@@ -66,6 +66,21 @@ function tripal_network_viewer_ajax_get_node_neighbors() {
 }
 
 /**
+ * 
+ */
+function tripal_network_viewer_ajax_set_node_selection() {
+  $network_session_id = array_key_exists('network_session_id', $_GET) ? $_GET['network_session_id'] : NULL;
+  $selected_nodes = array_key_exists('selected_nodes', $_GET) ? $_GET['selected_nodes'] : NULL;
+  
+  // Set the selected nodes for the network.
+  $network = tripal_network_viewer_get_session_network($network_session_id);  
+  $network->setSelectedNodes($selected_nodes);
+  tripal_network_viewer_set_session_network($network, $network_session_id);
+
+  drupal_json_output(TRUE);
+}
+
+/**
  *
  */
 function tripal_network_viewer_ajax_get_layers_form() {
@@ -94,6 +109,22 @@ function tripal_network_viewer_ajax_get_filter_form() {
  
   $form = drupal_get_form('tripal_network_viewer_filter_form', $network_session_id, 
       $organism_id, $network_id, $filters);
+  $form = drupal_render($form);
+  
+  ajax_deliver($form);
+}
+
+/**
+ *
+ */
+function tripal_network_viewer_ajax_get_analysis_form() {
+  $organism_id = array_key_exists('organism_id', $_GET) ? $_GET['organism_id'] : NULL;
+  $network_id = array_key_exists('network_id', $_GET) ? $_GET['network_id'] : NULL;
+  $network_session_id  = array_key_exists('network_session_id', $_GET) ? $_GET['network_session_id'] : NULL;
+  
+  
+  $form = drupal_get_form('tripal_network_viewer_analysis_form', $network_session_id,
+      $organism_id, $network_id);
   $form = drupal_render($form);
   
   ajax_deliver($form);
@@ -707,9 +738,7 @@ function tripal_network_viewer_ajax_retrieve() {
   
   
   // Save this network to the session variable so we don't have to look it up again.
-  $_SESSION['tripal_network_current'][$network_session_id] = [
-    'network' => serialize($network),
-  ];
+  tripal_network_viewer_set_session_network($network, $network_session_id); 
   
 
   drupal_json_output($plotly_data);
@@ -1471,6 +1500,69 @@ function tripal_network_viewer_layers_form_ajax_callback($form, $form_state) {
 }
 
 /**
+ * 
+ */
+function tripal_network_viewer_analysis_form($form, $form_state,  $network_session_id,
+    $organism_id = NULL, $network_id = NULL) {
+  
+      
+  $network = tripal_network_viewer_get_session_network($network_session_id);
+  
+  if (!$network) {
+    $form['details'] = [
+      '#type' => 'markup',
+      '#markup' => t('Please select a network to view details.'),
+    ];
+    return $form;
+  }
+  
+  $form['analysis_tab_wrapper_start'] = [
+    '#type' => 'markup',
+    '#markup' => '<div id ="tripal-network-viewer-analysis-form">'
+  ];
+  
+  $selected_nodes = $network->selectedNodes();  
+  $form['analysis_node_select'] = [
+    '#type' => 'markup',
+    '#markup' => implode(', ', $selected_nodes),
+  ];
+  
+  $form['analysis_type'] = [
+    '#type' => 'select',
+    '#title' => 'Analysis to Perform',
+    '#options' => [
+      0 => '--Select--',
+      'funce' => 'Functional Enrichment',      
+    ],
+    '#ajax' => array(
+      'callback' => 'tripal_network_viewer_analysis_form_ajax_callback',
+      'wrapper' => 'tripal-network-viewer-analysis-form',
+      'effect' => 'fade',
+      'method' => 'replace',
+    ),
+  ];
+  
+  $form['analysis_tab_wrapper_end'] = [
+    '#type' => 'markup',
+    '#markup' => '</div>'
+  ];
+  
+  return $form;
+      
+}
+
+function tripal_network_viewer_analysis_form_ajax_callback($form, $form_state) {
+  
+  // If there are errors, just return the form
+  if (form_get_errors()) {
+    return $form;
+  }
+    
+  return $form;
+  
+}
+
+/**
  *
  **/
 function tripal_network_viewer_edge_data_form($form, $form_state,  $network_session_id,
@@ -1733,6 +1825,14 @@ function tripal_network_viewer_node_data_form($form, $form_state,  $network_sess
   return $form;
 }
 
+function tripal_network_viewer_set_session_network($network, $network_session_id){
+  
+  // Save this network to the session variable so we don't have to look it up again.
+  $_SESSION['tripal_network_current'][$network_session_id] = [
+    'network' => serialize($network),
+  ];
+  return $network_session_id;
+}
 /**
  * 
  */

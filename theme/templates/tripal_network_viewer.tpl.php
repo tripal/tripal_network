@@ -71,6 +71,9 @@ $edge_data_form = drupal_render($edge_data_form);
 $node_data_form = drupal_get_form('tripal_network_viewer_node_data_form', $network_session_id, $organism_id, $network_id);
 $node_data_form = drupal_render($node_data_form);
 
+$analysis_form = drupal_get_form('tripal_network_viewer_analysis_form', $network_session_id, $organism_id, $network_id);
+$analysis_form = drupal_render($analysis_form);
+
 ?>
 <div id="tripal-network-viewer-app">
    <div id="tripal-network-viewer-loading">
@@ -151,7 +154,9 @@ $node_data_form = drupal_render($node_data_form);
        </div>
        <div id="tripal-network-viewer-analysis-box" class="tripal-network-viewer-sidebar-box">
          	<h2>Analysis</h2>   
-         	      
+         	<div id="tripal-network-viewer-analysis-tab">
+         	  <?php print $analysis_form ?>
+         	</div>
        </div>
        <div id="tripal-network-viewer-about-box" class="tripal-network-viewer-sidebar-box">
           <h2>About this Network Viewer</h2>

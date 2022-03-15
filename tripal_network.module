@@ -123,8 +123,25 @@ function tripal_network_menu() {
     'file path' => drupal_get_path('module','tripal_network'),
     'type' => MENU_CALLBACK,
   ];
+  $items['networks/viewer/update/analysis'] = [
+    'page callback' => 'tripal_network_viewer_ajax_get_analysis_form',
+    'page arguments' => [],
+    'access arguments' => ['view ' . $bundle->name],
+    'file' => '/includes/tripal_network.viewer.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'type' => MENU_CALLBACK,
+  ];  
+  
   $items['networks/viewer/details/node'] = [
     'page callback' => 'tripal_network_viewer_ajax_get_node_details',
+    'page arguments' => [],
+    'access arguments' => ['view ' . $bundle->name],
+    'file' => '/includes/tripal_network.viewer.inc',
+    'file path' => drupal_get_path('module','tripal_network'),
+    'type' => MENU_CALLBACK,
+  ];
+  $items['networks/viewer/select/nodes'] = [
+    'page callback' => 'tripal_network_viewer_ajax_set_node_selection',
     'page arguments' => [],
     'access arguments' => ['view ' . $bundle->name],
     'file' => '/includes/tripal_network.viewer.inc',
